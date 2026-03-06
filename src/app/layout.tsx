@@ -50,15 +50,19 @@ const borna = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "IVAN KOLESNIKOV | Photography Portfolio",
+  title: "IVAN KOLESNIKOV | PORTFOLIO",
   description: "Professional photography portfolio by Ivan Kolesnikov. Portrait, fashion, and artistic photography.",
   keywords: ["photography", "portfolio", "portrait", "fashion", "artistic", "Ivan Kolesnikov"],
   authors: [{ name: "Ivan Kolesnikov" }],
-  icons: { icon: "/logo.svg" },
   openGraph: {
     title: "IVAN KOLESNIKOV | Photography Portfolio",
-    description: "Professional photography portfolio",
+    description: "Professional photography portfolio by Ivan Kolesnikov.",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "IVAN KOLESNIKOV | Photography Portfolio",
+    description: "Professional photography portfolio by Ivan Kolesnikov.",
   },
 };
 
@@ -67,7 +71,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${borna.variable} antialiased`}>
-      <body>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+      </head>
+      <body className={borna.className}>
         {children}
         <Toaster />
       </body>
