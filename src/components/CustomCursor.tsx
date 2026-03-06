@@ -1,0 +1,37 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
+export function CustomCursor() {
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const moveCursor = (e: MouseEvent) => {
+      setPosition({ x: e.clientX, y: e.clientY })
+    }
+
+    window.addEventListener('mousemove', moveCursor)
+
+    return () => {
+      window.removeEventListener('mousemove', moveCursor)
+    }
+  }, [])
+
+  return (
+    <div
+      className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-difference"
+      style={{
+        left: position.x,
+        top: position.y,
+      }}
+    >
+      {/* Single round dot */}
+      <div 
+        className="w-3 h-3 bg-white rounded-full"
+        style={{
+          transform: 'translate(-50%, -50%)'
+        }}
+      />
+    </div>
+  )
+}
