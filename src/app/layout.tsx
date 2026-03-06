@@ -77,7 +77,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body className={borna.className}>
+      <body className={borna.className} style={{ overflowX: 'hidden', maxWidth: '100vw' }}>
         {children}
         <Toaster />
       </body>
