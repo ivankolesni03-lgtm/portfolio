@@ -50,7 +50,7 @@ const borna = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "IVAN KOLESNIKOV | PORTFOLIO",
+  title: "IVAN KOLESNIKOV | Photography Portfolio",
   description: "Professional photography portfolio by Ivan Kolesnikov. Portrait, fashion, and artistic photography.",
   keywords: ["photography", "portfolio", "portrait", "fashion", "artistic", "Ivan Kolesnikov"],
   authors: [{ name: "Ivan Kolesnikov" }],
@@ -82,5 +82,5 @@ export default function RootLayout({
         <Toaster />
       </body>
     </html>
-  );
+  )
 }

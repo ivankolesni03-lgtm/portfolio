@@ -11,6 +11,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ContactSection } from '@/components/ContactSection'
 import { AISection } from '@/components/AISection'
 import { GWASection } from '@/components/GWASection'
+import { PasswordGate } from '@/components/PasswordGate'
 
 export default function Home() {
   const [headerVisible, setHeaderVisible] = useState(false)
@@ -20,11 +21,7 @@ export default function Home() {
     const handleScroll = () => {
       const vh = window.innerHeight
       const y = window.scrollY
-
-      // Header sichtbar wenn Hero verlassen
       setHeaderVisible(y > vh * 0.8)
-
-      // BrushCursor aktiv nur in der QuoteSection (zwischen 1×vh und 3×vh)
       setBrushActive(y > vh * 0.9 && y < vh * 3)
     }
 
@@ -35,17 +32,19 @@ export default function Home() {
 
   return (
     <LanguageProvider>
-      <main>
-        <CustomCursor />
-        <Header isVisible={headerVisible} />
-        <BrushCursor active={brushActive} />
-        <Hero />
-        <QuoteSection />
-        <ProjectsSection />
-        <AISection />
-        <GWASection />
-        <ContactSection />
-      </main>
+      <PasswordGate>
+        <main>
+          <CustomCursor />
+          <Header isVisible={headerVisible} />
+          <BrushCursor active={brushActive} />
+          <Hero />
+          <QuoteSection />
+          <ProjectsSection />
+          <AISection />
+          <GWASection />
+          <ContactSection />
+        </main>
+      </PasswordGate>
     </LanguageProvider>
   )
 }

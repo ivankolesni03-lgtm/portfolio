@@ -53,6 +53,11 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
   const [displayLetters, setDisplayLetters] = useState(targetText.split(''))
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const mountedRef = useRef(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+  }, [])
 
   useEffect(() => {
     if (!ref.current) return
@@ -96,10 +101,10 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
       ref={ref}
       onMouseEnter={() => scramble(targetText)}
       style={{
-        fontSize: '8vw',
+        fontSize: isMobile ? '11vw' : '8vw',
         fontWeight: '900',
-        lineHeight: '0.9',
-        letterSpacing: '-3px',
+        lineHeight: '0.92',
+        letterSpacing: isMobile ? '-1px' : '-3px',
         textTransform: 'uppercase',
         color: '#ffffff',
         overflow: 'hidden',
@@ -136,15 +141,19 @@ function YinYang({ visible, scrolledIn, sectionHeight }: {
   sectionHeight: number
 }) {
   const [textHeight, setTextHeight] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
     const el = document.querySelector('.quote-text-block') as HTMLElement
     if (el) setTextHeight(el.offsetHeight)
   }, [visible])
 
   const rotation = sectionHeight > 0 ? (scrolledIn / sectionHeight) * 360 : 0
-  // Symbol größer: 1.4× Texthöhe, Minimum 340px
-  const size = textHeight > 20 ? textHeight * 1.0 : 240
+
+  const size = isMobile
+    ? Math.min(window.innerWidth * 0.55, 220)
+    : (textHeight > 20 ? textHeight * 1.0 : 240)
 
   const appearProgress = Math.max(0, Math.min(1,
     (scrolledIn - (typeof window !== 'undefined' ? window.innerHeight : 800) * 0.2) /
@@ -172,6 +181,11 @@ export function QuoteSection() {
   const [midReached, setMidReached] = useState(false)
   const [scrolledIn, setScrolledIn] = useState(0)
   const [sectionHeight, setSectionHeight] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -202,6 +216,18 @@ export function QuoteSection() {
   const blur = exitProgress * 24
   const opacity = 1 - exitProgress
 
+  const padding = isMobile ? '0 5vw' : '0 9vw'
+
+  // Text: Mobile weiter oben (30vh vom unteren Rand)
+  const textBottom = isMobile ? '30vh' : '9vw'
+  const textLeft = isMobile ? '5vw' : '9vw'
+  const textRight = isMobile ? '5vw' : '9vw'
+
+  // Symbol: Mobile weiter unten (5vh vom unteren Rand)
+  const yinYangBottom = isMobile ? '45vh' : 'auto'
+  const yinYangTop = isMobile ? 'auto' : '7vw'
+  const yinYangRight = isMobile ? '5vw' : '9vw'
+
   return (
     <div
       ref={sectionRef}
@@ -218,18 +244,19 @@ export function QuoteSection() {
           position: 'sticky',
           top: 0,
           height: '100vh',
-          padding: '0 9vw',
+          padding,
           overflow: 'hidden',
         }}
       >
         <LocalBrush containerRef={stickyRef} />
 
-        {/* Symbol oben rechts */}
+        {/* Yin Yang — Mobile: unten rechts, Desktop: oben rechts */}
         <div
           style={{
             position: 'absolute',
-            top: '7vw',
-            right: '9vw',
+            top: yinYangTop,
+            bottom: yinYangBottom,
+            right: yinYangRight,
             filter: `blur(${blur}px)`,
             opacity,
             willChange: 'filter, opacity',
@@ -243,13 +270,13 @@ export function QuoteSection() {
           />
         </div>
 
-        {/* Text unten links */}
+        {/* Text — Mobile: weiter oben, Desktop: unten links */}
         <div
           style={{
             position: 'absolute',
-            bottom: '9vw',
-            left: '9vw',
-            right: '9vw',
+            bottom: textBottom,
+            left: textLeft,
+            right: textRight,
             filter: `blur(${blur}px)`,
             opacity,
             willChange: 'filter, opacity',
