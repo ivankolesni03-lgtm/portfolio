@@ -451,7 +451,7 @@ function BgImage() {
       className="fixed pointer-events-none"
       style={{
         right: isMobile ? '-12vw' : '1.5vw',
-        top: isMobile ? '32vh' : 'auto',
+        top: isMobile ? '30vh' : 'auto',
         bottom: isMobile ? 'auto' : '10vh',
         zIndex: 0,
         opacity,
