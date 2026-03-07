@@ -4,18 +4,20 @@ import { useEffect, useState } from 'react'
 
 export function CustomCursor() {
   const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+
     const moveCursor = (e: MouseEvent) => {
       setPosition({ x: e.clientX, y: e.clientY })
     }
 
     window.addEventListener('mousemove', moveCursor)
-
-    return () => {
-      window.removeEventListener('mousemove', moveCursor)
-    }
+    return () => window.removeEventListener('mousemove', moveCursor)
   }, [])
+
+  if (isMobile) return null
 
   return (
     <div
@@ -25,12 +27,9 @@ export function CustomCursor() {
         top: position.y,
       }}
     >
-      {/* Single round dot */}
-      <div 
+      <div
         className="w-3 h-3 bg-white rounded-full"
-        style={{
-          transform: 'translate(-50%, -50%)'
-        }}
+        style={{ transform: 'translate(-50%, -50%)' }}
       />
     </div>
   )
