@@ -5,23 +5,22 @@ import { useLanguage } from '@/contexts/LanguageContext'
 const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
 
 const PROJECTS = [
-  { id:1, title:{de:'Hochschule\nHannover',en:'Hannover\nUASA'}, field:{de:'Image\nKampagne',en:'Image\nCampaign'}, description:{de:'Mangelnde Brand-Sichtbarkeit und eine zu sachliche Web-Präsenz verhindern den emotionalen Zugang. „Home of Community" positioniert die Hochschule als ein Ort für Kreative.',en:'Lack of brand visibility and an overly factual web presence prevent emotional engagement. "Home of Community" positions the university as a place for creatives.'}, image:'/images/hochschule.jpg', images:['/images/hochschule.jpg','/images/continental.jpg','/images/ai.jpg'], tags:{de:['Social Media','OOH','Brand Strategie'],en:['Social Media','OOH','Brand Strategy']} },
-  { id:2, title:{de:'Continental',en:'Continental'}, field:{de:'Produkt\nKampagne',en:'Product\nCampaign'}, description:{de:'Einblicke in die globale Kommunikationslogik bei Continental. Begleitung des Product Drops Ice Contact 8 von der Agentur-Ideation bis zum Launch.',en:'Insights into global communication logic at Continental. Accompanying the Ice Contact 8 product drop from agency ideation to launch.'}, image:'/images/continental.jpg', images:['/images/continental.jpg','/images/hochschule.png'], tags:{de:['Strategie','Kampagne','Copywriting'],en:['Strategy','Campaign','Copywriting']} },
-  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Produktion von Short-Form Video Content für verschiedene Marken. Von der Idee bis zum fertigen Reel – Storytelling, Schnitt und Postproduktion.',en:'Production of short-form video content for various brands. From idea to finished reel – storytelling, editing and post-production.'}, image:'/images/hateaid.jpg', images:['/images/hateaid.jpg','/images/paece.jpg'], tags:{de:['Reels','Schnitt','Storytelling','TikTok'],en:['Reels','Editing','Storytelling','TikTok']} },
-  { id:4, title:{de:'Lebara',en:'Lebara'}, field:{de:'Social Media\nMarketing',en:'Social Media\nMarketing'}, description:{de:'Social Media Content, Community Management und Memes für den Mobilfunkanbieter Lebara. Vom Briefing bis zum Performance Review.',en:'Social media content, community management and memes for mobile provider Lebara. From briefing to performance review.'}, image:'/images/lebara.jpg', images:['/images/lebara.jpg','/images/ai.jpg','/images/hateaid.jpg'], tags:{de:['Content Creation','Memes','TikTok','Community'],en:['Content Creation','Memes','TikTok','Community']} },
-  { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'KI als neues Medium der Inspiration. Mit ComfyUI, N8N und gezieltem LoRA-Training entstehen Bild und Video.',en:'AI as a new medium of inspiration. With ComfyUI, N8N and targeted LoRA training, images and videos are created.'}, image:'/images/ganbatte.jpg', images:['/images/ganbatte.jpg','/images/continental.jpg','/images/ai.jpg'], tags:{de:['ComfyUI','LoRA','N8N','Generative KI'],en:['ComfyUI','LoRA','N8N','Generative AI']} },
-  { id:6, title:{de:'Cavallo',en:'Cavallo'}, field:{de:'UX & Web\nDesign',en:'UX & Web\nDesign'}, description:{de:'Entwicklung einer interaktiven Kommunikationskampagne für eine Eventlocation, inklusive Flowchart, Website-Layout und Mockups.',en:'Development of an interactive communication campaign for an event location, including flowchart, website layout and mockups.'}, image:'/images/cavallo.jpg', images:['/images/cavallo.jpg','/images/hochschule.png'], tags:{de:['UX','UI','Web Design','Mockup'],en:['UX','UI','Web Design','Mockup']} },
-  { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Social-Media-Kampagne für eine Supplement-Marke. Motion Design und Postproduktion, um Benefits hervorzuheben.',en:'Social media campaign for a supplement brand. Motion design and post-production to highlight benefits.'}, image:'/images/bold.jpg', images:['/images/bold.jpg','/images/lebara.jpg'], tags:{de:['Motion Design','Postproduktion','Social Media'],en:['Motion Design','Post-Production','Social Media']} },
-  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Konzeption und Umsetzung eines digitalen Portfolios mit Next.js, Tailwind und prozeduralen Scroll-Animationen.',en:'Conception and implementation of a digital portfolio with Next.js, Tailwind and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg','/images/ai.jpg'], tags:{de:['Next.js','TypeScript','Animation','Branding'],en:['Next.js','TypeScript','Animation','Branding']} },
-  { id:9, title:{de:'Glow\nNation',en:'Glow\nNation'}, field:{de:'Kommunikations\nDesign',en:'Communication\nDesign'}, description:{de:'Ganzheitliche Kommunikationsstrategien für mittelständische Unternehmen. Zielgruppenanalyse, Kanalwahl und Messaging-Architektur.',en:'Holistic communication strategies for medium-sized companies. Target group analysis, channel selection and messaging architecture.'}, image:'/images/glownation.jpg', images:['/images/glownation.jpg','/images/cavallo.jpg'], tags:{de:['Strategie','Beratung','B2B','Analyse'],en:['Strategy','Consulting','B2B','Analysis']} },
-  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Moving\nImage'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt – authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut – authentic storytelling in sport.'}, image:'/images/tennisheine.jpg', images:['/images/tennisheine.jpg','/images/bold.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']} },
-  { id:11, title:{de:'GWA\nHackingOff',en:'GWA\nHackingOff'}, field:{de:'Bewegtbild',en:'Moving\nImage'}, description:{de:'Kampagnenfilm für den GWA HackingOff Award. Kreative Umsetzung eines gesellschaftlich relevanten Themas mit gezieltem Einsatz von Bildsprache und Montage.',en:'Campaign film for the GWA HackingOff Award. Creative realisation of a socially relevant topic through targeted use of visual language and montage.'}, image:'/images/gwa.jpg', images:['/images/gwa.jpg','/images/hateaid.jpg'], tags:{de:['Kampagnenfilm','Regie','Montage','Award'],en:['Campaign Film','Direction','Montage','Award']} },
-  { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Produktfotografie und visuelle Identität für Weros Webdynamics. Klare Bildsprache, die technische Kompetenz und moderne Ästhetik verbindet.',en:'Product photography and visual identity for Weros Webdynamics. Clear visual language combining technical expertise with modern aesthetics.'}, image:'/images/weros.jpg', images:['/images/weros.jpg','/images/pocoloco.jpg'], tags:{de:['Fotografie','Produktfoto','Branding','Visual Identity'],en:['Photography','Product Photo','Branding','Visual Identity']} },
+  { id:1, title:{de:'Hochschule\nHannover',en:'Hannover\nUASA'}, field:{de:'Image\nKampagne',en:'Image\nCampaign'}, description:{de:'Mangelnde Brand-Sichtbarkeit und eine zu sachliche Web-Präsenz verhindern den emotionalen Zugang. „Home of Community" positioniert die Hochschule als ein Ort für Kreative.',en:'Lack of brand visibility and an overly factual web presence prevent emotional engagement. "Home of Community" positions the university as a place for creatives.'}, image:'/images/hochschule.jpg', images:['/images/hochschule.jpg','/images/continental.jpg','/images/ai.jpg'], tags:{de:['Social Media','OOH','Brand Strategie'],en:['Social Media','OOH','Brand Strategy']}, youtube: null },
+  { id:2, title:{de:'Continental',en:'Continental'}, field:{de:'Produkt\nKampagne',en:'Product\nCampaign'}, description:{de:'Einblicke in die globale Kommunikationslogik bei Continental. Begleitung des Product Drops Ice Contact 8 von der Agentur-Ideation bis zum Launch.',en:'Insights into global communication logic at Continental. Accompanying the Ice Contact 8 product drop from agency ideation to launch.'}, image:'/images/continental.jpg', images:['/images/continental.jpg','/images/hochschule.png'], tags:{de:['Strategie','Kampagne','Copywriting'],en:['Strategy','Campaign','Copywriting']}, youtube: null },
+  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Produktion von Short-Form Video Content für verschiedene Marken. Von der Idee bis zum fertigen Reel – Storytelling, Schnitt und Postproduktion.',en:'Production of short-form video content for various brands. From idea to finished reel – storytelling, editing and post-production.'}, image:'/images/hateaid.jpg', images:['/images/hateaid.jpg','/images/paece.jpg'], tags:{de:['Reels','Schnitt','Storytelling','TikTok'],en:['Reels','Editing','Storytelling','TikTok']}, youtube: null },
+  { id:4, title:{de:'Lebara',en:'Lebara'}, field:{de:'Social Media\nMarketing',en:'Social Media\nMarketing'}, description:{de:'Social Media Content, Community Management und Memes für den Mobilfunkanbieter Lebara. Vom Briefing bis zum Performance Review.',en:'Social media content, community management and memes for mobile provider Lebara. From briefing to performance review.'}, image:'/images/lebara.jpg', images:['/images/lebara.jpg','/images/ai.jpg','/images/hateaid.jpg'], tags:{de:['Content Creation','Memes','TikTok','Community'],en:['Content Creation','Memes','TikTok','Community']}, youtube: null },
+  { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'KI als neues Medium der Inspiration. Mit ComfyUI, N8N und gezieltem LoRA-Training entstehen Bild und Video.',en:'AI as a new medium of inspiration. With ComfyUI, N8N and targeted LoRA training, images and videos are created.'}, image:'/images/ganbatte.jpg', images:['/images/ganbatte.jpg','/images/continental.jpg','/images/ai.jpg'], tags:{de:['ComfyUI','LoRA','N8N','Generative KI'],en:['ComfyUI','LoRA','N8N','Generative AI']}, youtube: null },
+  { id:6, title:{de:'Cavallo',en:'Cavallo'}, field:{de:'UX & Web\nDesign',en:'UX & Web\nDesign'}, description:{de:'Entwicklung einer interaktiven Kommunikationskampagne für eine Eventlocation, inklusive Flowchart, Website-Layout und Mockups.',en:'Development of an interactive communication campaign for an event location, including flowchart, website layout and mockups.'}, image:'/images/cavallo.jpg', images:['/images/cavallo.jpg','/images/hochschule.png'], tags:{de:['UX','UI','Web Design','Mockup'],en:['UX','UI','Web Design','Mockup']}, youtube: null },
+  { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Social-Media-Kampagne für eine Supplement-Marke. Motion Design und Postproduktion, um Benefits hervorzuheben.',en:'Social media campaign for a supplement brand. Motion design and post-production to highlight benefits.'}, image:'/images/bold.jpg', images:['/images/bold.jpg','/images/lebara.jpg'], tags:{de:['Motion Design','Postproduktion','Social Media'],en:['Motion Design','Post-Production','Social Media']}, youtube: null },
+  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Konzeption und Umsetzung eines digitalen Portfolios mit Next.js, Tailwind und prozeduralen Scroll-Animationen.',en:'Conception and implementation of a digital portfolio with Next.js, Tailwind and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg','/images/ai.jpg'], tags:{de:['Next.js','TypeScript','Animation','Branding'],en:['Next.js','TypeScript','Animation','Branding']}, youtube: null },
+  { id:9, title:{de:'Glow\nNation',en:'Glow\nNation'}, field:{de:'Kommunikations\nDesign',en:'Communication\nDesign'}, description:{de:'Ganzheitliche Kommunikationsstrategien für mittelständische Unternehmen. Zielgruppenanalyse, Kanalwahl und Messaging-Architektur.',en:'Holistic communication strategies for medium-sized companies. Target group analysis, channel selection and messaging architecture.'}, image:'/images/glownation.jpg', images:['/images/glownation.jpg','/images/cavallo.jpg'], tags:{de:['Strategie','Beratung','B2B','Analyse'],en:['Strategy','Consulting','B2B','Analysis']}, youtube: null },
+  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Moving\nImage'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt – authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut – authentic storytelling in sport.'}, image:'/images/tennisheine.jpg', images:['/images/tennisheine.jpg','/images/bold.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
+  { id:11, title:{de:'GWA\nHackingOff',en:'GWA\nHackingOff'}, field:{de:'Bewegtbild',en:'Moving\nImage'}, description:{de:'Kampagnenfilm für den GWA HackingOff Award. Kreative Umsetzung eines gesellschaftlich relevanten Themas mit gezieltem Einsatz von Bildsprache und Montage.',en:'Campaign film for the GWA HackingOff Award. Creative realisation of a socially relevant topic through targeted use of visual language and montage.'}, image:'/images/gwa.jpg', images:['/images/gwa.jpg','/images/hateaid.jpg'], tags:{de:['Kampagnenfilm','Regie','Montage','Award'],en:['Campaign Film','Direction','Montage','Award']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
+  { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Produktfotografie und visuelle Identität für Weros Webdynamics. Klare Bildsprache, die technische Kompetenz und moderne Ästhetik verbindet.',en:'Product photography and visual identity for Weros Webdynamics. Clear visual language combining technical expertise with modern aesthetics.'}, image:'/images/weros.jpg', images:['/images/weros.jpg','/images/weros1.jpg','/images/weros2.jpg'], tags:{de:['Fotografie','Produktfoto','Branding','Visual Identity'],en:['Photography','Product Photo','Branding','Visual Identity']}, youtube: null },
 ]
 type Project = typeof PROJECTS[0]
 type Lang = 'de'|'en'
 
-// ─── Scramble ────────────────────────────────────────────────────────────────
 function runScramble(
   target: string,
   set: (s:string) => void,
@@ -59,13 +58,11 @@ function useScramble(text: string) {
   return { disp, scramble: go }
 }
 
-// ─── ScrambleText ─────────────────────────────────────────────────────────────
 function ScrambleText({ text, style }: { text: string; style?: React.CSSProperties }) {
   const { disp, scramble } = useScramble(text)
   return <span onMouseEnter={scramble} style={{ cursor: 'default', ...style }}>{disp}</span>
 }
 
-// ─── PixelCanvas ─────────────────────────────────────────────────────────────
 function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelSize?: number }) {
   const cvs    = useRef<HTMLCanvasElement>(null)
   const domImg = useRef<HTMLImageElement>(null)
@@ -116,15 +113,13 @@ function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelS
         style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
       />
       {natH > 0
-        ? <canvas ref={cvs} width={w} height={natH}
-            style={{ display: 'block', width: '100%', height: 'auto' }} />
+        ? <canvas ref={cvs} width={w} height={natH} style={{ display: 'block', width: '100%', height: 'auto' }} />
         : <div style={{ width: w, height: Math.round(w * 0.75), background: '#111' }} />
       }
     </div>
   )
 }
 
-// ─── PixelCarouselOneShot ────────────────────────────────────────────────────
 function PixelCarouselOneShot({ images, w, animateIn = true }: {
   images: string[]; w: number; animateIn?: boolean
 }) {
@@ -154,10 +149,7 @@ function PixelCarouselOneShot({ images, w, animateIn = true }: {
       if (t < 0.5) {
         setPx(1 + (t / 0.5) * 27)
       } else {
-        if (idxR.current !== ni) {
-          idxR.current = ni
-          setCurSrc(nSrc)
-        }
+        if (idxR.current !== ni) { idxR.current = ni; setCurSrc(nSrc) }
         setPx(1 + ((1 - t) / 0.5) * 27)
       }
       if (t < 1) raf.current = requestAnimationFrame(step)
@@ -187,42 +179,37 @@ function PixelCarouselOneShot({ images, w, animateIn = true }: {
   return <PixelCanvas src={curSrc} w={w} pixelSize={px} />
 }
 
-// ─── AnimatedHeading ─────────────────────────────────────────────────────────
-// 1:1 aus Document 3 — UNVERÄNDERT
 function AnimatedHeading() {
   const { language } = useLanguage()
   const text = language === 'de' ? 'PROJEKTE' : 'PROJECTS'
   const { disp, scramble } = useScramble(text)
-
   const staticRef  = useRef<HTMLDivElement>(null)
   const fixedElRef = useRef<HTMLDivElement | null>(null)
+  const [isMobile, setIsMobile] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+  }, [])
 
   useEffect(() => {
     if (fixedElRef.current) fixedElRef.current.textContent = disp
   }, [disp])
 
   useEffect(() => {
+    if (isMobile === null || isMobile) return
+
     const el = document.createElement('div')
     el.textContent = text
     Object.assign(el.style, {
-      position:      'fixed',
-      fontWeight:    '900',
-      textTransform: 'uppercase',
-      color:         '#ffffff',
-      mixBlendMode:  'difference',
-      zIndex:        '99999',
-      pointerEvents: 'none',
-      userSelect:    'none',
-      whiteSpace:    'nowrap',
-      cursor:        'pointer',
-      display:       'none',
-      fontFamily:    'inherit',
+      position: 'fixed', fontWeight: '900', textTransform: 'uppercase',
+      color: '#ffffff', mixBlendMode: 'difference', zIndex: '99999',
+      pointerEvents: 'none', userSelect: 'none', whiteSpace: 'nowrap',
+      cursor: 'pointer', display: 'none', fontFamily: 'inherit',
     })
     el.addEventListener('click', () => {
       const sec = document.getElementById('projekte')
       if (!sec) return
-      const y = sec.getBoundingClientRect().top + window.scrollY
-      window.scrollTo({ top: y, behavior: 'smooth' })
+      window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' })
     })
     el.addEventListener('mouseenter', () => {
       let i = 0
@@ -241,83 +228,62 @@ function AnimatedHeading() {
     fixedElRef.current = el
 
     const startPos = { l: 0, t: 0 }
-
     const fn = () => {
       const staticEl = staticRef.current
       const section  = document.getElementById('projekte')
       if (!staticEl || !section) return
-
       const sr  = section.getBoundingClientRect()
       const hr  = staticEl.getBoundingClientRect()
-
       const raw = Math.max(0, Math.min(1, (-hr.top + 80) / 200))
 
       if (raw < 0.01) {
-        startPos.l = hr.left
-        startPos.t = hr.top
+        startPos.l = hr.left; startPos.t = hr.top
         staticEl.style.visibility = 'visible'
-        el.style.display           = 'none'
-        el.style.pointerEvents     = 'none'
+        el.style.display = 'none'; el.style.pointerEvents = 'none'
         return
       }
-
       if (sr.top > 200) {
         staticEl.style.visibility = 'visible'
-        el.style.display           = 'none'
-        el.style.pointerEvents     = 'none'
+        el.style.display = 'none'; el.style.pointerEvents = 'none'
         return
       }
-
       staticEl.style.visibility = 'hidden'
-      el.style.display           = 'block'
-      el.style.pointerEvents     = 'auto'
+      el.style.display = 'block'; el.style.pointerEvents = 'auto'
 
-      const vw         = window.innerWidth / 100
-      const fontSize   = 8 * vw + (14 - 8 * vw) * raw
-      const lineHeight = 0.9 + 0.3 * raw
-      const left       = 32 + (startPos.l - 32) * (1 - raw)
-      const top        = 68 + (startPos.t - 68) * (1 - raw)
-      const ls         = -2 + raw * 1.72
-
-      el.style.fontSize      = `${fontSize}px`
-      el.style.lineHeight    = `${lineHeight}`
-      el.style.left          = `${left}px`
-      el.style.top           = `${top}px`
-      el.style.letterSpacing = `${ls}px`
+      const vw = window.innerWidth / 100
+      el.style.fontSize      = `${8 * vw + (14 - 8 * vw) * raw}px`
+      el.style.lineHeight    = `${0.9 + 0.3 * raw}`
+      el.style.left          = `${32 + (startPos.l - 32) * (1 - raw)}px`
+      el.style.top           = `${68 + (startPos.t - 68) * (1 - raw)}px`
+      el.style.letterSpacing = `${-2 + raw * 1.72}px`
 
       if (raw >= 0.98) {
-        el.style.fontSize      = '14px'
-        el.style.lineHeight    = '1.2'
-        el.style.left          = '32px'
-        el.style.top           = '68px'
+        el.style.fontSize = '14px'; el.style.lineHeight = '1.2'
+        el.style.left = '32px'; el.style.top = '68px'
         el.style.letterSpacing = '-0.02em'
       }
     }
-
     window.addEventListener('scroll', fn, { passive: true }); fn()
     return () => { window.removeEventListener('scroll', fn); el.remove() }
-  }, []) // eslint-disable-line
+  }, [isMobile]) // eslint-disable-line
+
+  if (isMobile === null) return null
 
   return (
     <div
       ref={staticRef}
       className="projekte-heading"
-      onMouseEnter={scramble}
+      onMouseEnter={isMobile ? undefined : scramble}
       style={{
-        fontSize: '8vw', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
-        textTransform: 'uppercase',
-        color: '#0a0a0a', margin: 0, cursor: 'default',
+        fontSize: isMobile ? '16vw' : '8vw',
+        fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
+        textTransform: 'uppercase', color: '#0a0a0a',
+        margin: 0, cursor: 'default', visibility: 'visible',
       }}
     >{disp}</div>
   )
 }
 
-// ─── StatsBlock ───────────────────────────────────────────────────────────────
-// - Zahlen IMMER 100% sichtbar, kein opacity/transform fade
-// - Alle gleichzeitig sichtbar — kein Stagger
-// - Scroll-linked count 0→Ziel: direkt proportional zum Scroll
-// - Schnell: Zählung fertig nach nur 25vh scrollen
-// - Sticky bis VP-Mitte, ab da fixed
 const STATS_DATA = [
   { value: 20,  suffix: '+', labelDe: 'Projekte',  labelEn: 'Projects'  },
   { value: 100, suffix: '%', labelDe: 'Ambition',  labelEn: 'Ambition'  },
@@ -327,56 +293,37 @@ const STATS_DATA = [
 export function StatsBlock() {
   const { language } = useLanguage()
   const lang = language as Lang
-
-  const spacerRef       = useRef<HTMLDivElement>(null)
-  const stickyRef       = useRef<HTMLDivElement>(null)
-  const [progress,      setProgress]      = useState(0)   // 0→1 scroll-linked
-  const [isFixed,       setIsFixed]       = useState(false)
-  const [exitBlur,      setExitBlur]      = useState(0)
+  const spacerRef = useRef<HTMLDivElement>(null)
+  const stickyRef = useRef<HTMLDivElement>(null)
+  const [progress,  setProgress] = useState(0)
+  const [isFixed,   setIsFixed]  = useState(false)
+  const [exitBlur,  setExitBlur] = useState(0)
+  const [isMobile,  setIsMobile] = useState(false)
   const fixedRef        = useRef(false)
   const fixedScrollYRef = useRef(0)
 
+  useEffect(() => { setIsMobile(window.innerWidth < 768) }, [])
+
   useEffect(() => {
     const fn = () => {
-      const spacer = spacerRef.current
-      const sticky = stickyRef.current
+      const spacer = spacerRef.current; const sticky = stickyRef.current
       if (!spacer || !sticky) return
       const sr = spacer.getBoundingClientRect()
-      const cr = sticky.getBoundingClientRect()
       const vh = window.innerHeight
 
-      // FIXED ON: früh — bei 75% VP-Höhe, Count startet bevor Mitte erreicht
-      const mid = cr.top + cr.height / 2
-      if (mid <= vh * 0.9 && !fixedRef.current && sr.bottom > vh * 0.1) {
-        fixedRef.current        = true
-        fixedScrollYRef.current = window.scrollY
-        setIsFixed(true)
+      if (!fixedRef.current && sr.top < vh * 0.6 && sr.bottom > vh * 0.1) {
+        fixedRef.current = true; fixedScrollYRef.current = window.scrollY; setIsFixed(true)
       }
-
       if (fixedRef.current) {
-        // count: fertig nach 25vh (schnell)
-        const scrolledIn = window.scrollY - fixedScrollYRef.current
-        setProgress(Math.max(0, Math.min(1, scrolledIn / (vh * 0.25))))
-
-        // exit blur + opacity: letzte 150vh — beide linked
-        const p = 1 - Math.max(0, Math.min(1, sr.bottom / (vh * 1.5)))
-        setExitBlur(p)
+        const delta = window.scrollY - fixedScrollYRef.current
+        setProgress(Math.max(0, Math.min(1, delta / (vh * 0.20))))
+        setExitBlur(1 - Math.max(0, Math.min(1, sr.bottom / (vh * 1.5))))
       }
-
-      // FIXED OFF
       if (sr.bottom < vh * 0.05 && fixedRef.current) {
-        fixedRef.current = false
-        setIsFixed(false)
-        setExitBlur(0)
+        fixedRef.current = false; setIsFixed(false); setExitBlur(0)
       }
-
-      // RESET beim Hochscrollen
-      if (sr.top > 50) {
-        if (fixedRef.current) {
-          fixedRef.current = false
-          setIsFixed(false)
-          setExitBlur(0)
-        }
+      if (sr.top > vh * 0.7) {
+        if (fixedRef.current) { fixedRef.current = false; setIsFixed(false); setExitBlur(0) }
         setProgress(0)
       }
     }
@@ -384,20 +331,19 @@ export function StatsBlock() {
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
-  // Grid — immer opacity:1, kein fade, kein transform
   const renderGrid = () => (
     <div style={{
-      paddingLeft:  'clamp(80px,18vw,260px)',
-      paddingRight: 'clamp(24px,6vw,80px)',
-      boxSizing: 'border-box' as const,
-      width: '100%',
+      paddingLeft:  isMobile ? '8vw' : 'clamp(80px,18vw,260px)',
+      paddingRight: isMobile ? '8vw' : 'clamp(24px,6vw,80px)',
+      boxSizing: 'border-box' as const, width: '100%',
       filter:  exitBlur > 0 ? `blur(${exitBlur * 24}px)` : 'none',
       opacity: exitBlur > 0 ? 1 - exitBlur : 1,
     }}>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
         columnGap: 'clamp(60px,10vw,140px)',
+        rowGap: isMobile ? '10vw' : 0,
         alignItems: 'end',
       }}>
         {STATS_DATA.map((s, i) => {
@@ -405,23 +351,18 @@ export function StatsBlock() {
           const val   = Math.round(progress * s.value)
           return (
             <div key={i}>
-              {/* Zahl: immer sichtbar, kein opacity/transform */}
               <div style={{
-                fontSize: 'clamp(80px,13vw,192px)', fontWeight: 900,
-                lineHeight: 0.85, letterSpacing: '-6px', color: '#0a0a0a',
-                margin: '0 0 clamp(10px,1vw,16px)', fontVariantNumeric: 'tabular-nums',
-              }}>
-                {val}{s.suffix}
-              </div>
-              {/* Label: immer sichtbar */}
+                fontSize: isMobile ? 'clamp(72px,22vw,120px)' : 'clamp(80px,13vw,192px)',
+                fontWeight: 900, lineHeight: 0.85,
+                letterSpacing: isMobile ? '-3px' : '-6px',
+                color: '#0a0a0a', margin: '0 0 clamp(8px,1vw,16px)',
+                fontVariantNumeric: 'tabular-nums',
+              }}>{val}{s.suffix}</div>
               <ScrambleText text={label} style={{
-                display: 'block',
-                color: '#0a0a0a',
-                fontSize: 'clamp(14px,2.2vw,24px)',
-                fontWeight: 800,
-                letterSpacing: '-0.5px',
-                textTransform: 'uppercase',
-                lineHeight: 1.1,
+                display: 'block', color: '#0a0a0a',
+                fontSize: isMobile ? '18px' : 'clamp(14px,2.2vw,24px)',
+                fontWeight: 800, letterSpacing: '-0.5px',
+                textTransform: 'uppercase', lineHeight: 1.1,
               }} />
             </div>
           )
@@ -432,35 +373,22 @@ export function StatsBlock() {
 
   return (
     <>
-      <div
-        ref={spacerRef}
-        style={{ height: '250vh', backgroundColor: '#ffffff', position: 'relative', zIndex: 2, marginTop: 'clamp(80px,14vw,180px)' }}
-      >
-        <div
-          ref={stickyRef}
-          style={{
-            position: 'sticky',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: '100%',
-            pointerEvents: 'none',
-            opacity: isFixed ? 0 : 1,
-          }}
-        >
+      <div ref={spacerRef} style={{
+        height: isMobile ? '320vh' : '250vh',
+        backgroundColor: '#ffffff', position: 'relative', zIndex: 2,
+        marginTop: isMobile ? 'clamp(40px,8vw,80px)' : 'clamp(80px,14vw,180px)',
+      }}>
+        <div ref={stickyRef} style={{
+          position: 'sticky', top: '50%', transform: 'translateY(-50%)',
+          width: '100%', pointerEvents: 'none', opacity: isFixed ? 0 : 1,
+        }}>
           {renderGrid()}
         </div>
       </div>
-
       <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 2,
-        display: 'flex',
-        alignItems: 'center',
-        backgroundColor: '#ffffff',
-        pointerEvents: 'none',
-        opacity: isFixed ? 1 : 0,
-        transition: 'opacity 0.15s ease',
+        position: 'fixed', inset: 0, zIndex: 2, display: 'flex', alignItems: 'center',
+        backgroundColor: '#ffffff', pointerEvents: 'none',
+        opacity: isFixed ? 1 : 0, transition: 'opacity 0.15s ease',
       }}>
         {renderGrid()}
       </div>
@@ -468,8 +396,6 @@ export function StatsBlock() {
   )
 }
 
-
-// ─── ProjectCard ─────────────────────────────────────────────────────────────
 function ProjectCard({ project, forceHover, onClick }: {
   project: Project; forceHover: boolean; onClick: () => void
 }) {
@@ -478,7 +404,6 @@ function ProjectCard({ project, forceHover, onClick }: {
   const [hov, setHov] = useState(false)
   const [pressed, setPressed] = useState(false)
   const isActive = hov || forceHover
-
   const titleText = project.title[lang]
   const fieldText = project.field[lang]
   const [disp, setDisp] = useState(titleText)
@@ -516,11 +441,11 @@ function ProjectCard({ project, forceHover, onClick }: {
         zIndex: 1,
       }} />
       <div style={{
-        position: 'absolute', bottom: 'clamp(10px,2vw,18px)',
-        left: 'clamp(12px,2.5vw,18px)', right: 'clamp(12px,2.5vw,18px)', zIndex: 2,
+        position: 'absolute', bottom: 'clamp(8px,2vw,18px)',
+        left: 'clamp(8px,2.5vw,18px)', right: 'clamp(8px,2.5vw,18px)', zIndex: 2,
       }}>
         <h3 style={{
-          color: '#fff', fontSize: 'clamp(14px,2.2vw,24px)', fontWeight: 800,
+          color: '#fff', fontSize: 'clamp(11px,2.2vw,24px)', fontWeight: 800,
           textTransform: 'uppercase', margin: 0, lineHeight: 1.1,
           letterSpacing: '-0.5px', whiteSpace: 'pre-line',
         }}>{disp}</h3>
@@ -529,16 +454,12 @@ function ProjectCard({ project, forceHover, onClick }: {
   )
 }
 
-// ─── ProjectsSection ─────────────────────────────────────────────────────────
 export function ProjectsSection() {
   const [openIdx, setOpenIdx] = useState<number|null>(null)
   const [activeIdx, setActiveIdx] = useState<number|null>(null)
+  const [isMobile, setIsMobile] = useState(false)
 
-  useEffect(() => {
-    const s = document.createElement('style')
-    s.textContent = `@media(max-width:768px){.pgrid{grid-template-columns:1fr!important}#projekte{padding:48px 6vw 60px!important;margin-top:-20vh!important}.projekte-heading{font-size:14vw!important}}`
-    document.head.appendChild(s); return () => s.remove()
-  }, [])
+  useEffect(() => { setIsMobile(window.innerWidth < 768) }, [])
 
   const open  = (i: number) => { setActiveIdx(i); setOpenIdx(i) }
   const close = () => { setOpenIdx(null); setTimeout(() => setActiveIdx(null), 500) }
@@ -547,12 +468,18 @@ export function ProjectsSection() {
   return (
     <>
       <section id="projekte" style={{
-        backgroundColor: '#ffffff', padding: 'clamp(60px,10vw,120px) 9vw clamp(120px,18vw,240px)',
-        position: 'relative', zIndex: 1, marginTop: '-70vh',
+        backgroundColor: '#ffffff',
+        padding: isMobile ? '48px 5vw 40px' : 'clamp(60px,10vw,120px) 9vw clamp(120px,18vw,240px)',
+        position: 'relative', zIndex: 1,
+        marginTop: isMobile ? '-5vh' : '-70vh',
       }}>
-        <div style={{ marginBottom: 'clamp(40px,6vw,72px)' }}><AnimatedHeading /></div>
-        <div className="pgrid" style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'clamp(12px,2vw,24px)',
+        <div style={{ marginBottom: isMobile ? '6vw' : 'clamp(40px,6vw,72px)' }}>
+          <AnimatedHeading />
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3,1fr)',
+          gap: isMobile ? '3vw' : 'clamp(12px,2vw,24px)',
         }}>
           {PROJECTS.map((p, i) => (
             <ProjectCard key={p.id} project={p} forceHover={activeIdx === i} onClick={() => open(i)} />
@@ -565,7 +492,6 @@ export function ProjectsSection() {
   )
 }
 
-// ─── Overlay ─────────────────────────────────────────────────────────────────
 type Phase = 'in'|'open'|'closing'
 
 function Overlay({ idx, onClose, onNav }: {
@@ -573,21 +499,19 @@ function Overlay({ idx, onClose, onNav }: {
 }) {
   const { language } = useLanguage()
   const lang = language as Lang
-
   const [phase, setPhase]   = useState<Phase>('in')
   const [curIdx, setCurIdx] = useState(idx)
   const [navKey, setNavKey] = useState(0)
   const lockRef = useRef(false)
-
   const cur = PROJECTS[curIdx]
 
-  const vw  = typeof window !== 'undefined' ? window.innerWidth  : 1440
+  const vw  = typeof window !== 'undefined' ? window.innerWidth : 1440
   const mob = vw < 768
-  const imgW = mob ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.38), 480)
-  const panW = mob ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.50), 620)
+  const imgW = mob ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.42), 520)
+  const panW = mob ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.46), 580)
 
   useEffect(() => {
-    document.documentElement.style.setProperty('scrollbar-gutter','stable')
+    document.documentElement.style.setProperty('scrollbar-gutter', 'stable')
     document.body.style.overflow = 'hidden'
     const raf = requestAnimationFrame(() => requestAnimationFrame(() => setPhase('open')))
     return () => {
@@ -608,9 +532,7 @@ function Overlay({ idx, onClose, onNav }: {
     lockRef.current = true
     const n = PROJECTS.length
     const ni = dir === 'r' ? (curIdx + 1) % n : (curIdx - 1 + n) % n
-    setCurIdx(ni)
-    setNavKey(k => k + 1)
-    onNav(ni)
+    setCurIdx(ni); setNavKey(k => k + 1); onNav(ni)
     setTimeout(() => { lockRef.current = false }, 700)
   }, [curIdx, onNav])
 
@@ -625,7 +547,6 @@ function Overlay({ idx, onClose, onNav }: {
   }, [close, navigate])
 
   const EASE = 'cubic-bezier(0.76,0,0.24,1)'
-
   const imgOut     = phase === 'in'
   const imgClosing = phase === 'closing'
   const imgScale   = imgOut ? 'scale(0.72)' : imgClosing ? 'scale(0.72)' : 'scale(1)'
@@ -633,12 +554,9 @@ function Overlay({ idx, onClose, onNav }: {
   const imgTransition = imgClosing
     ? `transform 300ms ${EASE} 200ms, opacity 280ms ease 200ms`
     : `transform 320ms ${EASE}, opacity 300ms ease`
-
-  const panOut     = phase === 'in'
-  const panClosing = phase === 'closing'
-  const panX       = (panOut || panClosing) ? '-100%' : '0%'
-  const panOpacity = (panOut || panClosing) ? 0 : 1
-  const panTransition = panClosing
+  const panX       = (phase === 'in' || phase === 'closing') ? '-100%' : '0%'
+  const panOpacity = (phase === 'in' || phase === 'closing') ? 0 : 1
+  const panTransition = phase === 'closing'
     ? `transform 260ms ${EASE}, opacity 240ms ease`
     : `transform 300ms ${EASE} 100ms, opacity 280ms ease 100ms`
 
@@ -653,7 +571,7 @@ function Overlay({ idx, onClose, onNav }: {
   return (
     <>
       <div onClick={close} style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
+        position: 'fixed', inset: 0, zIndex: 100000,
         backgroundColor: phase === 'open' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0)',
         backdropFilter:       phase === 'open' ? 'blur(12px)' : 'blur(0px)',
         WebkitBackdropFilter: phase === 'open' ? 'blur(12px)' : 'blur(0px)',
@@ -662,22 +580,22 @@ function Overlay({ idx, onClose, onNav }: {
       }} />
 
       <div style={{
-        position: 'fixed', inset: 0, zIndex: 1001,
+        position: 'fixed', inset: 0, zIndex: 100001,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         pointerEvents: 'none',
       }}>
         <div style={{
           display: 'flex',
           flexDirection: mob ? 'column' : 'row',
-          alignItems: 'stretch',
+          alignItems: mob ? 'center' : 'stretch',
           pointerEvents: 'auto',
+          maxHeight: mob ? '90vh' : 'none',
+          overflowY: mob ? 'auto' : 'visible',
+          cursor: 'default',
         }}>
           <div style={{
-            width: imgW, flexShrink: 0,
-            position: 'relative', zIndex: 1,
-            transform: imgScale,
-            opacity: imgOpacity,
-            transition: imgTransition,
+            width: imgW, flexShrink: 0, position: 'relative', zIndex: 1,
+            transform: imgScale, opacity: imgOpacity, transition: imgTransition,
             overflow: 'hidden',
           }}>
             <PixelCarouselOneShot key={navKey} images={cur.images} w={imgW} animateIn={navKey > 0} />
@@ -686,16 +604,14 @@ function Overlay({ idx, onClose, onNav }: {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              width: panW, flexShrink: 0,
-              position: 'relative', zIndex: 0,
+              width: panW, flexShrink: 0, position: 'relative', zIndex: 0,
               transform: `translateX(${panX})`,
-              opacity: panOpacity,
-              transition: panTransition,
-              backgroundColor: '#ffffff',
-              overflow: 'hidden',
+              opacity: panOpacity, transition: panTransition,
+              backgroundColor: '#ffffff', overflow: 'hidden', cursor: 'default',
             }}
           >
-            <button onClick={close} style={{ ...iconBtn, position: 'absolute', top: 18, right: 18, zIndex: 2 }}
+            <button onClick={close}
+              style={{ ...iconBtn, position: 'absolute', top: 18, right: 18, zIndex: 2 }}
               onMouseEnter={hi} onMouseLeave={hlo}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <line x1="1" y1="1" x2="17" y2="17" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square"/>
@@ -703,40 +619,27 @@ function Overlay({ idx, onClose, onNav }: {
               </svg>
             </button>
             <PanelContent
-              key={curIdx}
-              project={cur}
-              idx={curIdx}
-              lang={lang}
-              doScramble={navKey > 0}
-              onNav={navigate}
+              key={curIdx} project={cur} idx={curIdx} lang={lang}
+              doScramble={navKey > 0} onNav={navigate}
             />
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @media(max-width:768px){
-          .pgrid{grid-template-columns:1fr!important}
-          #projekte{padding:48px 6vw 60px!important;margin-top:-20vh!important}
-          .projekte-heading{font-size:14vw!important}
-        }
-      `}</style>
     </>
   )
 }
 
-// ─── PanelContent ────────────────────────────────────────────────────────────
 function PanelContent({ project, idx, lang, doScramble, onNav }: {
   project: Project; idx: number; lang: Lang
   doScramble: boolean; onNav: (d:'l'|'r') => void
 }) {
   const titleRaw = project.title[lang]
   const descRaw  = project.description[lang]
-
   const [titleDisp, setTitleDisp] = useState(titleRaw)
   const [descDisp,  setDescDisp]  = useState(descRaw)
   const titleRef = useRef<ReturnType<typeof setInterval>|null>(null)
   const descRef  = useRef<ReturnType<typeof setInterval>|null>(null)
+  const [hovYT, setHovYT] = useState(false)
 
   useEffect(() => {
     if (doScramble) {
@@ -776,7 +679,32 @@ function PanelContent({ project, idx, lang, doScramble, onNav }: {
         userSelect: 'text',
       }}>{descDisp}</p>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 'clamp(24px,3vw,40px)', flexShrink: 0 }}>
+      {project.youtube && (
+        <a
+          href={project.youtube}
+          target="_blank"
+          rel="noopener noreferrer"
+          onMouseEnter={() => setHovYT(true)}
+          onMouseLeave={() => setHovYT(false)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            backgroundColor: hovYT ? '#333' : '#0a0a0a',
+            color: '#ffffff', fontSize: 11, fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            padding: '11px 20px', textDecoration: 'none',
+            marginBottom: 'clamp(16px,2vw,24px)',
+            transition: 'background-color 0.15s ease',
+            cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0,
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <polygon points="2,1 12,6.5 2,12" fill="#ffffff"/>
+          </svg>
+          {lang === 'de' ? 'Ansehen' : 'Watch'}
+        </a>
+      )}
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 'clamp(16px,2vw,24px)', flexShrink: 0 }}>
         {project.tags[lang].map((tag, i) => <TagPill key={i} label={tag} />)}
       </div>
 
@@ -804,7 +732,6 @@ function PanelContent({ project, idx, lang, doScramble, onNav }: {
   )
 }
 
-// ─── TagPill ─────────────────────────────────────────────────────────────────
 function TagPill({ label }: { label: string }) {
   const [pressed, setPressed] = useState(false)
   return (

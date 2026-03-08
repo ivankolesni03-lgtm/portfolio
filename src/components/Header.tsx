@@ -12,20 +12,23 @@ export function Header({ isVisible }: { isVisible: boolean }) {
   const languageRef = useRef(language)
   const [displayText, setDisplayText] = useState('DE')
   const [opacity, setOpacity] = useState(0)
+  const [isMobile, setIsMobile] = useState<boolean | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const isAnimating = useRef(false)
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+  }, [])
 
   useEffect(() => {
     languageRef.current = language
     setDisplayText(language === 'de' ? 'DE' : 'ENG')
   }, [language])
 
-  // Opacity basiert auf wie weit man gescrollt hat – 0 in Hero, 1 danach
   useEffect(() => {
     const handleScroll = () => {
       const heroHeight = window.innerHeight
       const scrollY = window.scrollY
-      // Fading beginnt bei 60% der Hero-Höhe, fertig bei 100%
       const start = heroHeight * 0.6
       const end = heroHeight
       const progress = Math.max(0, Math.min(1, (scrollY - start) / (end - start)))
@@ -72,17 +75,67 @@ export function Header({ isVisible }: { isVisible: boolean }) {
     }, 40)
   }, [toggleLanguage])
 
+  // Noch nicht gemessen — nichts rendern um Flackern zu vermeiden
+  if (isMobile === null) return null
+
+  // Desktop
+  if (!isMobile) {
+    return (
+      <header
+        style={{
+          position: 'fixed',
+          top: '1.5rem',
+          right: '2rem',
+          zIndex: 30,
+          opacity: isVisible ? opacity : 0,
+          transition: 'opacity 0.2s ease',
+          pointerEvents: opacity > 0.5 ? 'auto' : 'none',
+          mixBlendMode: 'difference',
+        }}
+      >
+        <button
+          onClick={handleToggle}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '700',
+            fontFamily: 'inherit',
+            color: '#ffffff',
+            letterSpacing: '1px',
+            lineHeight: '1.2',
+            whiteSpace: 'nowrap',
+            padding: 0,
+          }}
+        >
+          {displayText}
+        </button>
+      </header>
+    )
+  }
+
+  // Mobile — Liquid Glass mit weicher unterer Kante
   return (
     <header
       style={{
         position: 'fixed',
-        top: '1.5rem',
-        right: '2rem',
+        top: 0,
+        left: 0,
+        right: 0,
         zIndex: 30,
         opacity: isVisible ? opacity : 0,
-        transition: 'opacity 0.2s ease',
+        transition: 'opacity 0.3s ease',
         pointerEvents: opacity > 0.5 ? 'auto' : 'none',
-        mixBlendMode: 'difference',
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)',
+        backdropFilter: 'blur(20px) saturate(1.6)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+        maskImage: 'linear-gradient(to bottom, black 0%, black 35%, rgba(0,0,0,0.6) 65%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 35%, rgba(0,0,0,0.6) 65%, transparent 100%)',
+        padding: '1.2rem 2rem 4rem',
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'flex-start',
       }}
     >
       <button

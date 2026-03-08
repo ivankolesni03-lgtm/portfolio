@@ -30,7 +30,7 @@ function StaticHeadingGWA() {
   const scramble=()=>{s1();s2()}
   return (
     <div onMouseEnter={scramble} style={{
-      fontSize:'8vw',fontWeight:900,lineHeight:0.9,letterSpacing:'-2px',
+      fontSize:'clamp(28px,8vw,120px)',fontWeight:900,lineHeight:0.9,letterSpacing:'-2px',
       textTransform:'uppercase',color:'#0a0a0a',margin:0,cursor:'default',userSelect:'none',
     }}>
       <div style={{whiteSpace:'nowrap'}}>{d1}</div>
@@ -40,7 +40,7 @@ function StaticHeadingGWA() {
 }
 
 // ─── Trophy3D ─────────────────────────────────────────────────────────────────
-function Trophy3D() {
+function Trophy3D({ sectionRef }: { sectionRef: React.RefObject<HTMLDivElement> }) {
   const mountRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -88,12 +88,20 @@ function Trophy3D() {
       controls.autoRotate = false; controls.target.set(0, 0, 0)
 
       const targetRot = { x: 0, y: 0 }
+
+      // ── Cursor-Tracking nur wenn Maus innerhalb der GWA-Section ──
       const onMouseMove = (e: MouseEvent) => {
-        const rect = el.getBoundingClientRect()
-        const dx = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2)
-        const dy = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2)
-        targetRot.x = dy * 0.25
-        targetRot.y = dx * 0.25
+        const sec = sectionRef.current
+        if (!sec) return
+        const sr = sec.getBoundingClientRect()
+        const inSection =
+          e.clientX >= sr.left && e.clientX <= sr.right &&
+          e.clientY >= sr.top  && e.clientY <= sr.bottom
+        if (!inSection) return
+        const dx = (e.clientX - (sr.left + sr.width  / 2)) / (sr.width  / 2)
+        const dy = (e.clientY - (sr.top  + sr.height / 2)) / (sr.height / 2)
+        targetRot.x = dy * 0.3
+        targetRot.y = dx * 0.3
       }
       window.addEventListener('mousemove', onMouseMove)
 
@@ -152,7 +160,7 @@ function Trophy3D() {
 
     init()
     return () => { cancelled = true; cleanupFn?.() }
-  }, [])
+  }, []) // eslint-disable-line
 
   return (
     <div ref={mountRef} style={{ width:'100%', height:'100%', cursor:'grab', background:'transparent', display:'block' }} />
@@ -165,8 +173,9 @@ function AwardBadge({label,gold=false}:{label:string;gold?:boolean}){
   return (
     <span onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
       display:'inline-block',
-      backgroundColor:gold?(hov?'#C9A84C':'#E8C96A'):(hov?'#e0e0e0':'#f0f0f0'),
-      color:'#0a0a0a',fontSize:10,fontWeight:800,letterSpacing:'0.14em',
+      backgroundColor: gold ? (hov?'#C9A84C':'#E8C96A') : (hov?'#333':'#0a0a0a'),
+      color: gold ? '#0a0a0a' : '#ffffff',
+      fontSize:10,fontWeight:800,letterSpacing:'0.14em',
       textTransform:'uppercase',padding:'7px 14px',
       transform:hov?'scale(0.96)':'scale(1)',transition:'all 0.15s ease',cursor:'default',
     }}>{label}</span>
@@ -175,11 +184,11 @@ function AwardBadge({label,gold=false}:{label:string;gold?:boolean}){
 
 // ─── Texte ────────────────────────────────────────────────────────────────────
 const T={
-  sub:{de:'Junior Agency Award 2026',en:'Junior Agency Award 2026'},
   award1:{de:'3. Platz',en:'3rd Place'},
   award2:{de:'Making-Off Award',en:'Making-Off Award'},
   award3:{de:'Publikumspreis',en:'Audience Award'},
-  p1:{de:'Beim GWA Junior Agency Award 2026 hat unser Team den dritten Platz gewonnen – und damit gleich zwei zusätzliche Auszeichnungen mitgenommen: den Making-Off Award für die beste Behind-the-Scenes-Dokumentation und den Publikumspreis.',en:'At the GWA Junior Agency Award 2026 our team won third place – taking home two additional prizes: the Making-Off Award for the best behind-the-scenes documentation and the Audience Award.'},
+  award4:{de:'Team Hannover',en:'Team Hannover'},
+  p1:{de:'Beim GWA Junior Agency Award 2026 hat unser Team Hannover den dritten Platz gewonnen und damit gleich zwei zusätzliche Auszeichnungen mitgenommen: den Making-Off Award für die beste Behind-the-Scenes-Dokumentation und den Publikumspreis.',en:'At the GWA Junior Agency Award 2026 our team won third place, taking home two additional prizes: the Making-Off Award for the best behind-the-scenes documentation and the Audience Award.'},
   p2:{de:'Der GWA Junior Agency Award ist einer der renommiertesten Nachwuchswettbewerbe der deutschen Werbebranche. Kreative Kampagnenentwicklung, strategisches Denken und Teamarbeit standen im Mittelpunkt.',en:'The GWA Junior Agency Award is one of the most prestigious junior competitions in the German advertising industry. Creative campaign development, strategic thinking and teamwork were at the centre.'},
 }
 type Lang='de'|'en'
@@ -189,37 +198,36 @@ export function GWASection() {
   const {language}=useLanguage(); const lang=language as Lang
   const secRef  = useRef<HTMLDivElement>(null)
   const figRef  = useRef<HTMLDivElement>(null)
-  const isFixed = useRef(false)
   const [figureExit,setFigureExit] = useState({blur:0,opacity:1})
+  const [isMobile, setIsMobile] = useState(false)
 
-  // Figur-Dimensionen
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   const FIG_W_PCT   = 0.42
-  const FIG_RIGHT   = 0.01   // 1vw vom rechten Rand — weiter rechts
-  const FIG_TOP_ABS = 0.12   // 12vh — etwas höher
+  const FIG_RIGHT   = 0.01
+  const FIG_TOP_ABS = 0.12
   const FIG_H_PCT   = 0.82
 
   useEffect(()=>{
+    if (isMobile) return
     const applyStyle = () => {
       const fig = figRef.current
       const sec = secRef.current
       if (!fig || !sec) return
-
       const vw  = window.innerWidth
       const vh  = window.innerHeight
       const sr  = sec.getBoundingClientRect()
       const TARGET = vh * FIG_TOP_ABS
-
       const figW = vw * FIG_W_PCT
       const figL = vw - vw * FIG_RIGHT - figW
       const figH = Math.min(Math.max(vw * FIG_H_PCT, 460), 860)
-
-      // Natürliche Position der Figur im Viewport:
-      // section.top + FIG_TOP_ABS * vh
       const naturalTopInViewport = sr.top + TARGET
-
       if (naturalTopInViewport > TARGET) {
-        // Noch nicht eingerastet — scrollt mit
-        isFixed.current = false
         fig.style.position = 'absolute'
         fig.style.top      = `${TARGET}px`
         fig.style.left     = ''
@@ -227,8 +235,6 @@ export function GWASection() {
         fig.style.width    = `${figW}px`
         fig.style.height   = `${figH}px`
       } else {
-        // Eingerastet — fixed
-        isFixed.current = true
         fig.style.position = 'fixed'
         fig.style.top      = `${TARGET}px`
         fig.style.left     = `${figL}px`
@@ -236,12 +242,9 @@ export function GWASection() {
         fig.style.width    = `${figW}px`
         fig.style.height   = `${figH}px`
       }
-
-      // Exit blur + opacity
       const p = Math.max(0, Math.min(1, 1 - (sr.bottom / (vh * 0.8))))
       setFigureExit({ blur: p * 24, opacity: 1 - p * 0.95 })
     }
-
     window.addEventListener('scroll', applyStyle, { passive: true })
     window.addEventListener('resize', applyStyle)
     applyStyle()
@@ -249,8 +252,56 @@ export function GWASection() {
       window.removeEventListener('scroll', applyStyle)
       window.removeEventListener('resize', applyStyle)
     }
-  }, [])
+  }, [isMobile])
 
+  // ── Mobile ─────────────────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div ref={secRef} style={{position:'relative', zIndex:5, marginTop:'-5vh'}}>
+        <section id="gwa" style={{
+          backgroundColor:'#ffffff',
+          boxSizing:'border-box',
+          overflow:'hidden',
+          padding:'14vw 6vw 18vw',
+          display:'flex',
+          flexDirection:'column',
+        }}>
+          <div style={{marginBottom:'clamp(20px,5vw,32px)'}}>
+            <StaticHeadingGWA/>
+          </div>
+
+          {/* Trophy als normaler Block auf Mobile */}
+          <div style={{
+            width:'100%', height:'72vw', maxHeight:340,
+            marginBottom:'clamp(24px,6vw,40px)',
+          }}>
+            <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} />
+          </div>
+
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:'clamp(20px,5vw,32px)'}}>
+            <AwardBadge label={T.award1[lang]} gold/>
+            <AwardBadge label={T.award2[lang]}/>
+            <AwardBadge label={T.award3[lang]}/>
+            <AwardBadge label={T.award4[lang]}/>
+          </div>
+
+          <p style={{
+            color:'rgba(10,10,10,0.75)',
+            fontSize:'clamp(14px,4vw,17px)',
+            lineHeight:1.8,fontWeight:400,
+            margin:'0 0 clamp(12px,3vw,20px)',
+          }}>{T.p1[lang]}</p>
+          <p style={{
+            color:'rgba(10,10,10,0.5)',
+            fontSize:'clamp(13px,3.5vw,15px)',
+            lineHeight:1.8,fontWeight:400,margin:0,
+          }}>{T.p2[lang]}</p>
+        </section>
+      </div>
+    )
+  }
+
+  // ── Desktop ────────────────────────────────────────────────────────────────
   return (
     <div ref={secRef} style={{position:'relative', zIndex:5, marginTop:'-110vh'}}>
       <section id="gwa" style={{
@@ -262,8 +313,6 @@ export function GWASection() {
         boxSizing:'border-box',
         overflow:'visible',
       }}>
-
-        {/* LINKS — Text */}
         <div style={{
           flex:'0 0 55%',
           paddingTop:'9vw', paddingBottom:'9vw',
@@ -271,42 +320,43 @@ export function GWASection() {
           display:'flex', flexDirection:'column', justifyContent:'flex-start',
           boxSizing:'border-box',
         }}>
-          <div style={{marginBottom:'clamp(8px,1vw,14px)'}}>
+          <div style={{marginBottom:'clamp(28px,3.5vw,48px)'}}>
             <StaticHeadingGWA/>
           </div>
-          <p style={{color:'rgba(10,10,10,0.45)',fontSize:'clamp(12px,1.1vw,15px)',fontWeight:600,letterSpacing:'0.12em',textTransform:'uppercase',margin:'0 0 clamp(32px,4vw,52px)'}}>{T.sub[lang]}</p>
           <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:'clamp(28px,3.5vw,44px)'}}>
             <AwardBadge label={T.award1[lang]} gold/>
             <AwardBadge label={T.award2[lang]}/>
             <AwardBadge label={T.award3[lang]}/>
+            <AwardBadge label={T.award4[lang]}/>
           </div>
-          <p style={{color:'rgba(10,10,10,0.75)',fontSize:'clamp(14px,1.4vw,17px)',lineHeight:1.8,fontWeight:400,margin:'0 0 clamp(16px,1.8vw,24px)',maxWidth:560}}>{T.p1[lang]}</p>
-          <p style={{color:'rgba(10,10,10,0.5)',fontSize:'clamp(13px,1.25vw,15px)',lineHeight:1.8,fontWeight:400,margin:0,maxWidth:520}}>{T.p2[lang]}</p>
+          <p style={{
+            color:'rgba(10,10,10,0.75)',
+            fontSize:'clamp(14px,1.4vw,17px)',
+            lineHeight:1.8,fontWeight:400,
+            margin:'0 0 clamp(16px,1.8vw,24px)',maxWidth:560,
+          }}>{T.p1[lang]}</p>
+          <p style={{
+            color:'rgba(10,10,10,0.5)',
+            fontSize:'clamp(13px,1.25vw,15px)',
+            lineHeight:1.8,fontWeight:400,margin:0,maxWidth:520,
+          }}>{T.p2[lang]}</p>
         </div>
 
-        {/* Platzhalter rechts */}
         <div style={{flex:1}} />
 
-        {/* Trophy — einmal gemountet, styles werden direkt per ref gesetzt */}
         <div
           ref={figRef}
           style={{
-            position:'absolute',
-            top: '12vh',
-            right: '1vw',
-            width: '42%',
-            height: '82vw',
-            maxHeight: 860,
-            minHeight: 460,
-            zIndex: 10,
+            position:'absolute', top:'12vh', right:'1vw',
+            width:'42%', height:'82vw', maxHeight:860, minHeight:460,
+            zIndex:10,
             filter: figureExit.blur > 0.1 ? `blur(${figureExit.blur}px)` : 'none',
             opacity: figureExit.opacity,
             boxSizing:'border-box',
           }}
         >
-          <Trophy3D />
+          <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} />
         </div>
-
       </section>
     </div>
   )

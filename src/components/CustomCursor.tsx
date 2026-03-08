@@ -21,7 +21,7 @@ export function CustomCursor() {
 
   return (
     <div
-      className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-difference"
+      className="fixed top-0 left-0 pointer-events-none z-[200000] mix-blend-difference"
       style={{
         left: position.x,
         top: position.y,
