@@ -147,12 +147,14 @@ function LoopingPixelImages() {
 }
 
 // ─── PixelImageSlot ───────────────────────────────────────────────────────────
+// Canvas zeichnet Pixeleffekt. Wenn scharf (pixelRef ≈ 1): img-Tag überblendet
+// (echte Browser-Farben). Kein Zoom — Canvas-Größe bleibt konstant.
 function PixelImageSlot({ slot }: { slot: Slot }) {
   const [hovered, setHovered] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef    = useRef<HTMLImageElement>(null)
   const rafRef    = useRef(0)
-  const pixelRef  = useRef(48)
+  const pixelRef  = useRef(48)   // 48=grob, 1=scharf
   const blurRef   = useRef(8)
   const stateRef  = useRef(slot.state)
   const hovRef    = useRef(false)
@@ -170,6 +172,7 @@ function PixelImageSlot({ slot }: { slot: Slot }) {
     const canvas = canvasRef.current; if (!canvas) return
     const ctx = canvas.getContext('2d'); if (!ctx) return
 
+    // Canvas-Größe = slot.w × auto-height (wird nach Bildladen gesetzt)
     const onLoad = () => {
       const ratio = image.naturalHeight / image.naturalWidth
       canvas.width  = slot.w * 2
@@ -183,6 +186,7 @@ function PixelImageSlot({ slot }: { slot: Slot }) {
       const s   = stateRef.current
       const hov = hovRef.current
 
+      // Ziel: hov oder visible → 1 (scharf); appearing → 1; disappearing → 48
       const targetPixel = (hov || s === 'visible' || s === 'appearing') ? 1 : 48
       const targetBlur  = (hov || s === 'appearing' || s === 'visible') ? 0 : 8
 
@@ -193,7 +197,8 @@ function PixelImageSlot({ slot }: { slot: Slot }) {
       const bl = Math.max(0, blurRef.current)
       const isSharp = ps <= 1 && bl < 0.3
 
-      if (imgRef.current)    imgRef.current.style.opacity    = isSharp ? '1' : '0'
+      // Img ein/ausblenden je nach Schärfe
+      if (imgRef.current)  imgRef.current.style.opacity  = isSharp ? '1' : '0'
       if (canvasRef.current) canvasRef.current.style.opacity = isSharp ? '0' : '1'
 
       if (isSharp || !image.complete) return
@@ -207,6 +212,7 @@ function PixelImageSlot({ slot }: { slot: Slot }) {
         ctx.drawImage(image, 0, 0, cw, ch)
         ctx.filter = 'none'
       } else {
+        // Pixelation: bild auf 1/ps zeichnen, dann hochskalieren ohne smoothing
         const sw = Math.max(1, Math.floor(cw / ps))
         const sh = Math.max(1, Math.floor(ch / ps))
         ctx.drawImage(image, 0, 0, sw, sh)
@@ -241,10 +247,12 @@ function PixelImageSlot({ slot }: { slot: Slot }) {
         transition: 'transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94), opacity 1.4s ease',
       }}
     >
+      {/* Canvas für Pixeleffekt */}
       <canvas
         ref={canvasRef}
         style={{ width: '100%', height: 'auto', display: 'block', imageRendering: 'pixelated' }}
       />
+      {/* img für Originalfarben wenn scharf */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={imgRef}
@@ -253,7 +261,7 @@ function PixelImageSlot({ slot }: { slot: Slot }) {
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
-          objectFit: 'fill',
+          objectFit: 'fill',   // kein Crop, füllt canvas-Größe exakt
           display: 'block',
           opacity: 0,
         }}
@@ -262,96 +270,14 @@ function PixelImageSlot({ slot }: { slot: Slot }) {
   )
 }
 
-// ─── Texte & Tags ─────────────────────────────────────────────────────────────
+// ─── Texte ────────────────────────────────────────────────────────────────────
 const T = {
-  blocks: {
-    de: [
-      {
-        label: 'Erfahrung',
-        body: 'Ich teste stets die neuesten Tools wie Sora oder Kling und baue daraus eigene lokale Workflows. Mit ComfyUI, N8N und gezieltem LoRA-Training erschaffe ich Bild und Video. Auch Deepfakes nutze ich vielseitig für neue Dimensionen der digitalen Inszenierung. Technik und Ästhetik verschmelzen hier zu meiner eigenen Sprache.',
-        tags: ['ComfyUI', 'LoRA-Training', 'N8N', 'Sora', 'Kling', 'Deepfakes', 'Python', 'Next.js', 'Automatisierung', 'Postproduktion'],
-      },
-      {
-        label: 'Vision',
-        body: 'KI ist für mich kein bloßes Werkzeug, sondern ein neues Medium der Inspiration. Als Pionier der ersten Stunde nutze ich die generative Kraft, um meine künstlerische Ausdruckskraft zu schärfen und Visionen präziser greifbar zu machen. Es ist die Suche nach der perfekten Symbiose aus Mensch und Maschine.',
-        tags: [],
-      },
-    ],
-    en: [
-      {
-        label: 'Experience',
-        body: 'I constantly test the latest tools like Sora or Kling and build my own local workflows from them. With ComfyUI, N8N and targeted LoRA training I create image and video. I also use deepfakes in versatile ways for new dimensions of digital staging. Technology and aesthetics merge here into my own language.',
-        tags: ['ComfyUI', 'LoRA Training', 'N8N', 'Sora', 'Kling', 'Deepfakes', 'Python', 'Next.js', 'Automation', 'Post-Production'],
-      },
-      {
-        label: 'Vision',
-        body: 'AI is not a mere tool for me, but a new medium of inspiration. As an early adopter I use generative power to sharpen my artistic expression and make visions more precisely tangible. It is the search for the perfect symbiosis of human and machine.',
-        tags: [],
-      },
-    ],
+  body:{
+    de:'Generative KI ist für mich kein Werkzeug – sie ist ein Denkpartner. Ich erkunde, wie Maschinen Bilder, Sprache und Code erzeugen, und nutze dieses Verständnis, um Dinge zu bauen, die vorher nicht möglich waren. Mit ComfyUI und gezieltem LoRA-Training erzeuge ich visuelle Welten nach Maß. Mit N8N automatisiere ich kreative Workflows. Und mit Code – TypeScript, Python, Next.js – verbinde ich diese Welten zu lebendigen Produkten.',
+    en:'Generative AI is not a tool for me – it is a thinking partner. I explore how machines generate images, language and code, and use that understanding to build things that were not possible before. With ComfyUI and targeted LoRA training I create visual worlds to specification. With N8N I automate creative workflows. And with code – TypeScript, Python, Next.js – I connect these worlds into living products.',
   },
 }
 type Lang='de'|'en'
-
-// ─── TagPill (weiß mit schwarzer Schrift + Hover) ────────────────────────────
-function TagPill({ label }: { label: string }) {
-  const [pressed, setPressed] = useState(false)
-  const [hovered, setHovered] = useState(false)
-  return (
-    <span
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setPressed(false) }}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      style={{
-        backgroundColor: '#0a0a0a', color: '#ffffff',
-        border: '1px solid rgba(255,255,255,0.35)',
-        fontSize: 9, letterSpacing: '0.12em',
-        textTransform: 'uppercase', padding: '5px 10px',
-        transform: pressed ? 'scale(0.92)' : hovered ? 'scale(0.97)' : 'scale(1)',
-        transition: 'transform 0.12s ease',
-        cursor: 'default', display: 'inline-block',
-      }}
-    >{label}</span>
-  )
-}
-
-// ─── TextRow ──────────────────────────────────────────────────────────────────
-function TextRow({ label, body, tags }: { label: string; body: string; tags: string[] }) {
-  const labelRef = useRef<ReturnType<typeof setInterval>|null>(null)
-  const [labelDisp, setLabelDisp] = useState(label)
-
-  useEffect(() => { runScramble(label, setLabelDisp, labelRef) }, [label])
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px,0.8vw,12px)' }}>
-      {/* Label – Projektkarten-Größe */}
-      <div
-        onMouseEnter={() => runScramble(label, setLabelDisp, labelRef)}
-        style={{
-          fontSize: 'clamp(11px,2.2vw,24px)',
-          fontWeight: 900,
-          letterSpacing: '-0.5px',
-          lineHeight: 1.1,
-          textTransform: 'uppercase',
-          color: '#ffffff',
-          cursor: 'default',
-          userSelect: 'none',
-        }}
-      >{labelDisp}</div>
-      {/* Body */}
-      <p style={{
-        color: 'rgba(255,255,255,0.65)',
-        fontSize: 'clamp(12px,1.2vw,15px)',
-        lineHeight: 1.8, fontWeight: 400, margin: 0,
-      }}>{body}</p>
-      {/* Tags */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'clamp(16px,2vw,28px)' }}>
-        {tags.map((tag, i) => <TagPill key={i} label={tag} />)}
-      </div>
-    </div>
-  )
-}
 
 // ─── AISection ────────────────────────────────────────────────────────────────
 export function AISection() {
@@ -390,7 +316,7 @@ export function AISection() {
 
         <div style={{
           position:'absolute',inset:0,zIndex:2,
-          background:'linear-gradient(to right, rgba(10,10,10,0.97) 0%, rgba(10,10,10,0.82) 44%, rgba(10,10,10,0.15) 100%)',
+          background:'linear-gradient(to right, rgba(10,10,10,0.95) 0%, rgba(10,10,10,0.80) 44%, rgba(10,10,10,0.15) 100%)',
           pointerEvents:'none',
         }}/>
 
@@ -408,23 +334,19 @@ export function AISection() {
           paddingRight:'4vw',
           maxWidth:'52%',
           boxSizing:'border-box',
-          gap: 'clamp(24px,2.5vw,36px)',
         }}>
-
-          <StaticHeadingKI/>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 'clamp(24px,3vw,48px)',
-          }}>
-            {T.blocks[lang].map((block, i) => (
-              <TextRow key={i} label={block.label} body={block.body} tags={block.tags} />
-            ))}
+          <div style={{marginBottom:'clamp(24px,3vw,40px)'}}>
+            <StaticHeadingKI/>
           </div>
-
+          <p key={lang} style={{
+            color:'rgba(255,255,255,0.75)',
+            fontSize:'clamp(14px,1.3vw,17px)',
+            lineHeight:1.9,
+            fontWeight:400,
+            margin:0,
+            animation:'fadeIn 0.4s ease',
+          }}>{T.body[lang]}</p>
           <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
-
         </div>
 
       </section>
