@@ -9,42 +9,6 @@ const bigWords = {
   en: ['FALL', 'LEARN', 'RISE', 'REPEAT'],
 }
 
-function LocalBrush({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
-  const [points, setPoints] = useState<{ id: number; x: number; y: number }[]>([])
-  const lastTimeRef = useRef(0)
-  const idRef = useRef(0)
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const now = Date.now()
-      if (now - lastTimeRef.current < 4) return
-      lastTimeRef.current = now
-
-      const rect = containerRef.current?.getBoundingClientRect()
-      if (!rect) return
-      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return
-
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
-      const id = idRef.current++
-
-      setPoints(prev => [...prev, { id, x, y }])
-      setTimeout(() => setPoints(prev => prev.filter(p => p.id !== id)), 2000)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [containerRef])
-
-  return (
-    <>
-      {points.map(p => (
-        <div key={p.id} className="brush-trail" style={{ left: p.x, top: p.y }} />
-      ))}
-    </>
-  )
-}
-
 function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number }) {
   const { language } = useLanguage()
   const targetText = language === 'de' ? de : en
@@ -217,13 +181,9 @@ export function QuoteSection() {
   const opacity = 1 - exitProgress
 
   const padding = isMobile ? '0 5vw' : '0 9vw'
-
-  // Text: Mobile weiter oben (30vh vom unteren Rand)
   const textBottom = isMobile ? '30vh' : '9vw'
   const textLeft = isMobile ? '5vw' : '9vw'
   const textRight = isMobile ? '5vw' : '9vw'
-
-  // Symbol: Mobile weiter unten (5vh vom unteren Rand)
   const yinYangBottom = isMobile ? '45vh' : 'auto'
   const yinYangTop = isMobile ? 'auto' : '7vw'
   const yinYangRight = isMobile ? '5vw' : '9vw'
@@ -248,9 +208,7 @@ export function QuoteSection() {
           overflow: 'hidden',
         }}
       >
-        <LocalBrush containerRef={stickyRef} />
-
-        {/* Yin Yang — Mobile: unten rechts, Desktop: oben rechts */}
+        {/* Yin Yang */}
         <div
           style={{
             position: 'absolute',
@@ -270,7 +228,7 @@ export function QuoteSection() {
           />
         </div>
 
-        {/* Text — Mobile: weiter oben, Desktop: unten links */}
+        {/* Text */}
         <div
           style={{
             position: 'absolute',

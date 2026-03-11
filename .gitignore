@@ -82,8 +82,3 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-
-# große Assets (optional — falls du GLB etc. nicht in Git willst)
-*.glb
-*.gltf
-/public/models/
