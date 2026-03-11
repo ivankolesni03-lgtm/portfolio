@@ -173,7 +173,7 @@ function AwardBadge({label,gold=false}:{label:string;gold?:boolean}){
   return (
     <span onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
       display:'inline-block',
-      backgroundColor: gold ? (hov?'#C9A84C':'#E8C96A') : (hov?'#333':'#0a0a0a'),
+      backgroundColor: gold ? (hov?'#333':'#0a0a0a') : (hov?'#333':'#0a0a0a'),
       color: gold ? '#0a0a0a' : '#ffffff',
       fontSize:10,fontWeight:800,letterSpacing:'0.14em',
       textTransform:'uppercase',padding:'7px 14px',
@@ -187,7 +187,6 @@ const T={
   award1:{de:'3. Platz',en:'3rd Place'},
   award2:{de:'Making-Off Award',en:'Making-Off Award'},
   award3:{de:'Publikumspreis',en:'Audience Award'},
-  award4:{de:'Team Hannover',en:'Team Hannover'},
   p1:{de:'Beim GWA Junior Agency Award 2026 hat unser Team Hannover den dritten Platz gewonnen und damit gleich zwei zusätzliche Auszeichnungen mitgenommen: den Making-Off Award für die beste Behind-the-Scenes-Dokumentation und den Publikumspreis.',en:'At the GWA Junior Agency Award 2026 our team won third place, taking home two additional prizes: the Making-Off Award for the best behind-the-scenes documentation and the Audience Award.'},
   p2:{de:'Der GWA Junior Agency Award ist einer der renommiertesten Nachwuchswettbewerbe der deutschen Werbebranche. Kreative Kampagnenentwicklung, strategisches Denken und Teamarbeit standen im Mittelpunkt.',en:'The GWA Junior Agency Award is one of the most prestigious junior competitions in the German advertising industry. Creative campaign development, strategic thinking and teamwork were at the centre.'},
 }
@@ -282,7 +281,6 @@ export function GWASection() {
             <AwardBadge label={T.award1[lang]} gold/>
             <AwardBadge label={T.award2[lang]}/>
             <AwardBadge label={T.award3[lang]}/>
-            <AwardBadge label={T.award4[lang]}/>
           </div>
 
           <p style={{
@@ -327,7 +325,6 @@ export function GWASection() {
             <AwardBadge label={T.award1[lang]} gold/>
             <AwardBadge label={T.award2[lang]}/>
             <AwardBadge label={T.award3[lang]}/>
-            <AwardBadge label={T.award4[lang]}/>
           </div>
           <p style={{
             color:'rgba(10,10,10,0.75)',
