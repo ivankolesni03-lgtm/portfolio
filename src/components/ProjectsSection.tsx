@@ -179,6 +179,9 @@ function PixelCarouselOneShot({ images, w, animateIn = true }: {
   return <PixelCanvas src={curSrc} w={w} pixelSize={px} />
 }
 
+// ─── AnimatedHeading ──────────────────────────────────────────────────────────
+// Desktop: heading shrinks and floats to nav on scroll (fixed element trick)
+// Mobile:  plain static heading, zero scroll animation
 function AnimatedHeading() {
   const { language } = useLanguage()
   const text = language === 'de' ? 'PROJEKTE' : 'PROJECTS'
@@ -189,13 +192,19 @@ function AnimatedHeading() {
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  // Keep fixed element text in sync with scramble
   useEffect(() => {
     if (fixedElRef.current) fixedElRef.current.textContent = disp
   }, [disp])
 
+  // Desktop-only: scroll-linked shrink-to-nav animation
   useEffect(() => {
+    // Skip entirely on mobile or while hydrating
     if (isMobile === null || isMobile) return
 
     const el = document.createElement('div')
@@ -264,18 +273,35 @@ function AnimatedHeading() {
       }
     }
     window.addEventListener('scroll', fn, { passive: true }); fn()
-    return () => { window.removeEventListener('scroll', fn); el.remove() }
+    return () => { window.removeEventListener('scroll', fn); el.remove(); fixedElRef.current = null }
   }, [isMobile]) // eslint-disable-line
 
+  // While SSR / hydrating: render nothing to avoid flash
   if (isMobile === null) return null
 
+  // Mobile: plain static heading, no animation whatsoever
+  if (isMobile) {
+    return (
+      <div
+        onMouseEnter={scramble}
+        style={{
+          fontSize: '16vw',
+          fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
+          textTransform: 'uppercase', color: '#0a0a0a',
+          margin: 0, cursor: 'default',
+        }}
+      >{disp}</div>
+    )
+  }
+
+  // Desktop: static placeholder that gets hidden once scroll kicks in
   return (
     <div
       ref={staticRef}
       className="projekte-heading"
-      onMouseEnter={isMobile ? undefined : scramble}
+      onMouseEnter={scramble}
       style={{
-        fontSize: isMobile ? '16vw' : '8vw',
+        fontSize: '8vw',
         fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
         textTransform: 'uppercase', color: '#0a0a0a',
         margin: 0, cursor: 'default', visibility: 'visible',
