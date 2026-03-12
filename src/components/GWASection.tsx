@@ -226,45 +226,66 @@ function ProcessTimeline({ lang }: { lang: 'de' | 'en' }) {
   )
 }
 
-// ─── ScrollLinkedVideo – 16:9, wächst bis Viewport-Mitte, schrumpft danach ───
+// ─── ScrollLinkedVideo – 16:9, wächst bis Viewport-Mitte, spielt nur wenn sichtbar ───
 function ScrollLinkedVideo({ lang }: { lang: 'de' | 'en' }) {
   const wrapRef  = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(0.4)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
+    if (!node) return
+    ;(videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node
+    node.muted = true
+    node.play().catch(() => {})
+  }, [])
+  const [scale, setScale] = useState(0.3)
   const [hovBtn, setHovBtn] = useState(false)
 
+  // Scroll → scale (0.3 → 1.4, peak at viewport centre)
   useEffect(() => {
     const fn = () => {
       const el = wrapRef.current; if (!el) return
       const rect = el.getBoundingClientRect(); const vh = window.innerHeight
       const elCenter = rect.top + rect.height / 2
-      const distFromCenter = elCenter - vh / 2
-      const range = vh * 0.7
-      const s = 1.2 - Math.min(1, Math.abs(distFromCenter) / range) * 0.8  // 0.4 → 1.2
+      const dist = elCenter - vh / 2
+      const range = vh * 0.65
+      const s = 1.4 - Math.min(1, Math.abs(dist) / range) * 1.1  // 0.3 → 1.4
       setScale(s)
     }
     window.addEventListener('scroll', fn, { passive: true }); fn()
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
-  // Video + Button are in the same scaled group.
-  // To stop the scaled block from collapsing its DOM height we use:
-  //   outer div  → real dimensions (width fixed, height = scaled visual height via padding-bottom trick)
-  //   inner div  → absolute, scaled from left-top, contains video + button
-  const VIDEO_W = 560   // px – matches maxWidth below
-  const VIDEO_H = Math.round(VIDEO_W * 9 / 16)   // 315px
-  const BTN_H   = 42    // approximate button height (11px font + 11px*2 padding)
-  const GAP     = 18
-  const CONTENT_H = VIDEO_H + GAP + BTN_H         // total unscaled height of inner block
+  // Force autoplay and pause when out of view
+  useEffect(() => {
+    const video = videoRef.current; if (!video) return
+    video.muted = true
+    video.loop  = true
+    video.playsInline = true
+    video.play().catch(() => {})
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) { video.play().catch(() => {}) }
+        else { video.pause() }
+      },
+      { threshold: 0.05 }
+    )
+    obs.observe(video)
+    return () => obs.disconnect()
+  }, [])
+
+  const VIDEO_W   = 560
+  const VIDEO_H   = Math.round(VIDEO_W * 9 / 16)  // 315px
+  const BTN_H     = 42
+  const GAP       = 18
+  const CONTENT_H = VIDEO_H + GAP + BTN_H
 
   return (
-    // outer: reserves exactly the scaled height so layout below doesn't jump
     <div ref={wrapRef} style={{
       position: 'relative',
       width: VIDEO_W,
       height: CONTENT_H * scale,
       transition: 'height 0.06s linear',
+      overflow: 'visible',
     }}>
-      {/* inner: absolute, scale from left-top so button stays glued to video */}
       <div style={{
         position: 'absolute', top: 0, left: 0,
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
@@ -273,16 +294,15 @@ function ScrollLinkedVideo({ lang }: { lang: 'de' | 'en' }) {
         transition: 'transform 0.06s linear',
         width: VIDEO_W,
       }}>
-        {/* 16:9 video */}
-        <div style={{ width: VIDEO_W, height: VIDEO_H, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ width: VIDEO_W, height: VIDEO_H, flexShrink: 0, overflow: 'hidden' }}>
           <video
+            ref={videoCallbackRef}
             src="/videos/gwavideo.mp4"
-            autoPlay loop muted playsInline
+            playsInline loop
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         </div>
 
-        {/* Button – fixed gap, moves with video */}
         <a
           href="https://www.youtube.com/live/WTt66Ojzi44?si=ufzNc8ExJtfVg_mo&t=4409"
           target="_blank" rel="noopener noreferrer"
