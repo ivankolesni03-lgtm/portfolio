@@ -50,19 +50,19 @@ const borna = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "IVAN KOLESNIKOV | Photography Portfolio",
-  description: "Professional photography portfolio by Ivan Kolesnikov. Portrait, fashion, and artistic photography.",
-  keywords: ["photography", "portfolio", "portrait", "fashion", "artistic", "Ivan Kolesnikov"],
+  title: "IVAN KOLESNIKOV | PORTFOLIO",
+  description: "Creative portfolio by Ivan Kolesnikov.",
+  keywords: ["portfolio", "creative", "design", "communication", "Ivan Kolesnikov"],
   authors: [{ name: "Ivan Kolesnikov" }],
   openGraph: {
-    title: "IVAN KOLESNIKOV | Photography Portfolio",
-    description: "Professional photography portfolio by Ivan Kolesnikov.",
+    title: "IVAN KOLESNIKOV | PORTFOLIO",
+    description: "Creative portfolio by Ivan Kolesnikov.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "IVAN KOLESNIKOV | Photography Portfolio",
-    description: "Professional photography portfolio by Ivan Kolesnikov.",
+    title: "IVAN KOLESNIKOV | PORTFOLIO",
+    description: "Creative portfolio by Ivan Kolesnikov.",
   },
 };
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Hero } from '@/components/Hero'
-import { QuoteSection } from '@/components/QuoteSection'
+import { StorytellingSection } from '@/components/StorytellingSection'
 import { ProjectsSection } from '@/components/ProjectsSection'
 import { CustomCursor } from '@/components/CustomCursor'
 import { Header } from '@/components/Header'
@@ -38,11 +38,13 @@ export default function Home() {
           <Header isVisible={headerVisible} />
           <BrushCursor active={brushActive} />
           <Hero />
-          <QuoteSection />
-          <ProjectsSection />
-          <AISection />
-          <GWASection />
-          <ContactSection />
+          <StorytellingSection />
+          <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
+            <ProjectsSection />
+            <AISection />
+            <GWASection />
+            <ContactSection />
+          </div>
         </main>
       </PasswordGate>
     </LanguageProvider>

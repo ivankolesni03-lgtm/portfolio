@@ -158,22 +158,51 @@ function LogoRow() {
   )
 }
 
-// ─── ProcessTimeline – Strich ZWISCHEN den Labels (zentriert) ─────────────────
+// ─── ScrambleP – Fließtext mit Scramble bei Sprachwechsel ────────────────────
+function ScrambleP({ text, style }: { text: string; style?: React.CSSProperties }) {
+  const [disp, setDisp] = useState(text)
+  const ref  = useRef<ReturnType<typeof setInterval>|null>(null)
+  const prev = useRef(text)
+  useEffect(() => {
+    if (prev.current !== text) { prev.current = text; runScramble(text, setDisp, ref) }
+  }, [text])
+  return <p style={style}>{disp}</p>
+}
+
+// ─── ProcessTimeline ──────────────────────────────────────────────────────────
 const PROCESS_STEPS = {
   de: ['Briefing', 'Strategie', 'Ideation', 'Creation', 'Pitch'],
   en: ['Briefing', 'Strategy', 'Ideation', 'Creation', 'Pitch'],
+}
+const PROCESS_HINTS = {
+  de: [
+    'Kundenbrief lesen, Ziele & Zielgruppe verstehen.',
+    'Positionierung, Kanalwahl & Messaging entwickeln.',
+    'Ideen generieren, Konzepte skizzieren & bewerten.',
+    'Inhalte produzieren, Design & Copy finalisieren.',
+    'Kampagne präsentieren & Feedback einarbeiten.',
+  ],
+  en: [
+    'Read client brief, understand goals & audience.',
+    'Define positioning, channels & messaging.',
+    'Generate ideas, sketch & evaluate concepts.',
+    'Produce content, finalise design & copy.',
+    'Present campaign & incorporate feedback.',
+  ],
 }
 
 function ProcessTimeline({ lang }: { lang: 'de' | 'en' }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
+  const [hovIdx,   setHovIdx]   = useState<number|null>(null)
   const steps = PROCESS_STEPS[lang]
+  const hints = PROCESS_HINTS[lang]
 
   useEffect(() => {
     const fn = () => {
       const el = containerRef.current; if (!el) return
       const rect = el.getBoundingClientRect(); const vh = window.innerHeight
-      const raw = (vh * 0.78 - rect.top) / (rect.height - vh * 0.22)
+      const raw = (vh * 0.6 - rect.top) / (rect.height * 0.55)
       setProgress(Math.max(0, Math.min(1, raw)))
     }
     window.addEventListener('scroll', fn, { passive: true }); fn()
@@ -187,35 +216,70 @@ function ProcessTimeline({ lang }: { lang: 'de' | 'en' }) {
         const segEnd   = (i + 1) / steps.length
         const segP     = Math.max(0, Math.min(1, (progress - segStart) / (segEnd - segStart)))
         const isActive = progress > segStart + 0.005
+        const isHov    = hovIdx === i
 
         return (
           <div key={step} style={{ display: 'flex', flexDirection: 'column' }}>
-            {/* Step label */}
-            <span style={{
-              fontSize: 'clamp(20px,2.8vw,42px)', fontWeight: 900,
-              letterSpacing: '-0.8px', lineHeight: 1.1, textTransform: 'uppercase',
-              color: '#0a0a0a', opacity: isActive ? 1 : 0.22,
-              transition: 'opacity 0.45s ease',
-              whiteSpace: 'nowrap', display: 'block',
-            }}>{step}</span>
 
-            {/* single vertical line between steps */}
+            {/* Row: label + floating hint block */}
+            <div
+              onMouseEnter={() => setHovIdx(i)}
+              onMouseLeave={() => setHovIdx(null)}
+              style={{ display: 'flex', alignItems: 'center', gap: 'clamp(14px,1.6vw,24px)', cursor: 'default' }}
+            >
+              {/* Label */}
+              <span style={{
+                fontSize: 'clamp(24px,3.2vw,52px)', fontWeight: 900,
+                letterSpacing: '-1px', lineHeight: 1.05, textTransform: 'uppercase',
+                color: '#0a0a0a',
+                opacity: isActive || isHov ? 1 : 0.18,
+                transform: isHov ? 'translateX(4px)' : 'translateX(0)',
+                transition: 'opacity 0.3s ease, transform 0.2s ease',
+                whiteSpace: 'nowrap', userSelect: 'none', flexShrink: 0,
+              }}>{step}</span>
+
+              {/* Hint block – slides in, text wraps properly */}
+              <div style={{
+                overflow: 'hidden',
+                maxWidth: isHov ? 320 : 0,
+                opacity: isHov ? 1 : 0,
+                transition: 'max-width 0.32s cubic-bezier(0.16,1,0.3,1), opacity 0.22s ease',
+                flexShrink: 0,
+              }}>
+                <div style={{
+                  backgroundColor: '#0a0a0a',
+                  padding: '8px 14px',
+                  width: 320,
+                }}>
+                  <span style={{
+                    color: '#ffffff',
+                    fontSize: 'clamp(9px,0.85vw,12px)',
+                    fontWeight: 500,
+                    letterSpacing: '0.04em',
+                    lineHeight: 1.5,
+                    whiteSpace: 'normal',
+                    display: 'block',
+                  }}>{hints[i]}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Vertical fill line between steps */}
             {i < steps.length - 1 && (
               <div style={{
-                marginTop: 'clamp(10px,1.4vw,20px)',
-                marginBottom: 'clamp(10px,1.4vw,20px)',
-                marginLeft: 4,
+                marginTop: 'clamp(8px,1.1vw,16px)',
+                marginBottom: 'clamp(8px,1.1vw,16px)',
+                marginLeft: 6,
                 width: 4,
-                height: 'clamp(28px,4vw,60px)',
-                backgroundColor: 'rgba(10,10,10,0.1)',
-                position: 'relative', overflow: 'hidden',
-                borderRadius: 2,
+                height: 'clamp(24px,3.2vw,48px)',
+                backgroundColor: 'rgba(10,10,10,0.08)',
+                position: 'relative', overflow: 'hidden', borderRadius: 2,
               }}>
                 <div style={{
                   position: 'absolute', top: 0, left: 0, right: 0,
                   height: `${segP * 100}%`,
-                  backgroundColor: '#0a0a0a',
-                  borderRadius: 2,
+                  backgroundColor: '#0a0a0a', borderRadius: 2,
+                  transition: 'height 0.05s linear',
                 }} />
               </div>
             )}
@@ -226,54 +290,44 @@ function ProcessTimeline({ lang }: { lang: 'de' | 'en' }) {
   )
 }
 
-// ─── ScrollLinkedVideo – 16:9, wächst bis Viewport-Mitte, spielt nur wenn sichtbar ───
+// ─── ScrollLinkedVideo ────────────────────────────────────────────────────────
 function ScrollLinkedVideo({ lang }: { lang: 'de' | 'en' }) {
   const wrapRef  = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
-    if (!node) return
-    ;(videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node
-    node.muted = true
-    node.play().catch(() => {})
-  }, [])
-  const [scale, setScale] = useState(0.3)
+  const [scale, setScale] = useState(0.4)
   const [hovBtn, setHovBtn] = useState(false)
+  const btnText = lang === 'de' ? 'Ansehen' : 'Watch'
+  const { disp: btnDisp, scramble: btnScramble } = useScramble(btnText)
 
-  // Scroll → scale (0.3 → 1.4, peak at viewport centre)
+  // Scale on scroll
   useEffect(() => {
     const fn = () => {
       const el = wrapRef.current; if (!el) return
       const rect = el.getBoundingClientRect(); const vh = window.innerHeight
       const elCenter = rect.top + rect.height / 2
-      const dist = elCenter - vh / 2
-      const range = vh * 0.65
-      const s = 1.4 - Math.min(1, Math.abs(dist) / range) * 1.1  // 0.3 → 1.4
+      const distFromCenter = elCenter - vh / 2
+      const range = vh * 0.7
+      const s = 1.2 - Math.min(1, Math.abs(distFromCenter) / range) * 0.8
       setScale(s)
     }
     window.addEventListener('scroll', fn, { passive: true }); fn()
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
-  // Force autoplay and pause when out of view
+  // Autoplay when visible – runs once on mount, never resets video
   useEffect(() => {
     const video = videoRef.current; if (!video) return
     video.muted = true
-    video.loop  = true
-    video.playsInline = true
-    video.play().catch(() => {})
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) { video.play().catch(() => {}) }
-        else { video.pause() }
-      },
-      { threshold: 0.05 }
-    )
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) video.play().catch(() => {})
+      else video.pause()
+    }, { threshold: 0.1 })
     obs.observe(video)
     return () => obs.disconnect()
   }, [])
 
   const VIDEO_W   = 560
-  const VIDEO_H   = Math.round(VIDEO_W * 9 / 16)  // 315px
+  const VIDEO_H   = Math.round(VIDEO_W * 9 / 16)
   const BTN_H     = 42
   const GAP       = 18
   const CONTENT_H = VIDEO_H + GAP + BTN_H
@@ -294,11 +348,11 @@ function ScrollLinkedVideo({ lang }: { lang: 'de' | 'en' }) {
         transition: 'transform 0.06s linear',
         width: VIDEO_W,
       }}>
-        <div style={{ width: VIDEO_W, height: VIDEO_H, flexShrink: 0, overflow: 'hidden' }}>
+        <div style={{ width: VIDEO_W, height: VIDEO_H, overflow: 'hidden', flexShrink: 0 }}>
           <video
-            ref={videoCallbackRef}
+            ref={videoRef}
             src="/videos/gwavideo.mp4"
-            playsInline loop
+            loop playsInline preload="auto"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         </div>
@@ -306,22 +360,22 @@ function ScrollLinkedVideo({ lang }: { lang: 'de' | 'en' }) {
         <a
           href="https://www.youtube.com/live/WTt66Ojzi44?si=ufzNc8ExJtfVg_mo&t=4409"
           target="_blank" rel="noopener noreferrer"
-          onMouseEnter={() => setHovBtn(true)}
+          onMouseEnter={() => { setHovBtn(true); btnScramble() }}
           onMouseLeave={() => setHovBtn(false)}
           style={{
             marginTop: GAP,
             display: 'inline-flex', alignItems: 'center', gap: 10,
             backgroundColor: hovBtn ? '#333' : '#0a0a0a',
-            color: '#ffffff', fontSize: 11, fontWeight: 700,
+            color: '#fff', fontSize: 11, fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             padding: '11px 20px', textDecoration: 'none',
             transition: 'background-color 0.15s ease', cursor: 'pointer',
           }}
         >
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <polygon points="2,1 12,6.5 2,12" fill="#ffffff"/>
+            <polygon points="2,1 12,6.5 2,12" fill="#fff"/>
           </svg>
-          {lang === 'de' ? 'Ansehen' : 'Watch'}
+          {btnDisp}
         </a>
       </div>
     </div>
@@ -397,8 +451,8 @@ export function GWASection() {
             <AwardBadge label={T.award2[lang]} />
             <AwardBadge label={T.award3[lang]} />
           </div>
-          <p style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(12px,3vw,20px)' }}>{T.p1[lang]}</p>
-          <p style={{ color: '#0a0a0a', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(40px,10vw,60px)' }}>{T.p2[lang]}</p>
+          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(12px,3vw,20px)' }} />
+          <ScrambleP text={T.p2[lang]} style={{ color: '#0a0a0a', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(40px,10vw,60px)' }} />
           <ProcessTimeline lang={lang} />
           <div style={{ marginTop: 'clamp(40px,10vw,64px)' }}>
             {/* mobile: simple 16:9 video, no scale trick */}
@@ -432,8 +486,8 @@ export function GWASection() {
           </div>
 
           {/* Body text */}
-          <p style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(16px,1.8vw,24px)', maxWidth: 560 }}>{T.p1[lang]}</p>
-          <p style={{ color: '#0a0a0a', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(56px,7vw,96px)', maxWidth: 560 }}>{T.p2[lang]}</p>
+          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(16px,1.8vw,24px)', maxWidth: 560 }} />
+          <ScrambleP text={T.p2[lang]} style={{ color: '#0a0a0a', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(56px,7vw,96px)', maxWidth: 560 }} />
 
           {/* Process timeline */}
           <ProcessTimeline lang={lang} />
@@ -456,12 +510,13 @@ export function GWASection() {
 // ─── Mobile Livestream Button ─────────────────────────────────────────────────
 function MobileLivestreamBtn({ lang }: { lang: 'de' | 'en' }) {
   const [hov, setHov] = useState(false)
+  const { disp, scramble } = useScramble(lang === 'de' ? 'Ansehen' : 'Watch')
   return (
     <a href="https://www.youtube.com/live/WTt66Ojzi44?si=ufzNc8ExJtfVg_mo&t=4409" target="_blank" rel="noopener noreferrer"
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      onMouseEnter={() => { setHov(true); scramble() }} onMouseLeave={() => setHov(false)}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 10, backgroundColor: hov ? '#333' : '#0a0a0a', color: '#ffffff', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '11px 20px', textDecoration: 'none', transition: 'background-color 0.15s ease', cursor: 'pointer' }}>
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polygon points="2,1 12,6.5 2,12" fill="#ffffff"/></svg>
-      {lang === 'de' ? 'Ansehen' : 'Watch'}
+      {disp}
     </a>
   )
 }
