@@ -7,15 +7,15 @@ const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
 const PROJECTS = [
   { id:1, title:{de:'Hochschule\nHannover',en:'Hannover\nUASA'}, field:{de:'Image\nKampagne',en:'Image\nCampaign'}, description:{de:'Mangelnde Brand-Sichtbarkeit und eine zu sachliche Web-Präsenz verhindern den emotionalen Zugang. „Home of Community" positioniert die Hochschule als ein Ort für Kreative.',en:'Lack of brand visibility and an overly factual web presence prevent emotional engagement. "Home of Community" positions the university as a place for creatives.'}, image:'/images/hochschule.jpg', images:['/images/hochschule0.jpg','/images/hochschule1.jpg','/images/hochschule3.jpg','/images/hochschule4.jpg'], tags:{de:['Social Media','OOH','Brand Strategie'],en:['Social Media','OOH','Brand Strategy']}, youtube: null },
   { id:2, title:{de:'Continental',en:'Continental'}, field:{de:'Produkt\nKampagne',en:'Product\nCampaign'}, description:{de:'Einblicke in die globale Kommunikationslogik bei Continental. Begleitung des Product Drops Ice Contact 8 von der Agentur-Ideation bis zum Launch.',en:'Insights into global communication logic at Continental. Accompanying the Ice Contact 8 product drop from agency ideation to launch.'}, image:'/images/continental.jpg', images:['/images/continental.jpg','/images/continental1.jpg','/images/continental2.jpg'], tags:{de:['Strategie','Kampagne','Copywriting'],en:['Strategy','Campaign','Copywriting']}, youtube: null },
-  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Produktion von Short-Form Video Content für verschiedene Marken. Von der Idee bis zum fertigen Reel – Storytelling, Schnitt und Postproduktion.',en:'Production of short-form video content for various brands. From idea to finished reel – storytelling, editing and post-production.'}, image:'/images/hateaid.jpg', images:['/images/hateaid.jpg','/images/paece.jpg'], tags:{de:['Reels','Schnitt','Storytelling','TikTok'],en:['Reels','Editing','Storytelling','TikTok']}, youtube: null },
-  { id:4, title:{de:'Lebara',en:'Lebara'}, field:{de:'Social Media\nMarketing',en:'Social Media\nMarketing'}, description:{de:'Social Media Content, Community Management und Memes für den Mobilfunkanbieter Lebara. Vom Briefing bis zum Performance Review.',en:'Social media content, community management and memes for mobile provider Lebara. From briefing to performance review.'}, image:'/images/lebara.jpg', images:['/images/lebara.jpg','/images/ai.jpg','/images/hateaid.jpg'], tags:{de:['Content Creation','Memes','TikTok','Community'],en:['Content Creation','Memes','TikTok','Community']}, youtube: null },
-  { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'KI als neues Medium der Inspiration. Mit ComfyUI, N8N und gezieltem LoRA-Training entstehen Bild und Video.',en:'AI as a new medium of inspiration. With ComfyUI, N8N and targeted LoRA training, images and videos are created.'}, image:'/images/ganbatte.jpg', images:['/images/ganbatte.jpg','/images/continental.jpg','/images/ai.jpg'], tags:{de:['ComfyUI','LoRA','N8N','Generative KI'],en:['ComfyUI','LoRA','N8N','Generative AI']}, youtube: null },
-  { id:6, title:{de:'Cavallo',en:'Cavallo'}, field:{de:'UX & Web\nDesign',en:'UX & Web\nDesign'}, description:{de:'Entwicklung einer interaktiven Kommunikationskampagne für eine Eventlocation, inklusive Flowchart, Website-Layout und Mockups.',en:'Development of an interactive communication campaign for an event location, including flowchart, website layout and mockups.'}, image:'/images/cavallo.jpg', images:['/images/cavallo.jpg','/images/hochschule.png'], tags:{de:['UX','UI','Web Design','Mockup'],en:['UX','UI','Web Design','Mockup']}, youtube: null },
-  { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Social-Media-Kampagne für eine Supplement-Marke. Motion Design und Postproduktion, um Benefits hervorzuheben.',en:'Social media campaign for a supplement brand. Motion design and post-production to highlight benefits.'}, image:'/images/bold.jpg', images:['/images/bold.jpg','/images/lebara.jpg'], tags:{de:['Motion Design','Postproduktion','Social Media'],en:['Motion Design','Post-Production','Social Media']}, youtube: null },
-  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Konzeption und Umsetzung eines digitalen Portfolios mit Next.js, Tailwind und prozeduralen Scroll-Animationen.',en:'Conception and implementation of a digital portfolio with Next.js, Tailwind and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg','/images/ai.jpg'], tags:{de:['Next.js','TypeScript','Animation','Branding'],en:['Next.js','TypeScript','Animation','Branding']}, youtube: null },
-  { id:9, title:{de:'Glow\nNation',en:'Glow\nNation'}, field:{de:'Kommunikations\nDesign',en:'Communication\nDesign'}, description:{de:'Ganzheitliche Kommunikationsstrategien für mittelständische Unternehmen. Zielgruppenanalyse, Kanalwahl und Messaging-Architektur.',en:'Holistic communication strategies for medium-sized companies. Target group analysis, channel selection and messaging architecture.'}, image:'/images/glownation.jpg', images:['/images/glownation.jpg','/images/cavallo.jpg'], tags:{de:['Strategie','Beratung','B2B','Analyse'],en:['Strategy','Consulting','B2B','Analysis']}, youtube: null },
-  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt – authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut – authentic storytelling in sport.'}, image:'/images/tennisheine.jpg', images:['/images/tennisheine.jpg','/images/bold.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
-  { id:11, title:{de:'GWA\nMackingOff',en:'GWA\nMackingOff'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Kampagnenfilm für den GWA MackingOff Award. Kreative Umsetzung eines gesellschaftlich relevanten Themas mit gezieltem Einsatz von Bildsprache und Montage.',en:'Campaign film for the GWA HackingOff Award. Creative realisation of a socially relevant topic through targeted use of visual language and montage.'}, image:'/images/gwa.jpg', images:['/images/gwa.jpg','/images/hateaid.jpg'], tags:{de:['Kampagnenfilm','Regie','Montage','Award'],en:['Campaign Film','Direction','Montage','Award']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
+  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Awareness-Kampagne für die NGO HateAid – gemeinsam mit Partneragentur Creative Team. Unser Claim „Einer für alle, alle gegen Hass." stellt Solidarität ins Zentrum und macht Hass im Netz sichtbar.',en:'Awareness campaign for the NGO HateAid – together with partner agency Creative Team. Our claim "One for all, all against hate." puts solidarity at the centre and makes online hate visible.'}, image:'/images/hateaid.jpg', images:['/images/hateaid.jpg','/images/hateaid1.jpg','/images/hateaid2.jpg','/images/hateaid3.jpg','/images/hateaid4.jpg'], tags:{de:['NGO','Awareness','Storytelling','GWA'],en:['NGO','Awareness','Storytelling','GWA']}, youtube: null },
+  { id:4, title:{de:'Lebara',en:'Lebara'}, field:{de:'Social Media\nMarketing',en:'Social Media\nMarketing'}, description:{de:'Social Media Content, Community Management und Memes für den Mobilfunkanbieter Lebara. Vom Briefing bis zum Performance Review.',en:'Social media content, community management and memes for mobile provider Lebara. From briefing to performance review.'}, image:'/images/lebara.jpg', images:['/images/lebara.jpg','/images/lebara.jpg','/images/hateaid.jpg'], tags:{de:['Content Creation','Memes','TikTok','Community'],en:['Content Creation','Memes','TikTok','Community']}, youtube: null },
+  { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'KI als neues Medium der Inspiration. Mit ComfyUI, N8N und gezieltem LoRA-Training entstehen Bild und Video.',en:'AI as a new medium of inspiration. With ComfyUI, N8N and targeted LoRA training, images and videos are created.'}, image:'/images/ganbatte.jpg', images:['/images/ganbatte.jpg','/images/ganbatte.jpg'], tags:{de:['ComfyUI','LoRA','N8N','Generative KI'],en:['ComfyUI','LoRA','N8N','Generative AI']}, youtube: null },
+  { id:6, title:{de:'Cavallo',en:'Cavallo'}, field:{de:'UX & Web\nDesign',en:'UX & Web\nDesign'}, description:{de:'Entwicklung einer interaktiven Kommunikationskampagne für eine Eventlocation, inklusive Flowchart, Website-Layout und Mockups.',en:'Development of an interactive communication campaign for an event location, including flowchart, website layout and mockups.'}, image:'/images/cavallo.jpg', images:['/images/cavallo.jpg','/images/cavallo.png'], tags:{de:['UX','UI','Web Design','Mockup'],en:['UX','UI','Web Design','Mockup']}, youtube: null },
+  { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Social-Media-Kampagne für eine Supplement-Marke. Motion Design und Postproduktion, um Benefits hervorzuheben.',en:'Social media campaign for a supplement brand. Motion design and post-production to highlight benefits.'}, image:'/images/bold.jpg', images:['/images/bold.jpg','/images/bold.jpg'], tags:{de:['Motion Design','Postproduktion','Social Media'],en:['Motion Design','Post-Production','Social Media']}, youtube: null },
+  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Konzeption und Umsetzung eines digitalen Portfolios mit Next.js, Tailwind und prozeduralen Scroll-Animationen.',en:'Conception and implementation of a digital portfolio with Next.js, Tailwind and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg','/images/pocoloco.jpg'], tags:{de:['Next.js','TypeScript','Animation','Branding'],en:['Next.js','TypeScript','Animation','Branding']}, youtube: null },
+  { id:9, title:{de:'Glow\nNation',en:'Glow\nNation'}, field:{de:'Kommunikations\nDesign',en:'Communication\nDesign'}, description:{de:'Ganzheitliche Kommunikationsstrategien für mittelständische Unternehmen. Zielgruppenanalyse, Kanalwahl und Messaging-Architektur.',en:'Holistic communication strategies for medium-sized companies. Target group analysis, channel selection and messaging architecture.'}, image:'/images/glownation.jpg', images:['/images/glownation.jpg','/images/glownation.jpg'], tags:{de:['Strategie','Beratung','B2B','Analyse'],en:['Strategy','Consulting','B2B','Analysis']}, youtube: null },
+  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt – authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut – authentic storytelling in sport.'}, image:'/images/tennisheine.jpg', images:['/images/tennisheine.jpg','/images/tennisheine.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
+  { id:11, title:{de:'GWA\nMackingOff',en:'GWA\nMackingOff'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Kampagnenfilm für den GWA MackingOff Award. Kreative Umsetzung eines gesellschaftlich relevanten Themas mit gezieltem Einsatz von Bildsprache und Montage.',en:'Campaign film for the GWA HackingOff Award. Creative realisation of a socially relevant topic through targeted use of visual language and montage.'}, image:'/images/gwa.jpg', images:['/images/gwa.jpg','/images/gwa.jpg'], tags:{de:['Kampagnenfilm','Regie','Montage','Award'],en:['Campaign Film','Direction','Montage','Award']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
   { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Produktfotografie und visuelle Identität für Weros Webdynamics. Klare Bildsprache, die technische Kompetenz und moderne Ästhetik verbindet.',en:'Product photography and visual identity for Weros Webdynamics. Clear visual language combining technical expertise with modern aesthetics.'}, image:'/images/weros.jpg', images:['/images/weros.jpg','/images/weros1.jpg','/images/weros2.jpg'], tags:{de:['Fotografie','Produktfoto','Branding','Visual Identity'],en:['Photography','Product Photo','Branding','Visual Identity']}, youtube: null },
 ]
 type Project = typeof PROJECTS[0]
@@ -180,8 +180,6 @@ function PixelCarouselOneShot({ images, w, animateIn = true }: {
 }
 
 // ─── AnimatedHeading ──────────────────────────────────────────────────────────
-// Desktop: heading shrinks and floats to nav on scroll (fixed element trick)
-// Mobile:  plain static heading, zero scroll animation
 function AnimatedHeading() {
   const { language } = useLanguage()
   const text = language === 'de' ? 'PROJEKTE' : 'PROJECTS'
@@ -197,16 +195,12 @@ function AnimatedHeading() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Keep fixed element text in sync with scramble
   useEffect(() => {
     if (fixedElRef.current) fixedElRef.current.textContent = disp
   }, [disp])
 
-  // Desktop-only: scroll-linked shrink-to-nav animation
   useEffect(() => {
-    // Skip entirely on mobile or while hydrating
     if (isMobile === null || isMobile) return
-
     const el = document.createElement('div')
     el.textContent = text
     Object.assign(el.style, {
@@ -244,7 +238,6 @@ function AnimatedHeading() {
       const sr  = section.getBoundingClientRect()
       const hr  = staticEl.getBoundingClientRect()
       const raw = Math.max(0, Math.min(1, (-hr.top + 80) / 200))
-
       if (raw < 0.01) {
         startPos.l = hr.left; startPos.t = hr.top
         staticEl.style.visibility = 'visible'
@@ -258,14 +251,12 @@ function AnimatedHeading() {
       }
       staticEl.style.visibility = 'hidden'
       el.style.display = 'block'; el.style.pointerEvents = 'auto'
-
       const vw = window.innerWidth / 100
       el.style.fontSize      = `${8 * vw + (14 - 8 * vw) * raw}px`
       el.style.lineHeight    = `${0.9 + 0.3 * raw}`
       el.style.left          = `${32 + (startPos.l - 32) * (1 - raw)}px`
       el.style.top           = `${68 + (startPos.t - 68) * (1 - raw)}px`
       el.style.letterSpacing = `${-2 + raw * 1.72}px`
-
       if (raw >= 0.98) {
         el.style.fontSize = '14px'; el.style.lineHeight = '1.2'
         el.style.left = '32px'; el.style.top = '68px'
@@ -276,37 +267,20 @@ function AnimatedHeading() {
     return () => { window.removeEventListener('scroll', fn); el.remove(); fixedElRef.current = null }
   }, [isMobile]) // eslint-disable-line
 
-  // While SSR / hydrating: render nothing to avoid flash
   if (isMobile === null) return null
-
-  // Mobile: plain static heading, no animation whatsoever
   if (isMobile) {
     return (
-      <div
-        onMouseEnter={scramble}
-        style={{
-          fontSize: '16vw',
-          fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
-          textTransform: 'uppercase', color: '#0a0a0a',
-          margin: 0, cursor: 'default',
-        }}
-      >{disp}</div>
+      <div onMouseEnter={scramble} style={{
+        fontSize: '16vw', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
+        textTransform: 'uppercase', color: '#0a0a0a', margin: 0, cursor: 'default',
+      }}>{disp}</div>
     )
   }
-
-  // Desktop: static placeholder that gets hidden once scroll kicks in
   return (
-    <div
-      ref={staticRef}
-      className="projekte-heading"
-      onMouseEnter={scramble}
-      style={{
-        fontSize: '8vw',
-        fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
-        textTransform: 'uppercase', color: '#0a0a0a',
-        margin: 0, cursor: 'default', visibility: 'visible',
-      }}
-    >{disp}</div>
+    <div ref={staticRef} className="projekte-heading" onMouseEnter={scramble} style={{
+      fontSize: '8vw', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
+      textTransform: 'uppercase', color: '#0a0a0a', margin: 0, cursor: 'default', visibility: 'visible',
+    }}>{disp}</div>
   )
 }
 
@@ -336,7 +310,6 @@ export function StatsBlock() {
       if (!spacer || !sticky) return
       const sr = spacer.getBoundingClientRect()
       const vh = window.innerHeight
-
       if (!fixedRef.current && sr.top < vh * 0.6 && sr.bottom > vh * 0.1) {
         fixedRef.current = true; fixedScrollYRef.current = window.scrollY; setIsFixed(true)
       }
@@ -422,8 +395,9 @@ export function StatsBlock() {
   )
 }
 
-function ProjectCard({ project, forceHover, onClick }: {
-  project: Project; forceHover: boolean; onClick: () => void
+// ── ProjectCard – receives overlayOpen to blur when overlay is visible ────────
+function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
+  project: Project; forceHover: boolean; overlayOpen: boolean; onClick: () => void
 }) {
   const { language } = useLanguage()
   const lang = language as Lang
@@ -454,6 +428,8 @@ function ProjectCard({ project, forceHover, onClick }: {
         position: 'relative', cursor: 'pointer',
         transform: pressed ? 'scale(0.93)' : isActive ? 'scale(0.97)' : 'scale(1)',
         transition: 'transform 0.32s cubic-bezier(0.16,1,0.3,1)',
+        // blur + scale down when overlay is open, matching the backdrop
+        filter: overlayOpen ? 'blur(8px)' : 'none',
       }}
     >
       <img src={project.image} alt="" style={{
@@ -491,6 +467,8 @@ export function ProjectsSection() {
   const close = () => { setOpenIdx(null); setTimeout(() => setActiveIdx(null), 500) }
   const nav   = (i: number) => { setActiveIdx(i); setOpenIdx(i) }
 
+  const overlayOpen = openIdx !== null
+
   return (
     <>
       <section id="projekte" style={{
@@ -506,9 +484,18 @@ export function ProjectsSection() {
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3,1fr)',
           gap: isMobile ? '3vw' : 'clamp(12px,2vw,24px)',
+          // blur the whole grid when overlay is open
+          filter: overlayOpen ? 'blur(8px)' : 'none',
+          transition: 'filter 0.35s ease',
         }}>
           {PROJECTS.map((p, i) => (
-            <ProjectCard key={p.id} project={p} forceHover={activeIdx === i} onClick={() => open(i)} />
+            <ProjectCard
+              key={p.id}
+              project={p}
+              forceHover={activeIdx === i}
+              overlayOpen={overlayOpen}
+              onClick={() => open(i)}
+            />
           ))}
         </div>
       </section>

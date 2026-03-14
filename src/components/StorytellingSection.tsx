@@ -10,20 +10,22 @@ export function StorytellingSection() {
   const { language } = useLanguage()
   const lang = language as 'de' | 'en'
 
-  const sectionRef  = useRef<HTMLDivElement>(null)
-  const videoRef    = useRef<HTMLVideoElement>(null)
-  const headingRef  = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const videoRef   = useRef<HTMLVideoElement>(null)
+  const headingRef = useRef<HTMLDivElement>(null)
 
   const [progress, setProgress] = useState(0)
   const [exitBlur, setExitBlur] = useState(0)
-  const [vw, setVw] = useState(0)
-  const [vh, setVh] = useState(0)
+  const [vw, setVw]     = useState(0)
+  const [vh, setVh]     = useState(0)
   const [textH, setTextH] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     const update = () => {
       setVw(window.innerWidth)
       setVh(window.innerHeight)
+      setIsMobile(window.innerWidth < 768)
       if (headingRef.current) setTextH(headingRef.current.offsetHeight)
     }
     update()
@@ -31,7 +33,6 @@ export function StorytellingSection() {
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  // measure heading height after fonts load
   useEffect(() => {
     if (headingRef.current) setTextH(headingRef.current.offsetHeight)
   }, [vw])
@@ -42,7 +43,6 @@ export function StorytellingSection() {
       const scrolled = -sec.getBoundingClientRect().top
       const total    = sec.offsetHeight - window.innerHeight
       setProgress(Math.max(0, Math.min(1, scrolled / (total * 0.4))))
-      // exit blur: starts at 85% of scroll, fully blurred at 100%
       const exitP = Math.max(0, Math.min(1, (scrolled - total * 0.82) / (total * 0.18)))
       setExitBlur(exitP * 28)
     }
@@ -55,12 +55,11 @@ export function StorytellingSection() {
     v.muted = true
     v.setAttribute('muted', '')
     v.setAttribute('playsinline', '')
-    const tryPlay = () => v.play().catch(() => {})
-    if (v.readyState >= 2) {
-      tryPlay()
-    } else {
-      v.addEventListener('canplay', tryPlay, { once: true })
-    }
+    v.setAttribute('autoplay', '')
+    const tryPlay = () => { v.muted = true; return v.play().catch(() => {}) }
+    tryPlay()
+    v.addEventListener('loadeddata', tryPlay, { once: true })
+    v.addEventListener('canplay',    tryPlay, { once: true })
     const obs = new IntersectionObserver(
       ([e]) => { e.isIntersecting ? tryPlay() : v.pause() },
       { threshold: 0.05 }
@@ -72,30 +71,46 @@ export function StorytellingSection() {
   const PADDING = vw * 0.09
   const eased   = easeInOutCubic(progress)
 
-  // Heading: top-left at 9vw / 9vw
+  const headingO    = Math.max(0, 1 - Math.max(0, progress - 0.3) / 0.35)
+  const headingBlur = Math.max(0, (progress - 0.3) / 0.35) * 14
+
+  // ── MOBILE layout ──────────────────────────────────────────────────────────
+  // On mobile: STORY top-left, TELLING bottom-right (smaller font)
+  // Video: full width, centered vertically between the two words
+  const MOB_PAD    = vw * 0.06
+  const MOB_FONT   = vw * 0.18   // ~18vw
+  const MOB_VID_W  = vw - MOB_PAD * 2
+  const MOB_VID_H  = MOB_VID_W * (9 / 16)
+  const MOB_VID_L  = MOB_PAD
+  const MOB_VID_T  = vh === 0 ? 160 : (vh - MOB_VID_H) / 2
+
+  const mobFrameW = MOB_VID_W + (vw - MOB_VID_W) * eased
+  const mobFrameH = MOB_VID_H + (vh - MOB_VID_H) * eased
+  const mobFrameL = MOB_VID_L * (1 - eased)
+  const mobFrameT = MOB_VID_T * (1 - eased)
+
+  // ── DESKTOP layout ─────────────────────────────────────────────────────────
   const headingLeft = PADDING
   const headingTop  = PADDING
-
-  // Video initial: starts right of heading text block
-  // left edge = heading left + heading width (32vw) + gap (2vw)
-  // Video: wide flat bar, vertically centered between STORY top and TELLING bottom
   const vidNatLeft  = vw === 0 ? 400 : PADDING + vw * 0.18
   const vidNatW     = vw === 0 ? 440 : vw - (PADDING + vw * 0.32 + vw * 0.03) - PADDING * 1.2
   const vidNatH     = textH > 20 ? textH : (vw === 0 ? 240 : vw * 0.22 * 2)
-  // center between headingTop (STORY top) and bottom edge of TELLING (vh - headingTop*0.7 - textH*0.88)
   const tellingBottom = vh === 0 ? 0 : vh - PADDING * 0.7 - vidNatH * 0.5
   const vidNatTop   = vh === 0 ? 200 : (headingTop + tellingBottom) / 2 - vidNatH / 2 + vh * 0.04
+  const frameW      = vw === 0 ? vidNatW : vidNatW + (vw - vidNatW) * eased
+  const frameH      = vh === 0 ? vidNatH : vidNatH + (vh - vidNatH) * eased
+  const frameL      = vidNatLeft * (1 - eased)
+  const frameT      = vidNatTop  * (1 - eased)
 
-  // Expanded: fills full viewport from top-left
-  const frameW   = vw === 0 ? vidNatW : vidNatW + (vw - vidNatW) * eased
-  const frameH   = vh === 0 ? vidNatH : vidNatH + (vh - vidNatH) * eased
-  const frameL   = vidNatLeft * (1 - eased)
-  const frameT   = vidNatTop  * (1 - eased)
-  const radius   = 8 * (1 - eased)
+  const radius = 8 * (1 - eased)
 
-  const headingO   = Math.max(0, 1 - Math.max(0, progress - 0.3) / 0.35)
-  const headingBlur = Math.max(0, (progress - 0.3) / 0.35) * 14
-  // no overlay – video keeps original colors
+  // pick values based on device
+  const fW = isMobile ? mobFrameW : frameW
+  const fH = isMobile ? mobFrameH : frameH
+  const fL = isMobile ? mobFrameL : frameL
+  const fT = isMobile ? mobFrameT : frameT
+  const fontSize = isMobile ? `${vw * 0.18}px` : '14vw'
+  const letterSp = isMobile ? '-1px' : '-3px'
 
   return (
     <div
@@ -114,17 +129,16 @@ export function StorytellingSection() {
           ref={headingRef}
           style={{
             position: 'absolute',
-            top:  headingTop,
-            left: headingLeft,
-            pointerEvents: 'none',
-            zIndex: 5,
+            top:  isMobile ? MOB_PAD : headingTop,
+            left: isMobile ? MOB_PAD : headingLeft,
+            pointerEvents: 'none', zIndex: 5,
             opacity: headingO,
             filter: headingBlur > 0.1 ? `blur(${headingBlur}px)` : 'none',
           }}
         >
           <div style={{
-            fontSize: '14vw', fontWeight: 900,
-            lineHeight: 0.88, letterSpacing: '-3px',
+            fontSize, fontWeight: 900,
+            lineHeight: 0.88, letterSpacing: letterSp,
             textTransform: 'uppercase', color: '#ffffff', userSelect: 'none',
           }}>Story</div>
         </div>
@@ -132,16 +146,15 @@ export function StorytellingSection() {
         {/* TELLING – bottom right */}
         <div style={{
           position: 'absolute',
-          bottom: headingTop * 0.7,
-          right:  headingLeft,
-          pointerEvents: 'none',
-          zIndex: 5,
+          bottom: isMobile ? MOB_PAD : headingTop * 0.7,
+          right:  isMobile ? MOB_PAD : headingLeft,
+          pointerEvents: 'none', zIndex: 5,
           opacity: headingO,
           filter: headingBlur > 0.1 ? `blur(${headingBlur}px)` : 'none',
         }}>
           <div style={{
-            fontSize: '14vw', fontWeight: 900,
-            lineHeight: 0.88, letterSpacing: '-3px',
+            fontSize, fontWeight: 900,
+            lineHeight: 0.88, letterSpacing: letterSp,
             textTransform: 'uppercase', color: '#ffffff', userSelect: 'none',
           }}>telling</div>
         </div>
@@ -149,13 +162,9 @@ export function StorytellingSection() {
         {/* Video frame */}
         <div style={{
           position: 'absolute',
-          top:    frameT,
-          left:   frameL,
-          width:  frameW,
-          height: frameH,
+          top: fT, left: fL, width: fW, height: fH,
           borderRadius: radius,
-          overflow: 'hidden',
-          zIndex: 10,
+          overflow: 'hidden', zIndex: 10,
           boxShadow: progress < 0.95
             ? `0 ${20*(1-eased)}px ${60*(1-eased)}px rgba(0,0,0,0.7)`
             : 'none',
@@ -163,11 +172,10 @@ export function StorytellingSection() {
           <video
             ref={videoRef}
             src="/videos/storytelling.mp4"
-            loop playsInline
+            loop muted playsInline autoPlay
             suppressHydrationWarning
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
-
         </div>
 
       </div>
