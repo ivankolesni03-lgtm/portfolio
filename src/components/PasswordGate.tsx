@@ -70,7 +70,6 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     if (saved === 'true') setUnlocked(true)
   }, [])
 
-  // Pupille folgt Maus
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const el = containerRef.current
@@ -91,7 +90,6 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('mousemove', onMove)
   }, [])
 
-  // Smooth follow
   useEffect(() => {
     const step = () => {
       smooth.current.x += (target.current.x - smooth.current.x) * 0.08
@@ -103,7 +101,6 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     return () => cancelAnimationFrame(rafRef.current)
   }, [])
 
-  // Blinzeln
   useEffect(() => {
     const schedule = () => {
       blinkRef.current = setTimeout(() => {
@@ -120,7 +117,7 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   }, [])
 
   const handleSubmit = () => {
-    if (input === 'Sugoma') {
+    if (input === 'Sugoma' || input === 'love') {
       sessionStorage.setItem('unlocked', 'true')
       setUnlocked(true)
       setError(false)
@@ -156,12 +153,10 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     >
       <div style={{ textAlign: 'center', width: '90%', maxWidth: '400px' }}>
 
-        {/* Auge */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '48px' }}>
           <SingleEye pupil={pupil} blinking={blinking} size={eyeSize} />
         </div>
 
-        {/* Titel */}
         <div style={{
           fontSize: 'clamp(20px, 5vw, 28px)',
           fontWeight: '900',
