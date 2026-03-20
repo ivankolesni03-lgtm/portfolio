@@ -4,19 +4,20 @@ import { useLanguage } from '@/contexts/LanguageContext'
 
 const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
 
+
 const PROJECTS = [
   { id:1, title:{de:'Hochschule\nHannover',en:'Hannover\nUASA'}, field:{de:'Image\nKampagne',en:'Image\nCampaign'}, description:{de:'Mangelnde Brand-Sichtbarkeit und eine zu sachliche Web-Präsenz verhindern den emotionalen Zugang. „Home of Community" positioniert die Hochschule als ein Ort für Kreative.',en:'Lack of brand visibility and an overly factual web presence prevent emotional engagement. "Home of Community" positions the university as a place for creatives.'}, image:'/images/hochschule.jpg', images:['/images/hochschule0.jpg','/images/hochschule1.jpg','/images/hochschule3.jpg','/images/hochschule4.jpg'], tags:{de:['Social Media','OOH','Brand Strategie'],en:['Social Media','OOH','Brand Strategy']}, youtube: null },
   { id:2, title:{de:'Continental',en:'Continental'}, field:{de:'Produkt\nKampagne',en:'Product\nCampaign'}, description:{de:'Einblicke in die globale Kommunikationslogik bei Continental. Begleitung des Product Drops Ice Contact 8 von der Agentur-Ideation bis zum Launch.',en:'Insights into global communication logic at Continental. Accompanying the Ice Contact 8 product drop from agency ideation to launch.'}, image:'/images/continental.jpg', images:['/images/continental.jpg','/images/continental1.jpg','/images/continental2.jpg'], tags:{de:['Strategie','Kampagne','Copywriting'],en:['Strategy','Campaign','Copywriting']}, youtube: null },
-  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Awareness-Kampagne für die NGO HateAid – gemeinsam mit Partneragentur Creative Team. Unser Claim „Einer für alle, alle gegen Hass." stellt Solidarität ins Zentrum und macht Hass im Netz sichtbar.',en:'Awareness campaign for the NGO HateAid – together with partner agency Creative Team. Our claim "One for all, all against hate." puts solidarity at the centre and makes online hate visible.'}, image:'/images/hateaid.jpg', images:['/images/hateaid.jpg','/images/hateaid1.jpg','/images/hateaid2.jpg','/images/hateaid3.jpg','/images/hateaid4.jpg'], tags:{de:['NGO','Awareness','Storytelling','GWA'],en:['NGO','Awareness','Storytelling','GWA']}, youtube: null },
-  { id:4, title:{de:'Lebara',en:'Lebara'}, field:{de:'Social Media\nMarketing',en:'Social Media\nMarketing'}, description:{de:'Social Media Content, Community Management und Memes für den Mobilfunkanbieter Lebara. Vom Briefing bis zum Performance Review.',en:'Social media content, community management and memes for mobile provider Lebara. From briefing to performance review.'}, image:'/images/lebara.jpg', images:['/images/lebara.jpg','/images/lebara.jpg','/images/hateaid.jpg'], tags:{de:['Content Creation','Memes','TikTok','Community'],en:['Content Creation','Memes','TikTok','Community']}, youtube: null },
-  { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'KI als neues Medium der Inspiration. Mit ComfyUI, N8N und gezieltem LoRA-Training entstehen Bild und Video.',en:'AI as a new medium of inspiration. With ComfyUI, N8N and targeted LoRA training, images and videos are created.'}, image:'/images/ganbatte.jpg', images:['/images/ganbatte.jpg','/images/ganbatte.jpg'], tags:{de:['ComfyUI','LoRA','N8N','Generative KI'],en:['ComfyUI','LoRA','N8N','Generative AI']}, youtube: null },
-  { id:6, title:{de:'Cavallo',en:'Cavallo'}, field:{de:'UX & Web\nDesign',en:'UX & Web\nDesign'}, description:{de:'Entwicklung einer interaktiven Kommunikationskampagne für eine Eventlocation, inklusive Flowchart, Website-Layout und Mockups.',en:'Development of an interactive communication campaign for an event location, including flowchart, website layout and mockups.'}, image:'/images/cavallo.jpg', images:['/images/cavallo.jpg','/images/cavallo.png'], tags:{de:['UX','UI','Web Design','Mockup'],en:['UX','UI','Web Design','Mockup']}, youtube: null },
-  { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Social-Media-Kampagne für eine Supplement-Marke. Motion Design und Postproduktion, um Benefits hervorzuheben.',en:'Social media campaign for a supplement brand. Motion design and post-production to highlight benefits.'}, image:'/images/bold.jpg', images:['/images/bold.jpg','/images/bold.jpg'], tags:{de:['Motion Design','Postproduktion','Social Media'],en:['Motion Design','Post-Production','Social Media']}, youtube: null },
-  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Konzeption und Umsetzung eines digitalen Portfolios mit Next.js, Tailwind und prozeduralen Scroll-Animationen.',en:'Conception and implementation of a digital portfolio with Next.js, Tailwind and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg','/images/pocoloco.jpg'], tags:{de:['Next.js','TypeScript','Animation','Branding'],en:['Next.js','TypeScript','Animation','Branding']}, youtube: null },
-  { id:9, title:{de:'Glow\nNation',en:'Glow\nNation'}, field:{de:'Kommunikations\nDesign',en:'Communication\nDesign'}, description:{de:'Ganzheitliche Kommunikationsstrategien für mittelständische Unternehmen. Zielgruppenanalyse, Kanalwahl und Messaging-Architektur.',en:'Holistic communication strategies for medium-sized companies. Target group analysis, channel selection and messaging architecture.'}, image:'/images/glownation.jpg', images:['/images/glownation.jpg','/images/glownation.jpg'], tags:{de:['Strategie','Beratung','B2B','Analyse'],en:['Strategy','Consulting','B2B','Analysis']}, youtube: null },
-  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt – authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut – authentic storytelling in sport.'}, image:'/images/tennisheine.jpg', images:['/images/tennisheine.jpg','/images/tennisheine.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
-  { id:11, title:{de:'GWA\nMackingOff',en:'GWA\nMackingOff'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Kampagnenfilm für den GWA MackingOff Award. Kreative Umsetzung eines gesellschaftlich relevanten Themas mit gezieltem Einsatz von Bildsprache und Montage.',en:'Campaign film for the GWA HackingOff Award. Creative realisation of a socially relevant topic through targeted use of visual language and montage.'}, image:'/images/gwa.jpg', images:['/images/gwa.jpg','/images/gwa.jpg'], tags:{de:['Kampagnenfilm','Regie','Montage','Award'],en:['Campaign Film','Direction','Montage','Award']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
-  { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Produktfotografie und visuelle Identität für Weros Webdynamics. Klare Bildsprache, die technische Kompetenz und moderne Ästhetik verbindet.',en:'Product photography and visual identity for Weros Webdynamics. Clear visual language combining technical expertise with modern aesthetics.'}, image:'/images/weros.jpg', images:['/images/weros.jpg','/images/weros1.jpg','/images/weros2.jpg'], tags:{de:['Fotografie','Produktfoto','Branding','Visual Identity'],en:['Photography','Product Photo','Branding','Visual Identity']}, youtube: null },
+  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Awareness-Kampagne für die NGO HateAid gemeinsam mit Partneragentur Creative Team. Unser Claim „Einer für alle, alle gegen Hass." stellt Solidarität ins Zentrum und macht Hass im Netz sichtbar.',en:'Awareness campaign for the NGO HateAid together with partner agency Creative Team. Our claim "One for all, all against hate." puts solidarity at the centre and makes online hate visible.'}, image:'/images/hateaid.jpg', images:['/images/hateaid.jpg','/images/hateaid1.jpg','/images/hateaid2.jpg','/images/hateaid3.jpg','/images/hateaid4.jpg'], tags:{de:['NGO','Awareness','Storytelling','GWA'],en:['NGO','Awareness','Storytelling','GWA']}, youtube: null },
+  { id:4, title:{de:'Lebara',en:'Lebara'}, field:{de:'Social Media\nMarketing',en:'Social Media\nMarketing'}, description:{de:'Social Media Content, Community Management und Memes für den Mobilfunkanbieter Lebara. Vom Briefing bis zum Performance Review. Umgesetzt im Rahmen meines Praktikums bei Graco in Berlin.',en:'Social media content, community management and memes for mobile provider Lebara. From briefing to performance review. Realised during my internship at Graco in Berlin.'}, image:'/images/lebara.jpg', images:['/images/lebara.jpg','/images/lebara.jpg'], tags:{de:['Praktikum','Content Creation','Memes','TikTok'],en:['Internship','Content Creation','Memes','TikTok']}, youtube: null },
+  { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'Konzeption und Gestaltung einer Broschüre als Abgabe in Kommunikationsdesign. Von der Fotografie über das Texten bis zum Layout stammt alles aus meiner Hand. Als visuelle Inspiration diente meine Reise nach Thailand.',en:'Concept and design of a brochure as a submission in communication design. From photography to copywriting to layout, everything came from my own hand. My journey to Thailand served as visual inspiration.'}, image:'/images/ganbatte.jpg', images:['/images/ganbatte.jpg','/images/ganbatte.jpg'], tags:{de:['Broschüre','Fotografie','Layout','Thailand'],en:['Brochure','Photography','Layout','Thailand']}, youtube: null },
+  { id:6, title:{de:'Cavallo',en:'Cavallo'}, field:{de:'UX & Web\nDesign',en:'UX & Web\nDesign'}, description:{de:'Entwicklung einer interaktiven Kommunikationskampagne für eine Eventlocation, inklusive Flowchart, Website-Layout und Mockups.',en:'Development of an interactive communication campaign for an event location, including flowchart, website layout and mockups.'}, image:'/images/cavallo.jpg', images:['/images/cavallo.jpg','/images/cavallo.jpg'], tags:{de:['UX','UI','Web Design','Mockup'],en:['UX','UI','Web Design','Mockup']}, youtube: null },
+  { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Corporate Branding für die Agentur Bold. Entwicklung einer konsistenten Markenidentität mit Logogestaltung, Typografie und Farbwelt. Motion Design und Postproduktion bringen die Benefits der Marke visuell auf den Punkt.',en:'Corporate branding for the agency Bold. Development of a consistent brand identity including logo design, typography and colour world. Motion design and post-production bring the brand benefits to the point visually.'}, image:'/images/bold.jpg', images:['/images/bold.jpg','/images/bold.jpg'], tags:{de:['Corporate Branding','Logo','Motion Design','Agentur'],en:['Corporate Branding','Logo','Motion Design','Agency']}, youtube: null },
+  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Corporate Brand Communication für die kreative Agentur Pocoloco. Von der Markenstimme über das visuelle System bis zur digitalen Umsetzung mit Next.js und prozeduralen Scroll-Animationen.',en:'Corporate brand communication for the creative agency Pocoloco. From brand voice and visual system through to digital implementation with Next.js and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg','/images/pocoloco1.jpg'], tags:{de:['Corporate Brand','Next.js','Animation','Agentur'],en:['Corporate Brand','Next.js','Animation','Agency']}, youtube: null },
+  { id:9, title:{de:'Glow\nNation',en:'Glow\nNation'}, field:{de:'Kommunikations\nDesign',en:'Communication\nDesign'}, description:{de:'Entwicklung einer Corporate Identity durch Corporate Colors und Logoentwicklung bis hin zu Social Media Content für die Influencer-Marketing-Agentur Glownation.',en:'Development of a corporate identity through corporate colours and logo design through to social media content for the influencer marketing agency Glownation.'}, image:'/images/glownation.jpg', images:['/images/glownation.jpg','/images/glownation.jpg'], tags:{de:['Corporate Identity','Logo','Social Media','Influencer'],en:['Corporate Identity','Logo','Social Media','Influencer']}, youtube: null },
+  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt. Authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut. Authentic storytelling in sport.'}, image:'/images/tennisheine.jpg', images:['/images/tennisheine.jpg','/images/tennisheine.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
+  { id:11, title:{de:'GWA\nMackingOff',en:'GWA\nMackingOff'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'MackingOff hat den Publikumspreis gewonnen. Von Pre- bis Post-Production habe ich geplant und ausgearbeitet, um den Zuschauern ein Erlebnis zu schaffen. Kreative Bildsprache und Montage im Dienst eines gesellschaftlich relevanten Themas.',en:'MackingOff won the audience award. From pre- to post-production I planned and developed everything to create an experience for the audience. Creative visual language and montage in service of a socially relevant topic.'}, image:'/images/gwa.jpg', images:['/images/gwa.jpg','/images/gwa.jpg'], tags:{de:['Publikumspreis','Regie','Pre-Production','Post-Production'],en:['Audience Award','Direction','Pre-Production','Post-Production']}, youtube: 'https://www.youtube.com/watch?v=a5Im48lce0M' },
+  { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Fotografie mit Technik sowie Pre- und Post-Production einer Arztpraxis im Auftrag für die Agentur Webdynamics. Professionelle Bildsprache, die Vertrauen und moderne Ästhetik verbindet.',en:'Photography with technique as well as pre- and post-production of a medical practice commissioned for the agency Webdynamics. Professional visual language combining trust and modern aesthetics.'}, image:'/images/weros.jpg', images:['/images/weros.jpg','/images/weros1.jpg'], tags:{de:['Fotografie','Pre-Production','Post-Production','Arztpraxis'],en:['Photography','Pre-Production','Post-Production','Medical']}, youtube: null },
 ]
 type Project = typeof PROJECTS[0]
 type Lang = 'de'|'en'
@@ -180,7 +181,7 @@ function PixelCarouselOneShot({ images, w, animateIn = true }: {
 }
 
 // ─── AnimatedHeading ──────────────────────────────────────────────────────────
-function AnimatedHeading() {
+function AnimatedHeading({ overlayOpen }: { overlayOpen: boolean }) {
   const { language } = useLanguage()
   const text = language === 'de' ? 'PROJEKTE' : 'PROJECTS'
   const { disp, scramble } = useScramble(text)
@@ -205,7 +206,7 @@ function AnimatedHeading() {
     el.textContent = text
     Object.assign(el.style, {
       position: 'fixed', fontWeight: '900', textTransform: 'uppercase',
-      color: '#ffffff', mixBlendMode: 'difference', zIndex: '99999',
+      color: '#ffffff', mixBlendMode: 'difference', zIndex: '100002',
       pointerEvents: 'none', userSelect: 'none', whiteSpace: 'nowrap',
       cursor: 'pointer', display: 'none', fontFamily: 'inherit',
     })
@@ -231,6 +232,7 @@ function AnimatedHeading() {
     fixedElRef.current = el
 
     const startPos = { l: 0, t: 0 }
+    const overlayOpenRef = { current: false }
     const fn = () => {
       const staticEl = staticRef.current
       const section  = document.getElementById('projekte')
@@ -250,7 +252,8 @@ function AnimatedHeading() {
         return
       }
       staticEl.style.visibility = 'hidden'
-      el.style.display = 'block'; el.style.pointerEvents = 'auto'
+      el.style.display = 'block'
+      el.style.pointerEvents = overlayOpenRef.current ? 'none' : 'auto'
       const vw = window.innerWidth / 100
       el.style.fontSize      = `${8 * vw + (14 - 8 * vw) * raw}px`
       el.style.lineHeight    = `${0.9 + 0.3 * raw}`
@@ -263,9 +266,26 @@ function AnimatedHeading() {
         el.style.letterSpacing = '-0.02em'
       }
     }
+    ;(el as any).__overlayOpenRef = overlayOpenRef
     window.addEventListener('scroll', fn, { passive: true }); fn()
-    return () => { window.removeEventListener('scroll', fn); el.remove(); fixedElRef.current = null }
+    return () => {
+      window.removeEventListener('scroll', fn)
+      el.remove()
+      fixedElRef.current = null
+    }
   }, [isMobile]) // eslint-disable-line
+
+  useEffect(() => {
+    const el = fixedElRef.current; if (!el) return
+    const ref = (el as any).__overlayOpenRef
+    if (ref) ref.current = overlayOpen
+    el.style.transition    = 'filter 0.35s ease'
+    el.style.filter        = overlayOpen ? 'blur(8px)' : 'none'
+    el.style.pointerEvents = overlayOpen ? 'none' : 'auto'
+    el.style.mixBlendMode  = overlayOpen ? 'normal' : 'difference'
+    el.style.color         = overlayOpen ? '#0a0a0a' : '#ffffff'
+    el.style.zIndex        = overlayOpen ? '999' : '99999'
+  }, [overlayOpen])
 
   if (isMobile === null) return null
   if (isMobile) {
@@ -273,6 +293,8 @@ function AnimatedHeading() {
       <div onMouseEnter={scramble} style={{
         fontSize: '16vw', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
         textTransform: 'uppercase', color: '#0a0a0a', margin: 0, cursor: 'default',
+        filter: overlayOpen ? 'blur(8px)' : 'none',
+        transition: 'filter 0.35s ease',
       }}>{disp}</div>
     )
   }
@@ -280,122 +302,15 @@ function AnimatedHeading() {
     <div ref={staticRef} className="projekte-heading" onMouseEnter={scramble} style={{
       fontSize: '8vw', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
       textTransform: 'uppercase', color: '#0a0a0a', margin: 0, cursor: 'default', visibility: 'visible',
+      filter: overlayOpen ? 'blur(8px)' : 'none',
+      transition: 'filter 0.35s ease',
     }}>{disp}</div>
   )
 }
 
-const STATS_DATA = [
-  { value: 20,  suffix: '+', labelDe: 'Projekte',  labelEn: 'Projects'  },
-  { value: 100, suffix: '%', labelDe: 'Ambition',  labelEn: 'Ambition'  },
-  { value: 6,   suffix: '',  labelDe: 'Semester',  labelEn: 'Semesters' },
-]
 
-export function StatsBlock() {
-  const { language } = useLanguage()
-  const lang = language as Lang
-  const spacerRef = useRef<HTMLDivElement>(null)
-  const stickyRef = useRef<HTMLDivElement>(null)
-  const [progress,  setProgress] = useState(0)
-  const [isFixed,   setIsFixed]  = useState(false)
-  const [exitBlur,  setExitBlur] = useState(0)
-  const [isMobile,  setIsMobile] = useState(false)
-  const fixedRef        = useRef(false)
-  const fixedScrollYRef = useRef(0)
 
-  useEffect(() => { setIsMobile(window.innerWidth < 768) }, [])
 
-  useEffect(() => {
-    const fn = () => {
-      const spacer = spacerRef.current; const sticky = stickyRef.current
-      if (!spacer || !sticky) return
-      const sr = spacer.getBoundingClientRect()
-      const vh = window.innerHeight
-      if (!fixedRef.current && sr.top < vh * 0.6 && sr.bottom > vh * 0.1) {
-        fixedRef.current = true; fixedScrollYRef.current = window.scrollY; setIsFixed(true)
-      }
-      if (fixedRef.current) {
-        const delta = window.scrollY - fixedScrollYRef.current
-        setProgress(Math.max(0, Math.min(1, delta / (vh * 0.20))))
-        setExitBlur(1 - Math.max(0, Math.min(1, sr.bottom / (vh * 1.5))))
-      }
-      if (sr.bottom < vh * 0.05 && fixedRef.current) {
-        fixedRef.current = false; setIsFixed(false); setExitBlur(0)
-      }
-      if (sr.top > vh * 0.7) {
-        if (fixedRef.current) { fixedRef.current = false; setIsFixed(false); setExitBlur(0) }
-        setProgress(0)
-      }
-    }
-    window.addEventListener('scroll', fn, { passive: true }); fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
-
-  const renderGrid = () => (
-    <div style={{
-      paddingLeft:  isMobile ? '8vw' : 'clamp(80px,18vw,260px)',
-      paddingRight: isMobile ? '8vw' : 'clamp(24px,6vw,80px)',
-      boxSizing: 'border-box' as const, width: '100%',
-      filter:  exitBlur > 0 ? `blur(${exitBlur * 24}px)` : 'none',
-      opacity: exitBlur > 0 ? 1 - exitBlur : 1,
-    }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
-        columnGap: 'clamp(60px,10vw,140px)',
-        rowGap: isMobile ? '10vw' : 0,
-        alignItems: 'end',
-      }}>
-        {STATS_DATA.map((s, i) => {
-          const label = lang === 'de' ? s.labelDe : s.labelEn
-          const val   = Math.round(progress * s.value)
-          return (
-            <div key={i}>
-              <div style={{
-                fontSize: isMobile ? 'clamp(72px,22vw,120px)' : 'clamp(80px,13vw,192px)',
-                fontWeight: 900, lineHeight: 0.85,
-                letterSpacing: isMobile ? '-3px' : '-6px',
-                color: '#0a0a0a', margin: '0 0 clamp(8px,1vw,16px)',
-                fontVariantNumeric: 'tabular-nums',
-              }}>{val}{s.suffix}</div>
-              <ScrambleText text={label} style={{
-                display: 'block', color: '#0a0a0a',
-                fontSize: isMobile ? '18px' : 'clamp(14px,2.2vw,24px)',
-                fontWeight: 800, letterSpacing: '-0.5px',
-                textTransform: 'uppercase', lineHeight: 1.1,
-              }} />
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-
-  return (
-    <>
-      <div ref={spacerRef} style={{
-        height: isMobile ? '320vh' : '250vh',
-        backgroundColor: '#ffffff', position: 'relative', zIndex: 2,
-        marginTop: isMobile ? 'clamp(40px,8vw,80px)' : 'clamp(80px,14vw,180px)',
-      }}>
-        <div ref={stickyRef} style={{
-          position: 'sticky', top: '50%', transform: 'translateY(-50%)',
-          width: '100%', pointerEvents: 'none', opacity: isFixed ? 0 : 1,
-        }}>
-          {renderGrid()}
-        </div>
-      </div>
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 2, display: 'flex', alignItems: 'center',
-        backgroundColor: '#ffffff', pointerEvents: 'none',
-        opacity: isFixed ? 1 : 0, transition: 'opacity 0.15s ease',
-      }}>
-        {renderGrid()}
-      </div>
-    </>
-  )
-}
-
-// ── ProjectCard – receives overlayOpen to blur when overlay is visible ────────
 function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
   project: Project; forceHover: boolean; overlayOpen: boolean; onClick: () => void
 }) {
@@ -428,7 +343,6 @@ function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
         position: 'relative', cursor: 'pointer',
         transform: pressed ? 'scale(0.93)' : isActive ? 'scale(0.97)' : 'scale(1)',
         transition: 'transform 0.32s cubic-bezier(0.16,1,0.3,1)',
-        // blur + scale down when overlay is open, matching the backdrop
         filter: overlayOpen ? 'blur(8px)' : 'none',
       }}
     >
@@ -456,15 +370,15 @@ function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
   )
 }
 
-export function ProjectsSection() {
+export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: boolean) => void }) {
   const [openIdx, setOpenIdx] = useState<number|null>(null)
   const [activeIdx, setActiveIdx] = useState<number|null>(null)
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => { setIsMobile(window.innerWidth < 768) }, [])
 
-  const open  = (i: number) => { setActiveIdx(i); setOpenIdx(i) }
-  const close = () => { setOpenIdx(null); setTimeout(() => setActiveIdx(null), 500) }
+  const open  = (i: number) => { setActiveIdx(i); setOpenIdx(i); onOverlayChange?.(true) }
+  const close = () => { setOpenIdx(null); setTimeout(() => setActiveIdx(null), 500); onOverlayChange?.(false) }
   const nav   = (i: number) => { setActiveIdx(i); setOpenIdx(i) }
 
   const overlayOpen = openIdx !== null
@@ -478,28 +392,21 @@ export function ProjectsSection() {
         marginTop: isMobile ? '-5vh' : '-70vh',
       }}>
         <div style={{ marginBottom: isMobile ? '6vw' : 'clamp(40px,6vw,72px)' }}>
-          <AnimatedHeading />
+          <AnimatedHeading overlayOpen={overlayOpen} />
         </div>
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3,1fr)',
-          gap: isMobile ? '3vw' : 'clamp(12px,2vw,24px)',
-          // blur the whole grid when overlay is open
+          gap: isMobile ? '2vw' : 'clamp(12px,2vw,24px)',
           filter: overlayOpen ? 'blur(8px)' : 'none',
           transition: 'filter 0.35s ease',
+          ...(isMobile ? { maxHeight: 'calc(100svh - 120px)', overflow: 'hidden' } : {}),
         }}>
           {PROJECTS.map((p, i) => (
-            <ProjectCard
-              key={p.id}
-              project={p}
-              forceHover={activeIdx === i}
-              overlayOpen={overlayOpen}
-              onClick={() => open(i)}
-            />
+            <ProjectCard key={p.id} project={p} forceHover={activeIdx === i} overlayOpen={overlayOpen} onClick={() => open(i)} />
           ))}
         </div>
       </section>
-      <StatsBlock />
       {openIdx !== null && <Overlay idx={openIdx} onClose={close} onNav={nav} />}
     </>
   )
@@ -526,11 +433,13 @@ function Overlay({ idx, onClose, onNav }: {
   useEffect(() => {
     document.documentElement.style.setProperty('scrollbar-gutter', 'stable')
     document.body.style.overflow = 'hidden'
+    document.body.classList.add('overlay-open')
     const raf = requestAnimationFrame(() => requestAnimationFrame(() => setPhase('open')))
     return () => {
       cancelAnimationFrame(raf)
       document.body.style.overflow = ''
       document.documentElement.style.removeProperty('scrollbar-gutter')
+      document.body.classList.remove('overlay-open')
     }
   }, [])
 
@@ -583,17 +492,23 @@ function Overlay({ idx, onClose, onNav }: {
 
   return (
     <>
+      <style>{`
+        body.overlay-open .fixed-ui {
+          filter: blur(8px) !important;
+          transition: filter 0.35s ease !important;
+          pointer-events: none !important;
+        }
+      `}</style>
       <div onClick={close} style={{
-        position: 'fixed', inset: 0, zIndex: 100000,
+        position: 'fixed', inset: 0, zIndex: 999999,
         backgroundColor: phase === 'open' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0)',
         backdropFilter:       phase === 'open' ? 'blur(12px)' : 'blur(0px)',
         WebkitBackdropFilter: phase === 'open' ? 'blur(12px)' : 'blur(0px)',
         transition: 'background-color 0.35s ease, backdrop-filter 0.35s ease',
         cursor: 'pointer',
       }} />
-
       <div style={{
-        position: 'fixed', inset: 0, zIndex: 100001,
+        position: 'fixed', inset: 0, zIndex: 1000000,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         pointerEvents: 'none',
       }}>
@@ -613,7 +528,6 @@ function Overlay({ idx, onClose, onNav }: {
           }}>
             <PixelCarouselOneShot key={navKey} images={cur.images} w={imgW} animateIn={navKey > 0} />
           </div>
-
           <div
             onClick={e => e.stopPropagation()}
             style={{
@@ -631,10 +545,7 @@ function Overlay({ idx, onClose, onNav }: {
                 <line x1="17" y1="1" x2="1" y2="17" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square"/>
               </svg>
             </button>
-            <PanelContent
-              key={curIdx} project={cur} idx={curIdx} lang={lang}
-              doScramble={navKey > 0} onNav={navigate}
-            />
+            <PanelContent key={curIdx} project={cur} idx={curIdx} lang={lang} doScramble={navKey > 0} onNav={navigate} />
           </div>
         </div>
       </div>
@@ -685,20 +596,14 @@ function PanelContent({ project, idx, lang, doScramble, onNav }: {
           whiteSpace: 'pre-line', cursor: 'default',
         }}
       >{titleDisp}</h2>
-
       <p style={{
         color: '#555', fontSize: 'clamp(13px,1.4vw,16px)',
         lineHeight: 1.85, margin: '0 0 clamp(14px,1.8vw,24px)', flex: 1,
         userSelect: 'text',
       }}>{descDisp}</p>
-
       {project.youtube && (
-        <a
-          href={project.youtube}
-          target="_blank"
-          rel="noopener noreferrer"
-          onMouseEnter={() => setHovYT(true)}
-          onMouseLeave={() => setHovYT(false)}
+        <a href={project.youtube} target="_blank" rel="noopener noreferrer"
+          onMouseEnter={() => setHovYT(true)} onMouseLeave={() => setHovYT(false)}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 10,
             backgroundColor: hovYT ? '#333' : '#0a0a0a',
@@ -716,11 +621,9 @@ function PanelContent({ project, idx, lang, doScramble, onNav }: {
           {lang === 'de' ? 'Ansehen' : 'Watch'}
         </a>
       )}
-
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 'clamp(16px,2vw,24px)', flexShrink: 0 }}>
         {project.tags[lang].map((tag, i) => <TagPill key={i} label={tag} />)}
       </div>
-
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexShrink: 0 }}>
         <span style={{
           color: '#0a0a0a', fontSize: 'clamp(14px,1.6vw,22px)',

@@ -367,7 +367,7 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
 
   return (
     <div
-      className="fixed z-30"
+      className="fixed z-30 fixed-ui"
       style={{
         left,
         top,

@@ -219,19 +219,16 @@ const AI_SRCS = [
   '/ai-images/nikita-12.jpg',
 ]
 
-// Images are created at module load time (SSR-safe: typeof window check)
 const AI_IMAGES: HTMLImageElement[] = typeof window !== 'undefined'
   ? AI_SRCS.map(src => { const img = new window.Image(); img.src = src; return img })
   : []
 
-/** Ensure a specific image is loaded, resolving immediately if already done */
 function ensureLoaded(img: HTMLImageElement, src: string): Promise<HTMLImageElement> {
   if (img.complete && img.naturalWidth > 0) return Promise.resolve(img)
   return new Promise(resolve => {
     const done = () => resolve(img)
     img.addEventListener('load', done, { once: true })
     img.addEventListener('error', done, { once: true })
-    // Re-set src in case it failed silently
     if (!img.src || img.src === window.location.href) img.src = src
   })
 }
@@ -390,6 +387,7 @@ export function AISection() {
   const lang = language as Lang
 
   const outerRef   = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLElement>(null)
   const canvasRef  = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const rafRef     = useRef(0)
@@ -402,8 +400,10 @@ export function AISection() {
   const [isActive, setIsActive] = useState(false)
   const [phase,    setPhase]    = useState(0)
   const [ports,    setPorts]    = useState<PortMap>({})
-  const [zOrders,  setZOrders]  = useState<Record<string,number>>(
-    Object.fromEntries(['generate','prompt','erfahrung','vision','upscale','denoise','spinner','terminal','progress','preview'].map((id,i) => [id, 10+i]))
+  // VW/VH measured from the actual section element – consistent across environments
+  const [dims, setDims] = useState<{w:number,h:number}|null>(null)
+  const [zOrders, setZOrders] = useState<Record<string,number>>(
+    Object.fromEntries(['generate','prompt','erfahrung','vision','upscale','denoise','terminal','progress','preview','spinner'].map((id,i) => [id, 10+i]))
   )
   const [seed, setSeed] = useState(42667)
   const steps = 28
@@ -411,17 +411,25 @@ export function AISection() {
   useEffect(() => {
     setMounted(true)
     setMobile(window.innerWidth < 768)
-    const c = () => setMobile(window.innerWidth < 768)
-    window.addEventListener('resize', c)
-    // Images already preloaded at module level – just trigger load of any not yet started
+
+    const measure = () => {
+      const sec = sectionRef.current
+      if (sec) {
+        setDims({ w: sec.offsetWidth, h: sec.offsetHeight })
+      }
+      setMobile(window.innerWidth < 768)
+    }
+
+    // Measure after paint so section has its final size
+    requestAnimationFrame(() => { requestAnimationFrame(measure) })
+    window.addEventListener('resize', measure)
+
     if (AI_IMAGES.length === 0) {
-      // SSR fallback: populate on client
       AI_SRCS.forEach((src, i) => { const img = new window.Image(); img.src = src; AI_IMAGES[i] = img })
     }
-    return () => window.removeEventListener('resize', c)
+    return () => window.removeEventListener('resize', measure)
   }, [])
 
-  // Draw nikita-01.jpg as soon as canvas is ready
   useEffect(() => {
     if (!mounted) return
     const tryDraw = () => {
@@ -434,15 +442,12 @@ export function AISection() {
       } else {
         ensureLoaded(img, AI_SRCS[0]).then(loaded => {
           const c2 = canvasRef.current, p2 = previewRef.current
-          if (c2 && p2 && p2.offsetWidth) {
-            c2.width = p2.offsetWidth; c2.height = p2.offsetHeight
-            drawToCanvas(c2, loaded, 1, 1)
-          }
+          if (c2 && p2 && p2.offsetWidth) { c2.width = p2.offsetWidth; c2.height = p2.offsetHeight; drawToCanvas(c2, loaded, 1, 1) }
         })
       }
     }
     const t1 = setTimeout(tryDraw, 80)
-    const t2 = setTimeout(tryDraw, 400)
+    const t2 = setTimeout(tryDraw, 500)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [mounted])
 
@@ -450,7 +455,7 @@ export function AISection() {
     const fn = () => {
       const el = outerRef.current; if (!el) return
       const vh = window.innerHeight, s = Math.max(0, -el.getBoundingClientRect().top)
-      setExitP(Math.max(0, Math.min(1, (s-vh*0.6)/vh)))
+      setExitP(Math.max(0, Math.min(1, (s-vh*0.5)/vh)))
     }
     window.addEventListener('scroll', fn, {passive:true}); fn()
     return () => window.removeEventListener('scroll', fn)
@@ -471,11 +476,8 @@ export function AISection() {
 
   const generate = useCallback(() => {
     if (isActive) return
-    // Pick random next image – refill shuffled queue when empty
     if (shuffledQueue.current.length === 0) {
-      const indices = Array.from({length: AI_SRCS.length}, (_, i) => i)
-        .filter(i => i !== curImgIdx.current)
-      // Fisher-Yates shuffle
+      const indices = Array.from({length: AI_SRCS.length}, (_, i) => i).filter(i => i !== curImgIdx.current)
       for (let k = indices.length - 1; k > 0; k--) {
         const j = Math.floor(Math.random() * (k + 1));
         [indices[k], indices[j]] = [indices[j], indices[k]]
@@ -485,14 +487,11 @@ export function AISection() {
     const nextIdx = shuffledQueue.current.pop()!
     curImgIdx.current = nextIdx
     setSeed(Math.floor(Math.random() * 999999))
-    setIsActive(true)
-    setPhase(0)
+    setIsActive(true); setPhase(0)
 
     const TOTAL = 5000
-    let t0: number | null = null
-    let lastPhaseSet = 0
+    let t0: number | null = null, lastPhaseSet = 0
 
-    // Init canvas immediately
     const cv = canvasRef.current, pv = previewRef.current
     if (cv && pv && pv.offsetWidth) {
       cv.width = pv.offsetWidth; cv.height = pv.offsetHeight
@@ -500,10 +499,9 @@ export function AISection() {
       if (ctx) { ctx.fillStyle='#000'; ctx.fillRect(0,0,cv.width,cv.height) }
     }
 
-    // Get the preloaded image element – always available at module level
     const img = AI_IMAGES[nextIdx]
-
     cancelAnimationFrame(rafRef.current)
+
     const tick = (now: number) => {
       if (!t0) t0 = now
       const t = Math.min((now-t0) / TOTAL, 1)
@@ -515,17 +513,12 @@ export function AISection() {
           canvas.width = pvEl.offsetWidth || 470; canvas.height = pvEl.offsetHeight || 470
         }
         if (canvas.width > 0 && canvas.height > 0) {
-          // Pixel dissolve: starts immediately with large blocks, clears as cable hits PREVIEW
-          // Full 10s animation: first 85% = pixelated scramble, last 15% = dissolve to sharp
-          // Pixel: chunky most of the time, only sharp in final 10% (last ~1s)
-          // curve stays above ~2px until t=0.85, then drops fast to 1
+          // Quadratic pixel decay: chunky most of the time, fast sharp at end
           const tShift = Math.max(0, (0.96 - t) / 0.96)
           const pixelSize = Math.max(1, 40 * Math.pow(tShift, 1.4))
-          // Opacity: linear
           const opacity = t
-          // Only draw if image loaded, else keep black
           if (img.complete && img.naturalWidth > 0) {
-            drawToCanvas(canvas, img, opacity, Math.max(1, pixelSize))
+            drawToCanvas(canvas, img, opacity, pixelSize)
           }
         }
       }
@@ -533,18 +526,11 @@ export function AISection() {
       if (t < 1) {
         rafRef.current = requestAnimationFrame(tick)
       } else {
-        // Final draw – if image still loading, set onload to draw when ready
         const cv2 = canvasRef.current, pv2 = previewRef.current
         if (cv2 && pv2) {
           cv2.width = pv2.offsetWidth||470; cv2.height = pv2.offsetHeight||470
-          if (img.complete && img.naturalWidth > 0) {
-            drawToCanvas(cv2, img, 1, 1)
-          } else {
-            img.onload = () => {
-              const c = canvasRef.current, p = previewRef.current
-              if (c && p) { c.width=p.offsetWidth||470; c.height=p.offsetHeight||470; drawToCanvas(c,img,1,1) }
-            }
-          }
+          if (img.complete && img.naturalWidth > 0) { drawToCanvas(cv2, img, 1, 1) }
+          else { img.onload = () => { const c=canvasRef.current,p=previewRef.current; if(c&&p){c.width=p.offsetWidth||470;c.height=p.offsetHeight||470;drawToCanvas(c,img,1,1)} } }
         }
         setPhase(0); setIsActive(false)
       }
@@ -554,13 +540,15 @@ export function AISection() {
 
   const wLit = (seg: number) => isActive && phase >= seg / SEG_N
 
+  // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'260vh' }}>
-      <section id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'100vh' }}/>
+    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'240vh', marginTop:'-80vh' }}>
+      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'100vh' }}/>
     </div>
   )
 
-  const VW = window.innerWidth, VH = window.innerHeight
+  const VW = dims?.w ?? window.innerWidth
+  const VH = dims?.h ?? window.innerHeight
 
   // ── Mobile ────────────────────────────────────────────────────────────────
   if (mobile) return (
@@ -580,17 +568,14 @@ export function AISection() {
           <div ref={previewRef} style={{ width:'100%', aspectRatio:'1/1', position:'relative', overflow:'hidden', background:'#111', border:'1px solid rgba(255,255,255,0.2)' }}>
             <canvas ref={canvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }}/>
             <div style={{ position:'absolute', bottom:5, left:8, right:8, display:'flex', justifyContent:'space-between', color:'rgba(255,255,255,0.4)', fontSize:9, fontFamily:MONO, zIndex:4 }}>
-              <span>{isActive ? '▓ LOADING...' : 'NIKITA AI'}</span>
-              <span>SEED:{seed}</span>
+              <span>{isActive ? '▓ LOADING...' : 'NIKITA AI'}</span><span>SEED:{seed}</span>
             </div>
           </div>
           <button onClick={() => generate()} disabled={isActive}
             style={{ background:isActive?'rgba(0,0,0,0.1)':'#000', border:'2px solid #000', color:isActive?'rgba(0,0,0,0.3)':'#fff', padding:'16px', width:'100%', fontFamily:BORNA, fontSize:16, letterSpacing:'0.08em', cursor:isActive?'not-allowed':'pointer', animation:isActive?'aiBlink 0.75s infinite':'none', fontWeight:800 }}>
             {isActive ? '[ GENERATING ]' : '[ GENERATE ]'}
           </button>
-          <div style={{ height:220, background:'#0d0d0d', border:'1px solid rgba(255,255,255,0.1)' }}>
-            <ProgressTerm phase={phase} isActive={isActive}/>
-          </div>
+          <div style={{ height:220, background:'#0d0d0d', border:'1px solid rgba(255,255,255,0.1)' }}><ProgressTerm phase={phase} isActive={isActive}/></div>
           <div style={{ background:'#e8e8e8', border:'1px solid rgba(255,255,255,0.15)' }}>
             <div style={{ padding:'8px 12px', background:'rgba(0,0,0,0.06)', borderBottom:'1px solid rgba(0,0,0,0.12)', fontFamily:BORNA, fontSize:11, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase' }}>{lang==='de'?'ERFAHRUNG':'EXPERIENCE'}</div>
             <ExpandCard lang={lang} hint="ComfyUI · LoRA · Sora · Deepfakes..."
@@ -602,9 +587,7 @@ export function AISection() {
             <ExpandCard lang={lang} hint={lang==='de'?'KI als neues Medium...':'AI as a new medium...'}
               text={lang==='de'?'KI ist für mich kein bloßes Werkzeug, sondern ein neues Medium der Inspiration. Als Pionier der ersten Stunde nutze ich die generative Kraft, um meine künstlerische Ausdruckskraft zu schärfen und Visionen präziser greifbar zu machen. Es ist die Suche nach der perfekten Symbiose aus Mensch und Maschine.':'AI is not merely a tool for me, but a new medium of inspiration. As an early adopter, I use generative power to sharpen my artistic expression and make visions more precisely tangible. It is the search for the perfect symbiosis of human and machine.'}/>
           </div>
-          <div style={{ height:240, background:'#0d0d0d', border:'1px solid rgba(57,255,20,0.2)' }}>
-            <CrazyTerminal phase={phase} isActive={isActive} lang={lang}/>
-          </div>
+          <div style={{ height:240, background:'#0d0d0d', border:'1px solid rgba(57,255,20,0.2)' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang}/></div>
         </div>
       </section>
     </div>
@@ -613,30 +596,28 @@ export function AISection() {
   // ── Desktop ───────────────────────────────────────────────────────────────
   const cs: React.CSSProperties = { padding:'10px 12px', color:'#111', fontSize:11, lineHeight:1.6, fontFamily:BORNA, fontWeight:500 }
 
-  // Layout 1:1 from screenshot
-  // ─── Fenster-Positionen ─────────────────────────────────────────────────────
-  // Spalten (X-Achse): VW * 0.XX  → XX% der Bildschirmbreite von links
-  // Zeilen  (Y-Achse): VH * 0.XX  → XX% der Bildschirmhöhe von oben
-  // Wert +0.01 = ca. 14px weiter rechts/unten bei 1440×900px
-  //
-  const C1 = Math.round(VW * 0.106)   // GENERATE + HYPERPARAMETERS (ganz links)
+  // ─── Fenster-Positionen ────────────────────────────────────────────────────
+  // VW/VH = section.offsetWidth/Height (gemessen, nicht window)
+  // Spalten X: VW * 0.XX | Zeilen Y: VH * 0.XX
+  // +0.01 ≈ +14px rechts (bei 1440px) / +9px unten (bei 900px)
+  const C1 = Math.round(VW * 0.106)   // GENERATE + LATENT SAMPLER
   const C2 = Math.round(VW * 0.284)   // ERFAHRUNG + VISION
-  const C3 = Math.round(VW * 0.540)   // UPSCALE + DENOISE
+  const C3 = Math.round(VW * 0.541)   // UPSCALE + DENOISE
   const C4 = Math.round(VW * 0.489)   // TERMINAL
   const C5 = Math.round(VW * 0.784)   // PIPELINE STATUS
 
-  const TERM_TOP   = Math.round(VH * 0.152)  // TERMINAL + PIPELINE (oben)
-  const PROMPT_TOP = Math.round(VH * 0.462)  // HYPERPARAMETERS
-  const GEN_TOP    = Math.round(VH * 0.571)  // GENERATE
-  const ERF_TOP    = Math.round(VH * 0.429)  // ERFAHRUNG
-  const VIS_TOP    = Math.round(VH * 0.549)  // VISION
-  const UPS_TOP    = Math.round(VH * 0.330)  // UPSCALE
-  const DEN_TOP    = Math.round(VH * 0.430)  // DENOISE
-  const SPIN_TOP   = Math.round(VH * 0.152)  // POZESSOR
-  const PREV_TOP   = Math.round(VH * 0.288)  // PREVIEW
+  const TERM_TOP   = Math.round(VH * 0.152)  // TERMINAL + PIPELINE + SPINNER (oben)
+  const PROMPT_TOP = Math.round(VH * 0.502)  // LATENT SAMPLER
+  const GEN_TOP    = Math.round(VH * 0.611)  // GENERATE
+  const ERF_TOP    = Math.round(VH * 0.469)  // ERFAHRUNG
+  const VIS_TOP    = Math.round(VH * 0.589)  // VISION
+  const UPS_TOP    = Math.round(VH * 0.493)  // UPSCALE
+  const DEN_TOP    = Math.round(VH * 0.574)  // DENOISE
+  const SPIN_TOP   = Math.round(VH * 0.686)  // PROZESSOR
+  const PREV_TOP   = Math.round(VH * 0.328)  // PREVIEW
 
   return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'260vh' }}>
+    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'240vh', marginTop:'-80vh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes scanln{0%{top:-2px}100%{top:100%}}
@@ -652,7 +633,7 @@ export function AISection() {
         .ai-open-btn:hover{transform:scale(0.93);transition:transform 0.12s}
       `}</style>
 
-      <section id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', overflow:'hidden', height:'100vh', boxSizing:'border-box' }}>
+      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', overflow:'hidden', height:'100vh', boxSizing:'border-box' }}>
         <GridBg/>
         <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP}/>
 
@@ -662,19 +643,15 @@ export function AISection() {
             <NeonHeading/>
           </div>
 
-          {/* PROMPT NODE */}
+          {/* LATENT SAMPLER */}
           <Win id="prompt" title="LATENT SAMPLER" width={215} initPos={{x:C1, y:PROMPT_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.prompt} lit={wLit(0)}>
-            <div style={{...cs}}>
-              <div>SEED: <b>{seed}</b></div>
-              <div>CFG: <b>7.5</b> | STEPS: <b>{steps}</b></div>
-            </div>
+            <div style={{...cs}}><div>SEED: <b>{seed}</b></div><div>CFG: <b>7.5</b> | STEPS: <b>{steps}</b></div></div>
           </Win>
 
           {/* GENERATE */}
           <Win id="generate" title="GENERATE" width={210} initPos={{x:C1, y:GEN_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.generate}>
             <div style={{ padding:'12px' }}>
-<button
-                onClick={() => generate()} disabled={isActive}
+              <button onClick={() => generate()} disabled={isActive}
                 className={isActive ? 'ai-gen-btn-active' : 'ai-gen-btn'}
                 style={{ background:isActive?'rgba(0,0,0,0.06)':'#000', border:'2px solid #000', color:isActive?'rgba(0,0,0,0.3)':'#fff', padding:'14px 0', width:'100%', fontFamily:BORNA, fontSize:15, letterSpacing:'0.08em', cursor:isActive?'not-allowed':'pointer', animation:isActive?'aiBlink 0.75s infinite':'none', fontWeight:800, textTransform:'uppercase' }}>
                 {isActive ? '[ GENERATING ]' : '[ GENERATE ]'}
@@ -697,35 +674,27 @@ export function AISection() {
 
           {/* UPSCALE */}
           <Win id="upscale" title="UPSCALE 4x" width={160} initPos={{x:C3, y:UPS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.upscale} lit={wLit(2)}>
-            <div style={{...cs}}>
-              <div style={{whiteSpace:'nowrap'}}>REALESRGAN v3.2</div>
-            </div>
+            <div style={{...cs}}><div style={{whiteSpace:'nowrap'}}>REALESRGAN v3.2</div></div>
           </Win>
 
           {/* DENOISE */}
           <Win id="denoise" title="DENOISE" width={160} initPos={{x:C3, y:DEN_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.denoise} lit={wLit(3)}>
-            <div style={{...cs}}>
-              <div style={{whiteSpace:'nowrap'}}>DPM++ · σ=0.{isActive?Math.round(phase*99).toString().padStart(2,'0'):'00'}</div>
-            </div>
+            <div style={{...cs}}><div style={{whiteSpace:'nowrap'}}>DPM++ · σ=0.{isActive?Math.round(phase*99).toString().padStart(2,'0'):'00'}</div></div>
           </Win>
 
-          {/* SPINNER */}
-          <Win id="spinner" title="POZESSOR" width={165} initPos={{x:Math.round(VW*0.740), y:SPIN_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.spinner} lit={wLit(3)}>
+          {/* SPINNER – top row, same height as terminal */}
+          <Win id="spinner" title="POZESSOR" width={165} initPos={{x:Math.round(VW*0.582), y:SPIN_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.spinner} lit={wLit(3)}>
             <SpinnerContent isActive={isActive&&wLit(3)} phase={phase}/>
           </Win>
 
           {/* TERMINAL */}
           <Win id="terminal" title="TERMINAL" width={430} initPos={{x:C4, y:TERM_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.terminal} lit={wLit(4)} minH={295}>
-            <div style={{ height:283, background:'#0d0d0d' }}>
-              <CrazyTerminal phase={phase} isActive={isActive} lang={lang}/>
-            </div>
+            <div style={{ height:283, background:'#0d0d0d' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang}/></div>
           </Win>
 
           {/* PROGRESS */}
           <Win id="progress" title="PIPELINE STATUS" width={255} initPos={{x:C5, y:TERM_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.progress} lit={wLit(5)} minH={255}>
-            <div style={{ height:243, background:'#0d0d0d' }}>
-              <ProgressTerm phase={phase} isActive={isActive}/>
-            </div>
+            <div style={{ height:243, background:'#0d0d0d' }}><ProgressTerm phase={phase} isActive={isActive}/></div>
           </Win>
 
           {/* PREVIEW */}
