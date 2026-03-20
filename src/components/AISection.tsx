@@ -327,7 +327,12 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
   }, [id, onPortChange])
 
   useEffect(() => { emit() }, [pos, emit])
-  useEffect(() => { const t = setTimeout(emit, 60); return () => clearTimeout(t) }, []) // eslint-disable-line
+  useEffect(() => {
+    const t1 = setTimeout(emit, 60)
+    const t2 = setTimeout(emit, 200)
+    const t3 = setTimeout(emit, 500)
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+  }, []) // eslint-disable-line
 
   const onMD = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); onFocus(id)
