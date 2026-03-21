@@ -1,6 +1,6 @@
 ---
 name: nextjs-use-search-params-suspense
-description: Pattern for using useSearchParams hook with Suspense boundary in Next.js. Covers the required combination of 'use client' directive and Suspense wrapper when accessing URL query parameters in client components. Use when building search interfaces, filters, pagination, or any feature that needs to read/manipulate URL query parameters client-side.
+description: 'Narrow pattern for implementing `useSearchParams()` correctly with both `use client` and a surrounding `Suspense` boundary. Use when the task is specifically about reading or updating query parameters in a client component for search, filters, sorting, or pagination. Prefer this over the broader server-client-components skill when `useSearchParams` is the main issue.'
 ---
 
 # Next.js: useSearchParams with Suspense Pattern

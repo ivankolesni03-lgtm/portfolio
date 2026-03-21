@@ -1,6 +1,6 @@
 ---
 name: nextjs-client-cookie-pattern
-description: Pattern for client components calling server actions to set cookies in Next.js. Covers the two-file pattern of a client component with user interaction (onClick, form submission) that calls a server action to modify cookies. Use when building features like authentication, preferences, or session management where client-side triggers need to set/modify server-side cookies.
+description: 'Narrow pattern for a client component that reacts to user input and calls a server action to set or update cookies. Use when an `onClick`, toggle, or form submission in a client component must persist a preference, session, or consent cookie on the server. Do not use for general cookie reading or unrelated server-action work.'
 ---
 
 # Next.js: Client Component + Server Action Cookie Pattern
@@ -291,7 +291,7 @@ export async function login(email: string, password: string) {
 ## Why This Pattern?
 
 **Can't client components set cookies directly?**
-No. Client components run in the browser, and modern browsers restrict cookie manipulation for security. Server actions run on the server where cookie-setting is allowed.
+They can set some browser cookies via `document.cookie`, but they cannot use `next/headers`, set `HttpOnly` cookies, or participate in server-managed response headers. Use a Server Action or Route Handler when the cookie must be `HttpOnly`, set from the server response, or immediately affect server-rendered UI.
 
 **Why not use a Route Handler (API route)?**
 You can! But server actions are simpler and more integrated with the Next.js App Router pattern.
@@ -322,7 +322,7 @@ async function setCookie() {
 Server actions are preferred because they're:
 - More type-safe
 - Less boilerplate
-- Better integrated with forms
+- Better integrated with forms and server-rendered state
 - Easier to test
 
 ## Reading Cookies

@@ -1,6 +1,6 @@
 ---
 name: nextjs-app-router-fundamentals
-description: Guide for working with Next.js App Router (Next.js 13+). Use when migrating from Pages Router to App Router, creating layouts, implementing routing, handling metadata, or building Next.js 13+ applications. Activates for App Router migration, layout creation, routing patterns, or Next.js 13+ development tasks.
+description: 'Default guide for basic Next.js App Router work. Use when creating or restructuring pages, layouts, nested layout trees, metadata, loading states, and standard file-based routing, or when migrating from the Pages Router. Do not use for specialized topics that already have narrower skills, such as server actions, `useSearchParams`, or dynamic route design.'
 ---
 
 # Next.js App Router Fundamentals

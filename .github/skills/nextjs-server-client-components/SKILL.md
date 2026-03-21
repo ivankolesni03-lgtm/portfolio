@@ -1,6 +1,6 @@
 ---
 name: nextjs-server-client-components
-description: Guide for choosing between Server Components and Client Components in Next.js App Router. CRITICAL for useSearchParams (requires Suspense + 'use client'), navigation (Link, redirect, useRouter), cookies/headers access, and 'use client' directive. Activates when prompt mentions useSearchParams, Suspense, navigation, routing, Link component, redirect, pathname, searchParams, cookies, headers, async components, or 'use client'. Essential for avoiding mixing server/client APIs.
+description: 'Guide for choosing the correct Server Component versus Client Component boundary in Next.js App Router. Use when the task involves `use client`, `useRouter`, `usePathname`, `useSearchParams`, cookies or headers access, async components, or deciding whether logic belongs on the server or in the browser. Use this for component-boundary decisions, not for narrow specialized patterns like server-only navigation or a dedicated `useSearchParams` implementation.'
 ---
 
 # Next.js Server Components vs Client Components
@@ -251,7 +251,7 @@ export default async function SearchPage({
 - Use client-side `useSearchParams()` hook if needed in Client Components
 
 **⚠️ CRITICAL WARNING - Next.js 15+ searchParams:**
-When extracting parameters in Next.js 15+, you MUST use destructuring to keep the `searchParams` identifier visible in the same line as the parameter extraction. Do NOT use intermediate variables like `params` or `resolved` - this is an anti-pattern that breaks code readability and testing patterns.
+The real rule is that the `searchParams` page prop is a Promise. Await it in an async page, or unwrap it with React `use()` in a Client Component page.
 
 **Async searchParams (Next.js 15+):**
 
@@ -262,37 +262,27 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  // BEST PRACTICE: Inline access keeps searchParams and parameter together on one line
-  const q = (await searchParams).q || '';
+  const { q = '' } = await searchParams;
 
   return <div>Search: {q}</div>;
 }
 ```
 
-**CRITICAL PATTERN REQUIREMENT:**
-
-When extracting parameters from `searchParams`, **ALWAYS use inline access** to keep `searchParams` and the parameter name on the SAME LINE:
+**Readable extraction patterns:**
 
 ```typescript
-// ✅ CORRECT: Inline access (REQUIRED PATTERN)
-const name = (await searchParams).name || '';
+// ✅ CORRECT: Destructure after awaiting
+const { name = '' } = await searchParams;
 
-// ✅ ALSO CORRECT: Multiple parameters
+// ✅ ALSO CORRECT: Assign to an intermediate value if it improves clarity
+const resolvedSearchParams = await searchParams;
+const name = resolvedSearchParams.name || '';
+
+// ✅ ALSO CORRECT: Inline access for one-off reads
 const category = (await searchParams).category || 'all';
-const sort = (await searchParams).sort || 'asc';
-
-// ❌ WRONG: Using intermediate variable separates searchParams from parameter
-const params = await searchParams;  // DON'T DO THIS
-const name = params.name;           // searchParams not visible here
-
-// ❌ WRONG: Destructuring (searchParams and name on same line but missing second 'name')
-const { name } = await searchParams;  // Not preferred
 ```
 
-**Why inline access:**
-- Keeps `searchParams` identifier visible on the same line as parameter extraction
-- Makes the relationship between URL parameter and variable explicit
-- Satisfies code review and testing patterns that check for proper searchParams usage
+Choose the form that is easiest to read. The important constraint is awaiting the promise, not keeping identifiers on the same line.
 
 ### Using pathname and Route Information
 

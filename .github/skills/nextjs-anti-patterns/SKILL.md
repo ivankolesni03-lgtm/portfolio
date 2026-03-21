@@ -1,6 +1,6 @@
 ---
 name: nextjs-anti-patterns
-description: Identify and fix common Next.js App Router anti-patterns and mistakes. Use when reviewing code for Next.js best practices, debugging performance issues, migrating from Pages Router patterns, or preventing common pitfalls. Activates for code review, performance optimization, or detecting inappropriate useEffect/useState usage. CRITICAL: For browser detection, keep the logic in the user-facing component (or a composed helper that it renders) rather than isolating it in unused files.
+description: 'Use for Next.js code review, cleanup, and performance debugging when the goal is to find anti-patterns such as unnecessary `useEffect` or `useState`, wrong server/client boundaries, pages-router habits in App Router code, or browser-detection mistakes. Prefer this skill for review and diagnosis, not for first-time implementation of a narrow feature.'
 ---
 
 # Next.js Anti-Patterns

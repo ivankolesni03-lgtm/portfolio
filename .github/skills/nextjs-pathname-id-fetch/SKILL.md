@@ -1,6 +1,6 @@
 ---
 name: nextjs-pathname-id-fetch
-description: Focused pattern for fetching data using URL parameters in Next.js. Covers creating dynamic routes ([id], [slug]) and accessing route parameters in server components to fetch data from APIs. Use when building pages that display individual items (product pages, blog posts, user profiles) based on a URL parameter. Complements nextjs-dynamic-routes-params with a simplified, common-case pattern.
+description: 'Micro-skill for the common case of fetching one resource from a pathname identifier such as `[id]` or `[slug]` in a server page. Use when the job is a straightforward detail page for a product, post, profile, or similar record. Do not use when you also need to design nested route structure, catch-all params, or more complex pathname conventions.'
 ---
 
 # Next.js: Pathname ID Fetch Pattern

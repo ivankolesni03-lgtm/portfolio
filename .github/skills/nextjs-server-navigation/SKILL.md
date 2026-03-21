@@ -1,6 +1,6 @@
 ---
 name: nextjs-server-navigation
-description: Guide for implementing navigation in Next.js Server Components using Link component and redirect() function. Covers the difference between server and client navigation methods. Use when adding links, redirects, or navigation logic in server components without converting them to client components unnecessarily.
+description: 'Narrow guide for navigation inside Server Components. Use when adding `Link` elements, `redirect()`, or simple server-side navigation flows without introducing client hooks. Do not use for general server-versus-client boundary decisions unless the task is specifically about navigation.'
 ---
 
 # Next.js: Server Component Navigation Pattern

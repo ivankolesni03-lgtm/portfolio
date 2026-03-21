@@ -1,6 +1,6 @@
 ---
 name: vercel-ai-sdk
-description: Guide for Vercel AI SDK v5 implementation patterns including generateText, streamText, useChat hook, tool calling, embeddings, and MCP integration. Use when implementing AI chat interfaces, streaming responses, tool/function calling, text embeddings, or working with convertToModelMessages and toUIMessageStreamResponse. Activates for AI SDK integration, useChat hook usage, message streaming, or tool calling tasks.
+description: 'Guide for real Vercel AI SDK v5 integration work. Use when the task explicitly involves `generateText`, `streamText`, `useChat`, tool calling with `tool()`, embeddings, MCP integration, or `toUIMessageStreamResponse` and related v5 APIs. Do not use for generic AI content generation that does not require the SDK.'
 ---
 
 # Vercel AI SDK v5 Implementation Guide

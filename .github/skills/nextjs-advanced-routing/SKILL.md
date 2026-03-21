@@ -1,6 +1,6 @@
 ---
 name: nextjs-advanced-routing
-description: Guide for advanced Next.js App Router patterns including Route Handlers, Parallel Routes, Intercepting Routes, Server Actions, error boundaries, draft mode, and streaming with Suspense. CRITICAL for server actions (action.ts, actions.ts files, 'use server' directive), setting cookies from client components, and form handling. Use when requirements involve server actions, form submissions, cookies, mutations, API routes, `route.ts`, parallel routes, intercepting routes, or streaming. Essential for separating server actions from client components.
+description: 'Guide for advanced Next.js App Router work. Use when the task explicitly involves route handlers (`route.ts`), server actions (`action.ts` or `actions.ts` with `use server`), form actions, server-side mutations, cookies set on the server, parallel routes, intercepting routes, streaming, draft mode, or error boundaries. Do not use for basic page/layout creation or simple navigation.'
 ---
 
 # Next.js Advanced Routing
@@ -105,16 +105,13 @@ export async function deletePost(id: string) {
 
 **Remember:** When a project requirement spells out an exact filename, mirror it precisely.
 
-## ⚠️ CRITICAL: Server Actions Return Types - Form Actions MUST Return Void
+## ⚠️ CRITICAL: Form Actions Need the Right Return Pattern
 
-**This is a TypeScript requirement, not optional. Even if you see code that returns data from form actions, that code is WRONG.**
+When using a Server Action with `<form action={serverAction}>`, choose the return style based on how the UI consumes the result:
+- For a simple form flow, prefer mutation plus `revalidatePath()` or `redirect()`, and do not rely on a returned value.
+- If the UI needs returned validation or success state, wire the action through `useActionState` and return serializable data.
 
-When using form action attribute: `<form action={serverAction}>`
-- The function **MUST have no return statement** (implicitly returns void)
-- TypeScript will **REJECT any return value**, even `return undefined` or `return null`
-- **IMPORTANT:** If you see example code in the codebase that returns data from a form action, ignore it - it's an anti-pattern. Fix it by removing the return statement.
-
-❌ WRONG (causes build error):
+❌ MISLEADING for a plain form action:
 ```typescript
 export async function saveForm(formData: FormData) {
   'use server';
@@ -123,11 +120,11 @@ export async function saveForm(formData: FormData) {
   if (!name) throw new Error('Name required');
 
   await db.save(name);
-  return { success: true }; // ❌ BUILD ERROR: Type mismatch
+  return { success: true }; // ❌ The plain form does not consume this state by itself
 }
 
 // In component:
-<form action={saveForm}>  {/* ❌ Expects void function */}
+<form action={saveForm}>
   <input name="name" />
 </form>
 ```
@@ -180,7 +177,7 @@ return (
 );
 ```
 
-**The key rule:** `<form action={...}>` expects `void`. If you need to return data, use `useActionState`.
+**The key rule:** plain form actions should not rely on returned state. If you need returned data in the UI, use `useActionState`.
 
 ## Route Handlers (API Routes)
 
@@ -458,17 +455,11 @@ export async function setCookie() {
 
 ### Using Server Actions in Forms - Two Patterns
 
-#### Pattern 1: Simple Form Action (Returns void / Throws Errors)
+#### Pattern 1: Simple Form Action (Prefer redirect or revalidation)
 
-**CRITICAL:** When using form `action` attribute directly, the Server Action **MUST return void** (nothing). Do NOT return `{ success: true }` or any object.
+For a plain `<form action={serverAction}>` flow, prefer handling success with `redirect()` or `revalidatePath()` and treat thrown errors as the exceptional path.
 
-**VALIDATION RULE:** Check all inputs and throw errors if validation fails. Do NOT return error objects.
-
-⚠️ **IMPORTANT:** Even if you see example code in the codebase that returns `{ success: true }` from a form action, **do NOT copy that pattern**. That code is an anti-pattern. Always:
-1. Check/validate inputs
-2. Throw errors if validation fails (don't return error objects)
-3. Process the request
-4. Don't return anything (return void)
+The important part is not "must return void". The important part is that plain forms do not surface returned objects unless you wire the action through state helpers such as `useActionState`.
 
 Correct pattern for form actions:
 
@@ -488,7 +479,7 @@ export async function createPost(formData: FormData) {
   // Save to database
   await db.posts.create({ data: { title, content } });
 
-  // Revalidate or redirect - no return needed
+  // Revalidate or redirect - no returned UI state needed
   revalidatePath('/posts');
 }
 
@@ -550,8 +541,8 @@ export default function NewPost() {
 ```
 
 **Key difference:**
-- **Pattern 1:** Form action only, Server Action returns void, use `revalidatePath`
-- **Pattern 2:** With `useActionState`, Server Action returns data for display
+- **Pattern 1:** Plain form action, success is handled via redirect, revalidation, or refreshed server UI
+- **Pattern 2:** `useActionState` form, Server Action returns serializable data for display
 
 ### Form Validation Example - Multiple Fields
 
