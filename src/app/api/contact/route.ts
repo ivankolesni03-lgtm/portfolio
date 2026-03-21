@@ -10,8 +10,51 @@ import {
   CONTACT_RATE_LIMIT_WINDOW_MS,
 } from '@/lib/contact-config'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const textEncoder = new TextEncoder()
+
+function readRequiredEnv(name: 'RESEND_API_KEY' | 'CONTACT_EMAIL_FROM' | 'CONTACT_EMAIL_TO' | 'CONTACT_EMAIL_SUBJECT_PREFIX') {
+  const value = process.env[name]?.trim()
+
+  if (!value) {
+    throw new Error(`Missing ${name} for the contact mail route.`)
+  }
+
+  return value
+}
+
+function extractEmailAddress(value: string) {
+  const formattedMatch = value.match(/<([^<>]+)>$/)
+
+  return (formattedMatch ? formattedMatch[1] : value).trim()
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+const contactMailConfig = (() => {
+  const resendApiKey = readRequiredEnv('RESEND_API_KEY')
+  const from = readRequiredEnv('CONTACT_EMAIL_FROM')
+  const to = readRequiredEnv('CONTACT_EMAIL_TO')
+  const subjectPrefix = readRequiredEnv('CONTACT_EMAIL_SUBJECT_PREFIX')
+
+  if (!isValidEmail(extractEmailAddress(from))) {
+    throw new Error('CONTACT_EMAIL_FROM must be a valid sender email or the format "Name <email@example.com>".')
+  }
+
+  if (!isValidEmail(to)) {
+    throw new Error('CONTACT_EMAIL_TO must be a valid recipient email address.')
+  }
+
+  return {
+    resendApiKey,
+    from,
+    to,
+    subjectPrefix,
+  }
+})()
+
+const resend = new Resend(contactMailConfig.resendApiKey)
 
 type RateLimitEntry = {
   count: number
@@ -109,10 +152,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { error } = await resend.emails.send({
-      from: 'Portfolio <onboarding@resend.dev>',   // ← später durch deine Domain ersetzen
-      to:   'ivan.kolesni03@gmail.com',             // ← deine E-Mail
+      from: contactMailConfig.from,
+      to: contactMailConfig.to,
       replyTo: email,
-      subject: `Neue Nachricht von ${name}`,
+      subject: `${contactMailConfig.subjectPrefix}: Neue Nachricht von ${name}`,
       text: `Name: ${name}\nE-Mail: ${email}\n\nNachricht:\n${message}`,
     })
 

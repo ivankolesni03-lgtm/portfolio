@@ -1,8 +1,21 @@
-npm run dev
-
 # 🚀 Welcome to Z.ai Code Scaffold
 
 A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+
+## Environment Variables
+
+Create a local environment file before using the active contact route.
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables for `src/app/api/contact/route.ts`:
+
+- `RESEND_API_KEY`: Resend API key used to send mail
+- `CONTACT_EMAIL_FROM`: sender value passed to Resend, for example `Portfolio <noreply@example.com>`
+- `CONTACT_EMAIL_TO`: recipient email address for inbound portfolio messages
+- `CONTACT_EMAIL_SUBJECT_PREFIX`: prefix prepended to the subject line
 
 ## ✨ Technology Stack
 
@@ -79,7 +92,7 @@ Open [http://localhost:3000](http://localhost:3000) to see your application runn
 This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
 
 - **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
+- **🎨 UI Development** - Create beautiful interfaces with AI assistance
 - **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
 - **📝 Documentation** - Auto-generate comprehensive documentation
 - **🚀 Optimization** - Performance improvements and best practices
