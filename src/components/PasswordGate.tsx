@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 
 interface EyePos { x: number; y: number }
 
+type GateStatus = 'checking' | 'locked' | 'submitting' | 'unlocked'
+
 function SingleEye({ pupil, blinking, size }: { pupil: EyePos; blinking: boolean; size: number }) {
   const h = size * 0.5
   const pupilSize = size * 0.42
@@ -52,10 +54,9 @@ function SingleEye({ pupil, blinking, size }: { pupil: EyePos; blinking: boolean
 }
 
 export function PasswordGate({ children }: { children: React.ReactNode }) {
-  const [unlocked, setUnlocked] = useState(false)
+  const [status, setStatus] = useState<GateStatus>('checking')
   const [input, setInput] = useState('')
-  const [error, setError] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [pupil, setPupil] = useState<EyePos>({ x: 0, y: 0 })
   const [blinking, setBlinking] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -65,12 +66,13 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    setMounted(true)
     const saved = sessionStorage.getItem('unlocked')
-    if (saved === 'true') setUnlocked(true)
+    setStatus(saved === 'true' ? 'unlocked' : 'locked')
   }, [])
 
   useEffect(() => {
+    if (status !== 'locked' && status !== 'submitting') return
+
     const onMove = (e: MouseEvent) => {
       const el = containerRef.current
       if (!el) return
@@ -88,9 +90,16 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener('mousemove', onMove)
     return () => window.removeEventListener('mousemove', onMove)
-  }, [])
+  }, [status])
 
   useEffect(() => {
+    if (status !== 'locked' && status !== 'submitting') {
+      setPupil({ x: 0, y: 0 })
+      smooth.current = { x: 0, y: 0 }
+      target.current = { x: 0, y: 0 }
+      return
+    }
+
     const step = () => {
       smooth.current.x += (target.current.x - smooth.current.x) * 0.08
       smooth.current.y += (target.current.y - smooth.current.y) * 0.08
@@ -99,9 +108,14 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     }
     rafRef.current = requestAnimationFrame(step)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [])
+  }, [status])
 
   useEffect(() => {
+    if (status !== 'locked' && status !== 'submitting') {
+      setBlinking(false)
+      return
+    }
+
     const schedule = () => {
       blinkRef.current = setTimeout(() => {
         setBlinking(true)
@@ -113,17 +127,42 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
       }, 2000 + Math.random() * 4000)
     }
     schedule()
-    return () => { if (blinkRef.current) clearTimeout(blinkRef.current) }
-  }, [])
+    return () => {
+      if (blinkRef.current) clearTimeout(blinkRef.current)
+    }
+  }, [status])
 
-  const handleSubmit = () => {
-    if (input === 'Sugoma' || input === 'love') {
+  const handleSubmit = async () => {
+    if (!input) {
+      setErrorMessage('NO')
+      return
+    }
+
+    setStatus('submitting')
+    setErrorMessage('')
+
+    try {
+      const response = await fetch('/api/password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: input }),
+      })
+
+      if (!response.ok) {
+        setStatus('locked')
+        setErrorMessage('NO')
+        setInput('')
+        return
+      }
+
       sessionStorage.setItem('unlocked', 'true')
-      setUnlocked(true)
-      setError(false)
-    } else {
-      setError(true)
+      setStatus('unlocked')
       setInput('')
+    } catch {
+      setStatus('locked')
+      setErrorMessage('TRY AGAIN')
     }
   }
 
@@ -131,8 +170,8 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     if (e.key === 'Enter') handleSubmit()
   }
 
-  if (!mounted) return <>{children}</>
-  if (unlocked) return <>{children}</>
+  if (status === 'checking') return null
+  if (status === 'unlocked') return <>{children}</>
 
   const eyeSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 120 : 160
 
@@ -175,21 +214,22 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
           textTransform: 'uppercase',
           marginBottom: '24px',
         }}>
-          
+
         </p>
 
         <input
           type="password"
           value={input}
-          onChange={e => { setInput(e.target.value); setError(false) }}
+          onChange={e => { setInput(e.target.value); setErrorMessage('') }}
           onKeyDown={handleKeyDown}
           autoFocus
           placeholder="••••••"
+          disabled={status === 'submitting'}
           style={{
             width: '100%',
             background: 'transparent',
             border: 'none',
-            borderBottom: `1px solid ${error ? '#ff3333' : '#333'}`,
+            borderBottom: `1px solid ${errorMessage ? '#ff3333' : '#333'}`,
             color: '#fff',
             fontSize: '18px',
             padding: '12px 0',
@@ -208,14 +248,15 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
           textTransform: 'uppercase',
           height: '20px',
           marginBottom: '32px',
-          opacity: error ? 1 : 0,
+          opacity: errorMessage ? 1 : 0,
           transition: 'opacity 0.2s',
         }}>
-          NO
+          {errorMessage || ' '}
         </p>
 
         <button
           onClick={handleSubmit}
+          disabled={status === 'submitting'}
           style={{
             background: 'transparent',
             border: '1px solid #333',
@@ -224,14 +265,15 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
             padding: '14px 40px',
-            cursor: 'pointer',
+            cursor: status === 'submitting' ? 'default' : 'pointer',
             width: '100%',
             transition: 'border-color 0.2s',
+            opacity: status === 'submitting' ? 0.65 : 1,
           }}
           onMouseEnter={e => { (e.target as HTMLButtonElement).style.borderColor = '#fff' }}
           onMouseLeave={e => { (e.target as HTMLButtonElement).style.borderColor = '#333' }}
         >
-          ENTER
+          {status === 'submitting' ? 'CHECKING' : 'ENTER'}
         </button>
       </div>
     </div>

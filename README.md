@@ -17,6 +17,10 @@ Required variables for `src/app/api/contact/route.ts`:
 - `CONTACT_EMAIL_TO`: recipient email address for inbound portfolio messages
 - `CONTACT_EMAIL_SUBJECT_PREFIX`: prefix prepended to the subject line
 
+Additional variable for `src/app/api/password/route.ts`:
+
+- `PORTFOLIO_GATE_PASSWORDS`: list of allowed passwords, separated by commas, semicolons, or new lines
+
 ## ✨ Technology Stack
 
 This scaffold provides a robust foundation built with:

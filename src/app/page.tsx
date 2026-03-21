@@ -14,7 +14,7 @@ import { GWASection } from '@/components/GWASection'
 import { PasswordGate } from '@/components/PasswordGate'
 import { StatsSection } from '@/components/StatsSection'
 
-export default function Home() {
+function HomeContent() {
   const [headerVisible, setHeaderVisible] = useState(false)
   const [brushActive, setBrushActive] = useState(false)
 
@@ -32,30 +32,36 @@ export default function Home() {
 
   return (
     <LanguageProvider>
-      <PasswordGate>
-        <main>
-          {/* Global overlay blur styles – targets all .fixed-ui elements */}
-          <style>{`
-            body.overlay-open .fixed-ui {
-              filter: blur(8px) !important;
-              transition: filter 0.35s ease !important;
-              pointer-events: none !important;
-            }
-          `}</style>
-          <CustomCursor />
-          <Header isVisible={headerVisible} />
-          <BrushCursor active={brushActive} />
-          <Hero />
-          <StorytellingSection />
-          <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
-            <ProjectsSection />
-            <StatsSection />
-            <AISection />
-            <GWASection />
-            <ContactSection />
-          </div>
-        </main>
-      </PasswordGate>
+      <main>
+        {/* Global overlay blur styles – targets all .fixed-ui elements */}
+        <style>{`
+          body.overlay-open .fixed-ui {
+            filter: blur(8px) !important;
+            transition: filter 0.35s ease !important;
+            pointer-events: none !important;
+          }
+        `}</style>
+        <CustomCursor />
+        <Header isVisible={headerVisible} />
+        <BrushCursor active={brushActive} />
+        <Hero />
+        <StorytellingSection />
+        <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
+          <ProjectsSection />
+          <StatsSection />
+          <AISection />
+          <GWASection />
+          <ContactSection />
+        </div>
+      </main>
     </LanguageProvider>
+  )
+}
+
+export default function Home() {
+  return (
+    <PasswordGate>
+      <HomeContent />
+    </PasswordGate>
   )
 }
