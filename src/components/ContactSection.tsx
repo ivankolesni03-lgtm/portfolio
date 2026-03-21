@@ -1,6 +1,14 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import {
+  CONTACT_MAX_EMAIL_LENGTH,
+  CONTACT_MAX_MESSAGE_LENGTH,
+  CONTACT_MAX_NAME_LENGTH,
+  type ContactApiErrorCode,
+  type ContactFormPayload,
+  isContactApiErrorCode,
+} from '@/lib/contact-config'
 
 // ─── Scramble ─────────────────────────────────────────────────────────────────
 const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
@@ -51,9 +59,41 @@ const T = {
   sending:  { de: 'Sendet...',                    en: 'Sending...'            },
   seen:     { de: 'Wir sehen uns...',             en: 'See you...'            },
   error:    { de: 'Versuch es einfach nochmal.',  en: 'Just try again.'       },
+  invalid:  { de: 'Bitte pruefe deine Eingaben.', en: 'Please check your input.' },
+  rate:     { de: 'Zu viele Anfragen. Versuch es spaeter nochmal.', en: 'Too many requests. Please try again later.' },
+  bot:      { de: 'Anfrage blockiert. Bitte lade die Seite neu.', en: 'Request blocked. Please reload the page.' },
+  tooLarge: { de: 'Die Nachricht ist zu lang.',   en: 'The message is too long.' },
 }
 
 type Lang = 'de' | 'en'
+
+function createInitialFormState(): ContactFormPayload {
+  return {
+    name: '',
+    email: '',
+    message: '',
+    company: '',
+    startedAt: Date.now(),
+  }
+}
+
+function getErrorMessage(code: ContactApiErrorCode | null, lang: Lang) {
+  if (!code) return T.error[lang]
+  if (code === 'validation_error' || code === 'invalid_json' || code === 'unsupported_media_type') {
+    return T.invalid[lang]
+  }
+  if (code === 'payload_too_large') {
+    return T.tooLarge[lang]
+  }
+  if (code === 'rate_limited') {
+    return T.rate[lang]
+  }
+  if (code === 'bot_detected') {
+    return T.bot[lang]
+  }
+
+  return T.error[lang]
+}
 
 // ─── Eye ──────────────────────────────────────────────────────────────────────
 interface EyePos { x: number; y: number }
@@ -283,10 +323,11 @@ export function ContactSection() {
   const { disp: headingDisp, scramble: headingScramble } = useScramble(headingText)
   const seenText = T.seen[lang]
   const { disp: seenDisp, scramble: seenScramble } = useScramble(seenText)
-  useEffect(() => { seenScramble() }, [lang]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { seenScramble() }, [lang])
 
-  const [form, setForm] = useState({ name: '', email: '', message: '' })
+  const [form, setForm] = useState<ContactFormPayload>(() => createInitialFormState())
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
+  const [errorCode, setErrorCode] = useState<ContactApiErrorCode | null>(null)
   const eyesRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -297,19 +338,39 @@ export function ContactSection() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  const updateField = (field: 'name' | 'email' | 'message' | 'company', value: string) => {
+    setForm(current => ({ ...current, [field]: value }))
+    if (status === 'error') {
+      setStatus('idle')
+      setErrorCode(null)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (status === 'sending') return
     setStatus('sending')
+    setErrorCode(null)
+
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(form),
       })
-      if (res.ok) { setStatus('success'); setForm({ name: '', email: '', message: '' }) }
-      else setStatus('error')
-    } catch { setStatus('error') }
+      const data = await res.json().catch(() => null)
+      if (res.ok) {
+        setStatus('success')
+        setForm(createInitialFormState())
+        return
+      }
+
+      setStatus('error')
+      setErrorCode(isContactApiErrorCode(data?.code) ? data.code : 'server_error')
+    } catch {
+      setStatus('error')
+      setErrorCode('server_error')
+    }
   }
 
   const fieldStyle: React.CSSProperties = {
@@ -383,28 +444,41 @@ export function ContactSection() {
               >{seenDisp}</p>
             ) : (
               <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <div style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+                  <label htmlFor="company-mobile">Company</label>
+                  <input
+                    id="company-mobile"
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={form.company}
+                    onChange={e => updateField('company', e.target.value)}
+                  />
+                </div>
                 <div style={{ marginBottom: 'clamp(18px,5vw,28px)' }}>
-                  <input type="text" placeholder={T.name[lang]} value={form.name} required
-                    onChange={e => setForm(s => ({ ...s, name: e.target.value }))}
+                  <input type="text" placeholder={T.name[lang]} value={form.name} required maxLength={CONTACT_MAX_NAME_LENGTH}
+                    autoComplete="name"
+                    onChange={e => updateField('name', e.target.value)}
                     onFocus={onFocus} onBlur={onBlur}
                     style={{ ...fieldStyle, fontSize: 'clamp(16px,4.5vw,20px)' }} />
                 </div>
                 <div style={{ marginBottom: 'clamp(18px,5vw,28px)' }}>
-                  <input type="email" placeholder={T.email[lang]} value={form.email} required
-                    onChange={e => setForm(s => ({ ...s, email: e.target.value }))}
+                  <input type="email" placeholder={T.email[lang]} value={form.email} required maxLength={CONTACT_MAX_EMAIL_LENGTH}
+                    autoComplete="email"
+                    onChange={e => updateField('email', e.target.value)}
                     onFocus={onFocus} onBlur={onBlur}
                     style={{ ...fieldStyle, fontSize: 'clamp(16px,4.5vw,20px)' }} />
                 </div>
                 <div style={{ marginBottom: 'clamp(24px,6vw,36px)' }}>
-                  <textarea placeholder={T.message[lang]} value={form.message} required rows={4}
-                    onChange={e => setForm(s => ({ ...s, message: e.target.value }))}
+                  <textarea placeholder={T.message[lang]} value={form.message} required rows={4} maxLength={CONTACT_MAX_MESSAGE_LENGTH}
+                    onChange={e => updateField('message', e.target.value)}
                     onFocus={onFocus as React.FocusEventHandler<HTMLTextAreaElement>}
                     onBlur={onBlur as React.FocusEventHandler<HTMLTextAreaElement>}
                     style={{ ...fieldStyle, resize: 'none', fontSize: 'clamp(16px,4.5vw,20px)' }} />
                 </div>
                 {status === 'error' && (
                   <p style={{ color: 'rgba(255,100,100,0.9)', fontSize: 13, margin: '0 0 14px', fontWeight: 600 }}>
-                    {T.error[lang]}
+                    {getErrorMessage(errorCode, lang)}
                   </p>
                 )}
                 {/* Full-width send button on mobile */}
@@ -477,26 +551,39 @@ export function ContactSection() {
               >{seenDisp}</p>
             ) : (
               <form onSubmit={handleSubmit} noValidate>
+                <div style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+                  <label htmlFor="company-desktop">Company</label>
+                  <input
+                    id="company-desktop"
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={form.company}
+                    onChange={e => updateField('company', e.target.value)}
+                  />
+                </div>
                 <div style={{ marginBottom: 'clamp(16px,1.8vw,26px)' }}>
-                  <input type="text" placeholder={T.name[lang]} value={form.name} required
-                    onChange={e => setForm(s => ({ ...s, name: e.target.value }))}
+                  <input type="text" placeholder={T.name[lang]} value={form.name} required maxLength={CONTACT_MAX_NAME_LENGTH}
+                    autoComplete="name"
+                    onChange={e => updateField('name', e.target.value)}
                     onFocus={onFocus} onBlur={onBlur} style={fieldStyle} />
                 </div>
                 <div style={{ marginBottom: 'clamp(16px,1.8vw,26px)' }}>
-                  <input type="email" placeholder={T.email[lang]} value={form.email} required
-                    onChange={e => setForm(s => ({ ...s, email: e.target.value }))}
+                  <input type="email" placeholder={T.email[lang]} value={form.email} required maxLength={CONTACT_MAX_EMAIL_LENGTH}
+                    autoComplete="email"
+                    onChange={e => updateField('email', e.target.value)}
                     onFocus={onFocus} onBlur={onBlur} style={fieldStyle} />
                 </div>
                 <div style={{ marginBottom: 'clamp(22px,2.8vw,36px)' }}>
-                  <textarea placeholder={T.message[lang]} value={form.message} required rows={4}
-                    onChange={e => setForm(s => ({ ...s, message: e.target.value }))}
+                  <textarea placeholder={T.message[lang]} value={form.message} required rows={4} maxLength={CONTACT_MAX_MESSAGE_LENGTH}
+                    onChange={e => updateField('message', e.target.value)}
                     onFocus={onFocus as React.FocusEventHandler<HTMLTextAreaElement>}
                     onBlur={onBlur as React.FocusEventHandler<HTMLTextAreaElement>}
                     style={{ ...fieldStyle, resize: 'none' }} />
                 </div>
                 {status === 'error' && (
                   <p style={{ color: 'rgba(255,100,100,0.9)', fontSize: 13, margin: '0 0 14px', fontWeight: 600 }}>
-                    {T.error[lang]}
+                    {getErrorMessage(errorCode, lang)}
                   </p>
                 )}
                 <SendButton label={status === 'sending' ? T.sending[lang] : T.send[lang]} disabled={status === 'sending'} />
