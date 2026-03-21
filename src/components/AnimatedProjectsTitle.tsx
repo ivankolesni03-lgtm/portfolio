@@ -21,7 +21,7 @@ export function AnimatedProjectsTitle() {
   const text = language === 'de' ? 'PROJEKTE' : 'PROJECTS'
   const [progress, setProgress] = useState(0) // 0 = groß unten, 1 = klein oben
   const [sectionTop, setSectionTop] = useState(0)
-  const rafRef = useRef<number>()
+  const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
     const measure = () => {
@@ -55,7 +55,10 @@ export function AnimatedProjectsTitle() {
 
     window.addEventListener('scroll', handleScroll, { passive: true })
     handleScroll()
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
   }, [sectionTop])
 
   // Interpolation: groß unten → klein oben links in Nav

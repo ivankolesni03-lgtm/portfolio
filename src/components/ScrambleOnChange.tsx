@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type CSSProperties, type ElementType } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 const chars = "0123456789!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ"
@@ -8,8 +8,8 @@ interface ScrambleOnChangeProps {
   de: string
   en: string
   className?: string
-  style?: React.CSSProperties
-  as?: keyof JSX.IntrinsicElements
+  style?: CSSProperties
+  as?: keyof React.JSX.IntrinsicElements
 }
 
 export function ScrambleOnChange({ de, en, className, style, as: Tag = 'span' }: ScrambleOnChangeProps) {
@@ -18,6 +18,7 @@ export function ScrambleOnChange({ de, en, className, style, as: Tag = 'span' }:
   const [displayText, setDisplayText] = useState(targetText)
   const prevLang = useRef(language)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const Component = Tag as ElementType
 
   useEffect(() => {
     // Nur scramble wenn Sprache sich wirklich geändert hat
@@ -51,6 +52,5 @@ export function ScrambleOnChange({ de, en, className, style, as: Tag = 'span' }:
     }
   }, [language, targetText])
 
-  // @ts-ignore
-  return <Tag className={className} style={style}>{displayText}</Tag>
+  return <Component className={className} style={style}>{displayText}</Component>
 }
