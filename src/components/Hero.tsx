@@ -460,7 +460,7 @@ function BgImage() {
       }}
     >
       <img
-        src="/photos/background.png"
+        src="/photos/background.jpg"
         alt=""
         style={{
           width: isMobile ? '100vw' : '660px',

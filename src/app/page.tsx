@@ -13,6 +13,8 @@ import { AISection } from '@/components/AISection'
 import { GWASection } from '@/components/GWASection'
 import { PasswordGate } from '@/components/PasswordGate'
 import { StatsSection } from '@/components/StatsSection'
+import { InteractiveDots } from '@/components/InteractiveDots'
+import { ResumeTimeline } from '@/components/ResumeTimeline'
 
 function HomeContent() {
   const [headerVisible, setHeaderVisible] = useState(false)
@@ -33,7 +35,6 @@ function HomeContent() {
   return (
     <LanguageProvider>
       <main>
-        {/* Global overlay blur styles – targets all .fixed-ui elements */}
         <style>{`
           body.overlay-open .fixed-ui {
             filter: blur(8px) !important;
@@ -49,6 +50,8 @@ function HomeContent() {
         <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
           <ProjectsSection />
           <StatsSection />
+          <InteractiveDots />
+          <ResumeTimeline />
           <AISection />
           <GWASection />
           <ContactSection />

@@ -206,8 +206,8 @@ function ProgressTerm({ phase, isActive }: { phase: number; isActive: boolean })
 // ─── Images – preloaded at module level ──────────────────────────────────────
 const AI_SRCS = [
   '/ai-images/nikita-01.jpg',
-  '/ai-images/nikita-13.jpg',
-  '/ai-images/nikita-14.jpg',
+  '/ai-images/nikita-02.jpg',
+  '/ai-images/nikita-03.jpg',
   '/ai-images/nikita-04.jpg',
   '/ai-images/nikita-05.jpg',
   '/ai-images/nikita-06.jpg',
@@ -547,7 +547,7 @@ export function AISection() {
 
   // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'240vh', marginTop:'-80vh' }}>
+    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'240vh' }}>
       <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'100vh' }}/>
     </div>
   )
@@ -622,7 +622,7 @@ export function AISection() {
   const PREV_TOP   = Math.round(VH * 0.328)  // PREVIEW
 
   return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'240vh', marginTop:'-80vh' }}>
+    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'240vh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes scanln{0%{top:-2px}100%{top:100%}}

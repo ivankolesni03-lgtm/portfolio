@@ -49,42 +49,30 @@ export function StatsSection() {
       const rect   = el.getBoundingClientRect()
       const vh     = window.innerHeight
       const totalH = el.offsetHeight
-      // scrolled = how many px we've scrolled into the spacer (0 = spacer just at top)
+      
+      // Wie viele Pixel wir in den Spacer hineingescrollt sind
       const scrolled = -rect.top
 
       // Phase 1 – COUNT UP
-      // Start: spacer bottom enters viewport → scrolled = -(totalH - vh) ... wait
-      // Simpler: spacer top is still below viewport when scrolled < 0
-      // Numbers visible when spacer top enters viewport = scrolled >= 0
-      // But we want to start when numbers (spacer content) first appear at bottom of viewport
-      // That's when rect.bottom first equals vh → scrolled = totalH - vh... no
-      // rect.bottom = totalH + rect.top = totalH - scrolled
-      // rect.bottom === vh → scrolled = totalH - vh → that's near the END
-      // 
-      // rect.top === vh means spacer just entered viewport from bottom → scrolled = -vh
-      // So: COUNT START at scrolled = -vh (spacer enters viewport)
-      //     COUNT END   at scrolled = vh*0.5 (numbers centered = spacer top at -vh*0.5... 
-      //                              means scrolled = vh*0.5 from when spacer hits top)
-      // But sticky positions content at center, so when spacer top = 0 (scrolled=0)
-      // the sticky element is at top:50% = centered. Count done at scrolled = 0.
-
-      // START = scrolled = -vh (spacer bottom at viewport bottom)
-      // END   = scrolled = 0   (spacer top at viewport top = sticky centered = viewport center)
       const countStart = -vh
-      const countEnd   = 0
+      const countEnd   = -vh * 0.5 
       const p = Math.max(0, Math.min(1, (scrolled - countStart) / (countEnd - countStart)))
       setProgress(p)
 
       // Phase 2 – FIXED
-      // Fixed from scrolled=0 until spacer bottom leaves viewport
-      // spacer bottom leaves when scrolled = totalH - vh
       const fixedActive = scrolled >= 0 && rect.bottom >= vh
       setShowFixed(fixedActive)
 
-      // Phase 3 – EXIT BLUR (scroll-linked, starts at scrolled=0)
-      // Runs from scrolled=0 to scrolled=totalH-vh
+      // Phase 3 – EXIT BLUR (beginnt verzögert)
+      // Der Blur fängt erst nach einem gewissen Scroll-Weg im Fixed-Zustand an
+      const blurDelay = vh * 0.5 // <- HIER DEN WERT ÄNDERN (z.B. vh * 0.6 für noch später)
       const exitTotal = totalH - vh
-      const ep = exitTotal > 0 ? Math.max(0, Math.min(1, scrolled / exitTotal)) : 0
+      const effectiveScrolled = Math.max(0, scrolled - blurDelay)
+      const blurDuration = exitTotal - blurDelay
+      
+      // Berechne den Fortschritt nur für die verbleibende Zeit nach der Verzögerung
+      const ep = blurDuration > 0 ? Math.max(0, Math.min(1, effectiveScrolled / blurDuration)) : 0
+      
       setBlur(ep * 24)
       setOpacity(1 - ep)
     }
@@ -134,13 +122,13 @@ export function StatsSection() {
   return (
     <>
       <div ref={spacerRef} style={{ height: isMobile ? '200vh' : '180vh', backgroundColor:'#ffffff', position:'relative', zIndex:1 }}>
-        {/* Sticky: visible only before fixed kicks in */}
+        {/* Sticky: sichtbar nur bevor der fixed-Modus aktiviert wird */}
         <div style={{ position:'sticky', top:'50%', transform:'translateY(-50%)', width:'100%', pointerEvents:'none', opacity: showFixed ? 0 : 1 }}>
           {grid}
         </div>
       </div>
 
-      {/* Fixed overlay */}
+      {/* Fixed Overlay */}
       <div style={{ position:'fixed', inset:0, zIndex:2, display:'flex', alignItems:'center', backgroundColor:'#ffffff', pointerEvents:'none', opacity: showFixed ? 1 : 0, transition:'opacity 0.06s' }}>
         {grid}
       </div>
