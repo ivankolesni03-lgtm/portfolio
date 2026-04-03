@@ -137,13 +137,16 @@ export function ResumeTimeline() {
   const outerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [exitP, setExitP] = useState(0)
-  const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1440)
+  const [mounted, setMounted] = useState(false)
+  const [vw, setVw] = useState(1440)
   const { language } = useLanguage()
   const lang = language as Lang
   const N = entries.length
 
-  // Track viewport width
+  // Track viewport width and mounted state
   useEffect(() => {
+    setVw(window.innerWidth)
+    setMounted(true)
     const onResize = () => setVw(window.innerWidth)
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
@@ -263,6 +266,8 @@ export function ResumeTimeline() {
               alignItems: 'center',
               gap: gap,
               zIndex: 2,
+              opacity: mounted ? 1 : 0,
+              transition: 'opacity 0.3s ease',
             }}>
               {entries.map((entry, i) => (
                 <Station key={entry.id} entry={entry} proximity={proximities[i]} lang={lang} />
