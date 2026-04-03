@@ -516,7 +516,7 @@ export function ContactSection() {
         flex: 1,
         display: 'flex',
         flexDirection: 'row',
-        paddingTop: 'clamp(52px,7vw,88px)',
+        paddingTop: 'clamp(60px,10vw,120px)',
       }}>
         {/* Left: Form */}
         <div style={{
@@ -530,12 +530,12 @@ export function ContactSection() {
             style={{
               color: '#ffffff', fontSize: '8vw', fontWeight: 900,
               lineHeight: 0.9, letterSpacing: '-2px', textTransform: 'uppercase',
-              margin: '0 0 clamp(36px,4.5vw,58px)',
+              margin: 0,
               cursor: 'default', userSelect: 'none',
             }}
           >{headingDisp}</h2>
 
-          <div style={{ maxWidth: 500 }}>
+          <div style={{ maxWidth: 500, marginTop: 'clamp(36px,4.5vw,58px)' }}>
             {status === 'success' ? (
               <p
                 onMouseEnter={seenScramble}

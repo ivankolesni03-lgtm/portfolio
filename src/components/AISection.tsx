@@ -547,7 +547,7 @@ export function AISection() {
 
   // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'240vh' }}>
+    <div ref={outerRef} style={{ position:'relative', zIndex:4, height:'240vh', marginTop:'-100vh' }}>
       <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'100vh' }}/>
     </div>
   )
@@ -557,7 +557,7 @@ export function AISection() {
 
   // ── Mobile ────────────────────────────────────────────────────────────────
   if (mobile) return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'auto', minHeight:'100vh' }}>
+    <div ref={outerRef} style={{ position:'relative', zIndex:4, height:'auto', minHeight:'100vh', marginTop:'-100vh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -622,7 +622,7 @@ export function AISection() {
   const PREV_TOP   = Math.round(VH * 0.328)  // PREVIEW
 
   return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:3, height:'240vh' }}>
+    <div ref={outerRef} style={{ position:'relative', zIndex:4, height:'240vh', marginTop:'-100vh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes scanln{0%{top:-2px}100%{top:100%}}

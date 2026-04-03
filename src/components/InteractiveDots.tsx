@@ -57,7 +57,7 @@ function useScramble(text: string) {
 // ─── ProgrammeHeading ───────────────────────────────────────────────────────
 function ProgrammeHeading() {
   const { language } = useLanguage()
-  const text = language === 'de' ? 'Läuft\nbei mir' : 'Programs,\nthat I use'
+  const text = language === 'de' ? 'Läuft\nbei mir' : 'My Toolkit'
   const { disp, scramble } = useScramble(text)
 
   return (
@@ -165,14 +165,21 @@ export function InteractiveDots({
   padding?: number
   backgroundColor?: string
 }) {
+  const outerRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [hoveredId, setHoveredId] = useState<number | null>(null)
+  const [exitP, setExitP] = useState(0)
+  const [isEntering, setIsEntering] = useState(true)
+  const [simulatedHover, setSimulatedHover] = useState<number | null>(null)
+  const [simulatedNeighbors, setSimulatedNeighbors] = useState<Set<number>>(new Set())
   const [neighborIds, setNeighborIds] = useState<Set<number>>(new Set())
   const [tick, setTick] = useState(0)
   const [openIdx, setOpenIdx] = useState<number | null>(null)
   const [phase, setPhase] = useState<'in' | 'open' | 'closing'>('in')
   const [lang] = useState<Lang>('de')
   const circlesRef = useRef<{ id: number; x: number; y: number; iconIndex: number }[]>([])
+  const simulationRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const userInteractedRef = useRef(false)
 
   const hoveredIdRef = useRef<number | null>(null)
   const neighborIdsRef = useRef<Set<number>>(new Set())
@@ -186,9 +193,20 @@ export function InteractiveDots({
     if (!containerRef.current) return
     const { width, height } = containerRef.current.getBoundingClientRect()
     const circles: { id: number; x: number; y: number; iconIndex: number }[] = []
+    
+    // Calculate how many icons fit with minimum spacing
+    const cols = Math.floor((width - padding * 2) / spacing) + 1
+    const rows = Math.floor((height - padding * 2) / spacing) + 1
+    
+    // Calculate actual spacing to distribute evenly
+    const actualSpacingX = (width - padding * 2) / Math.max(1, cols - 1)
+    const actualSpacingY = (height - padding * 2) / Math.max(1, rows - 1)
+    
     let id = 0
-    for (let y = padding; y < height - padding; y += spacing) {
-      for (let x = padding; x < width - padding; x += spacing) {
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const x = padding + col * actualSpacingX
+        const y = padding + row * actualSpacingY
         circles.push({ id: id++, x, y, iconIndex: Math.floor(Math.random() * programs.length) })
       }
     }
@@ -225,6 +243,11 @@ export function InteractiveDots({
   }, [])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    // Stop simulated hover when user interacts
+    userInteractedRef.current = true
+    setSimulatedHover(null)
+    setSimulatedNeighbors(new Set())
+    
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
     const mouseX = e.clientX - rect.left
@@ -301,12 +324,124 @@ export function InteractiveDots({
     return () => window.removeEventListener('keydown', handler)
   }, [closeOverlay, navigate])
 
+  // Exit blur/opacity effect when next section scrolls over
+  // Also track if section is entering (not yet sticky)
+  useEffect(() => {
+    const fn = () => {
+      const el = outerRef.current; if (!el) return
+      const vh = window.innerHeight
+      const rect = el.getBoundingClientRect()
+      const scrolled = Math.max(0, -rect.top)
+      setExitP(Math.max(0, Math.min(1, (scrolled - vh * 0.3) / (vh * 1.5))))
+      
+      // Section is "entering" when top is between 0 and vh (scrolling into view)
+      // Once rect.top <= 0, section is sticky/fixed
+      const entering = rect.top > 0 && rect.top < vh
+      setIsEntering(entering)
+      
+      // Stop simulation when section becomes sticky or user has interacted
+      if (rect.top <= 0 || userInteractedRef.current) {
+        setSimulatedHover(null)
+        setSimulatedNeighbors(new Set())
+      }
+    }
+    window.addEventListener('scroll', fn, { passive: true }); fn()
+    return () => window.removeEventListener('scroll', fn)
+  }, [])
+
+  // Simulated hover effects during entering phase - natural cursor movement
+  useEffect(() => {
+    if (!isEntering || userInteractedRef.current || circlesRef.current.length === 0) {
+      if (simulationRef.current) {
+        clearTimeout(simulationRef.current)
+        simulationRef.current = null
+      }
+      return
+    }
+
+    let currentCircleId: number | null = null
+    let isActive = true
+
+    const findNearbyCircle = (fromId: number | null) => {
+      const circles = circlesRef.current
+      if (circles.length === 0) return null
+      
+      if (fromId === null) {
+        // Start with a circle in the visible area (center-ish)
+        const centerX = window.innerWidth / 2
+        const centerY = window.innerHeight / 2
+        const sorted = [...circles].sort((a, b) => {
+          const distA = Math.sqrt((a.x - centerX) ** 2 + (a.y - centerY) ** 2)
+          const distB = Math.sqrt((b.x - centerX) ** 2 + (b.y - centerY) ** 2)
+          return distA - distB
+        })
+        // Pick one of the closest circles randomly
+        return sorted[Math.floor(Math.random() * Math.min(5, sorted.length))]
+      }
+      
+      const current = circles.find(c => c.id === fromId)
+      if (!current) return circles[Math.floor(Math.random() * circles.length)]
+      
+      // Find nearby circles (within 2x spacing) and pick one randomly
+      const nearby = circles.filter(c => {
+        if (c.id === fromId) return false
+        const dx = c.x - current.x
+        const dy = c.y - current.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        return dist < spacing * 2.5
+      })
+      
+      if (nearby.length === 0) return circles[Math.floor(Math.random() * circles.length)]
+      return nearby[Math.floor(Math.random() * nearby.length)]
+    }
+
+    const simulate = () => {
+      if (!isActive || userInteractedRef.current) return
+      
+      const circles = circlesRef.current
+      if (circles.length === 0) return
+      
+      // Move to a nearby circle (natural cursor movement)
+      const nextCircle = findNearbyCircle(currentCircleId)
+      if (!nextCircle) return
+      
+      currentCircleId = nextCircle.id
+      setSimulatedHover(nextCircle.id)
+      
+      // Find neighbors
+      const neighbors = new Set<number>()
+      circles.forEach(c => {
+        if (c.id === nextCircle.id) return
+        const dx = c.x - nextCircle.x
+        const dy = c.y - nextCircle.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < spacing * 1.6) neighbors.add(c.id)
+      })
+      setSimulatedNeighbors(neighbors)
+      
+      // Schedule next movement with random delay (600-1200ms)
+      const delay = 600 + Math.random() * 600
+      simulationRef.current = setTimeout(simulate, delay)
+    }
+
+    // Start simulation with initial delay
+    simulationRef.current = setTimeout(simulate, 400)
+
+    return () => {
+      isActive = false
+      if (simulationRef.current) {
+        clearTimeout(simulationRef.current)
+        simulationRef.current = null
+      }
+    }
+  }, [isEntering, spacing])
+
   const renderedCircles = useMemo(() => {
     const now = Date.now()
     return circlesRef.current.map((circle) => {
       const program = programs[circle.iconIndex]
-      const isHovered = circle.id === hoveredId
-      const isNeighbor = neighborIds.has(circle.id)
+      const isHovered = circle.id === hoveredId || circle.id === simulatedHover
+      const isNeighbor = neighborIds.has(circle.id) || simulatedNeighbors.has(circle.id)
       const hoveredExitData = hoveredExitFadeRef.current.get(circle.id)
       const fadingData = fadingCirclesRef.current.get(circle.id)
 
@@ -353,21 +488,31 @@ export function InteractiveDots({
         </button>
       )
     })
-  }, [hoveredId, neighborIds, tick, circleSize, openOverlay, programs, lang])
+  }, [hoveredId, neighborIds, simulatedHover, simulatedNeighbors, tick, circleSize, openOverlay, programs, lang])
 
   const selectedProgram = openIdx !== null ? programs[openIdx] : null
 
   return (
     <>
-      <div style={{ position: 'relative', zIndex: 10, height: '300vh', marginTop: '-25vh' }}>
+      <div ref={outerRef} style={{ position: 'relative', zIndex: 2, height: '300vh', marginTop: '-25vh' }}>
         <section 
           ref={containerRef} 
           onMouseMove={handleMouseMove} 
           onMouseLeave={handleMouseLeave}
           style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden', userSelect: 'none', cursor: 'crosshair', backgroundColor }}
         >
-          <ProgrammeHeading />
-          {renderedCircles}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            filter: exitP > 0.05 ? `blur(${exitP * 18}px)` : 'none',
+            opacity: 1 - exitP * 0.9,
+            transform: `scale(${1 - exitP * 0.04})`,
+            transformOrigin: 'center top',
+            willChange: 'filter, opacity, transform',
+          }}>
+            <ProgrammeHeading />
+            {renderedCircles}
+          </div>
         </section>
       </div>
 
