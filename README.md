@@ -1,5 +1,8 @@
 # 🚀 Welcome to Z.ai Code Scaffold
 
+npm run dev
+http://localhost:3000
+
 A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
 
 ## Environment Variables

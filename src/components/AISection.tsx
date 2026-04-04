@@ -207,16 +207,17 @@ function ProgressTerm({ phase, isActive }: { phase: number; isActive: boolean })
 const AI_SRCS = [
   '/ai-images/nikita-01.jpg',
   '/ai-images/nikita-02.jpg',
+  '/ai-images/car-01.jpg',
+  '/ai-images/car-02.jpg',
   '/ai-images/nikita-03.jpg',
   '/ai-images/nikita-04.jpg',
   '/ai-images/nikita-05.jpg',
-  '/ai-images/nikita-06.jpg',
-  '/ai-images/nikita-07.jpg',
-  '/ai-images/nikita-08.jpg',
-  '/ai-images/nikita-09.jpg',
-  '/ai-images/nikita-10.jpg',
-  '/ai-images/nikita-11.jpg',
-  '/ai-images/nikita-12.jpg',
+  '/ai-images/car-03.jpg',
+  '/ai-images/car-04.jpg',
+  '/ai-images/random-01.jpg',
+  '/ai-images/random-02.jpg',
+  '/ai-images/random-03.jpg',
+  '/ai-images/random-04.jpg',
 ]
 
 const AI_IMAGES: HTMLImageElement[] = typeof window !== 'undefined'
