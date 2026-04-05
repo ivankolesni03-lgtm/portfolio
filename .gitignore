@@ -82,3 +82,5 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+/examples
