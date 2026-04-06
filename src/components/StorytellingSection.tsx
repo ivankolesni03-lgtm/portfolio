@@ -75,14 +75,20 @@ export function StorytellingSection() {
   const headingBlur = Math.max(0, (progress - 0.3) / 0.35) * 14
 
   // ── MOBILE layout ──────────────────────────────────────────────────────────
-  // On mobile: STORY top-left, TELLING bottom-right (smaller font)
-  // Video: full width, centered vertically between the two words
+  // On mobile: STORY and TELLING centered, closer to video
+  // Video: wider but shorter (ultra-wide aspect ratio)
   const MOB_PAD    = vw * 0.06
-  const MOB_FONT   = vw * 0.18   // ~18vw
-  const MOB_VID_W  = vw - MOB_PAD * 2
-  const MOB_VID_H  = MOB_VID_W * (9 / 16)
-  const MOB_VID_L  = MOB_PAD
+  const MOB_FONT   = vw * 0.18   // larger font for storytelling (18vw)
+  const MOB_VID_W  = vw * 0.82   // wider video (82% of viewport)
+  const MOB_VID_H  = MOB_VID_W * (1 / 4)  // ultra-wide aspect ratio (4:1)
+  const MOB_VID_L  = (vw - MOB_VID_W) / 2  // centered horizontally
   const MOB_VID_T  = vh === 0 ? 160 : (vh - MOB_VID_H) / 2
+
+  // Text positioning for mobile - TELLING has more gap
+  const MOB_STORY_GAP = vw * 0.04  // gap between STORY and video
+  const MOB_TELLING_GAP = vw * 0.08  // larger gap between TELLING and video
+  const MOB_STORY_TOP = MOB_VID_T - MOB_FONT - MOB_STORY_GAP
+  const MOB_TELLING_TOP = MOB_VID_T + MOB_VID_H + MOB_TELLING_GAP
 
   const mobFrameW = MOB_VID_W + (vw - MOB_VID_W) * eased
   const mobFrameH = MOB_VID_H + (vh - MOB_VID_H) * eased
@@ -109,7 +115,7 @@ export function StorytellingSection() {
   const fH = isMobile ? mobFrameH : frameH
   const fL = isMobile ? mobFrameL : frameL
   const fT = isMobile ? mobFrameT : frameT
-  const fontSize = isMobile ? `${vw * 0.18}px` : '14vw'
+  const fontSize = isMobile ? `${MOB_FONT}px` : '14vw'
   const letterSp = isMobile ? '-1px' : '-3px'
 
   return (
@@ -124,13 +130,15 @@ export function StorytellingSection() {
         transition: 'filter 0.05s linear',
       }}>
 
-        {/* STORY – top left */}
+        {/* STORY – top left on desktop, centered above video on mobile */}
         <div
           ref={headingRef}
           style={{
             position: 'absolute',
-            top:  isMobile ? MOB_PAD : headingTop,
-            left: isMobile ? MOB_PAD : headingLeft,
+            top:  isMobile ? MOB_STORY_TOP : headingTop,
+            left: isMobile ? 0 : headingLeft,
+            right: isMobile ? 0 : 'auto',
+            textAlign: isMobile ? 'center' : 'left',
             pointerEvents: 'none', zIndex: 5,
             opacity: headingO,
             filter: headingBlur > 0.1 ? `blur(${headingBlur}px)` : 'none',
@@ -143,11 +151,14 @@ export function StorytellingSection() {
           }}>Story</div>
         </div>
 
-        {/* TELLING – bottom right */}
+        {/* TELLING – bottom right on desktop, centered below video on mobile */}
         <div style={{
           position: 'absolute',
-          bottom: isMobile ? MOB_PAD : headingTop * 0.7,
-          right:  isMobile ? MOB_PAD : headingLeft,
+          top: isMobile ? MOB_TELLING_TOP : 'auto',
+          bottom: isMobile ? 'auto' : headingTop * 0.7,
+          left: isMobile ? 0 : 'auto',
+          right:  isMobile ? 0 : headingLeft,
+          textAlign: isMobile ? 'center' : 'right',
           pointerEvents: 'none', zIndex: 5,
           opacity: headingO,
           filter: headingBlur > 0.1 ? `blur(${headingBlur}px)` : 'none',

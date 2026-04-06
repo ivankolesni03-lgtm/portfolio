@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useMobile } from '@/hooks/use-mobile'
 
 // ─── Scramble ─────────────────────────────────────────────────────────────────
 const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
@@ -26,13 +27,14 @@ function useScramble(text:string){
 // ─── StaticHeadingGWA ────────────────────────────────────────────────────────
 function StaticHeadingGWA() {
   const { language } = useLanguage()
+  const { isMobile } = useMobile()
   const {disp:d1,scramble:s1}=useScramble('Junior Agency')
   const {disp:d2,scramble:s2}=useScramble('Award 2026')
   const scramble=()=>{s1();s2()}
   useEffect(()=>{scramble()},[language]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div onMouseEnter={scramble} style={{
-      fontSize:'8vw',fontWeight:900,lineHeight:0.9,letterSpacing:'-2px',
+    <div onMouseEnter={scramble} onTouchStart={scramble} style={{
+      fontSize: isMobile ? '10vw' : '8vw',fontWeight:900,lineHeight:0.9,letterSpacing:'-2px',
       textTransform:'uppercase',color:'#0a0a0a',margin:0,cursor:'default',userSelect:'none',
     }}>
       <div style={{whiteSpace:'nowrap'}}>{d1}</div>
@@ -42,7 +44,7 @@ function StaticHeadingGWA() {
 }
 
 // ─── Trophy3D ────────────────────────────────────────────────────────────────
-function Trophy3D({ sectionRef }: { sectionRef: React.RefObject<HTMLDivElement> }) {
+function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObject<HTMLDivElement>; autoRotate?: boolean }) {
   const mountRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = mountRef.current
@@ -74,14 +76,20 @@ function Trophy3D({ sectionRef }: { sectionRef: React.RefObject<HTMLDivElement> 
       controls.minDistance = 2.8; controls.maxDistance = 2.8
       controls.autoRotate = false; controls.target.set(0, 0, 0)
       const targetRot = { x: 0, y: 0 }
+      let autoRotationY = 0
+      
       const onMouseMove = (e: MouseEvent) => {
+        if (autoRotate) return // Skip mouse tracking on mobile (auto-rotate mode)
         const sec = sectionRef.current; if (!sec) return
         const sr = sec.getBoundingClientRect()
         if (e.clientX < sr.left || e.clientX > sr.right || e.clientY < sr.top || e.clientY > sr.bottom) return
         targetRot.x = ((e.clientY - (sr.top + sr.height / 2)) / (sr.height / 2)) * 0.3
         targetRot.y = ((e.clientX - (sr.left + sr.width / 2)) / (sr.width / 2)) * 0.3
       }
-      window.addEventListener('mousemove', onMouseMove)
+      if (!autoRotate) {
+        window.addEventListener('mousemove', onMouseMove)
+      }
+      
       let loadedModel: any = null
       new GLTFLoader().load('/models/figur01.glb', (gltf: any) => {
         if (cancelled) return
@@ -101,22 +109,36 @@ function Trophy3D({ sectionRef }: { sectionRef: React.RefObject<HTMLDivElement> 
       let rafId = 0; const currentRot = { x: 0, y: 0 }
       const animate = () => {
         rafId = requestAnimationFrame(animate)
-        currentRot.x += (targetRot.x - currentRot.x) * 0.06
-        currentRot.y += (targetRot.y - currentRot.y) * 0.06
-        if (loadedModel) { loadedModel.rotation.x = currentRot.x; loadedModel.rotation.y = currentRot.y }
+        
+        if (autoRotate) {
+          // Auto-rotation mode for mobile: slow continuous Y rotation with gentle X wobble
+          autoRotationY += 0.008
+          const wobbleX = Math.sin(autoRotationY * 0.5) * 0.1
+          if (loadedModel) {
+            loadedModel.rotation.x = wobbleX
+            loadedModel.rotation.y = autoRotationY
+          }
+        } else {
+          // Mouse-controlled mode for desktop
+          currentRot.x += (targetRot.x - currentRot.x) * 0.06
+          currentRot.y += (targetRot.y - currentRot.y) * 0.06
+          if (loadedModel) { loadedModel.rotation.x = currentRot.x; loadedModel.rotation.y = currentRot.y }
+        }
+        
         controls.update(); renderer.render(scene, camera)
       }
       animate()
       cleanupFn = () => {
         cancelAnimationFrame(rafId); window.removeEventListener('resize', onResize)
-        window.removeEventListener('mousemove', onMouseMove); controls.dispose(); renderer.dispose()
+        if (!autoRotate) window.removeEventListener('mousemove', onMouseMove)
+        controls.dispose(); renderer.dispose()
         if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement)
       }
     }
     init()
     return () => { cancelled = true; cleanupFn?.() }
-  }, []) // eslint-disable-line
-  return <div ref={mountRef} style={{ width:'100%', height:'100%', cursor:'grab', background:'transparent', display:'block' }} />
+  }, [autoRotate]) // eslint-disable-line
+  return <div ref={mountRef} style={{ width:'100%', height:'100%', cursor: autoRotate ? 'default' : 'grab', background:'transparent', display:'block' }} />
 }
 
 // ─── AwardBadge – einheitlich schwarz/weiß ────────────────────────────────────
@@ -225,6 +247,7 @@ function ProcessTimeline({ lang }: { lang: 'de' | 'en' }) {
             <div
               onMouseEnter={() => setHovIdx(i)}
               onMouseLeave={() => setHovIdx(null)}
+              onTouchStart={() => setHovIdx(hovIdx === i ? null : i)}
               style={{ display: 'flex', alignItems: 'center', gap: 'clamp(14px,1.6vw,24px)', cursor: 'default' }}
             >
               {/* Label */}
@@ -440,10 +463,10 @@ export function GWASection() {
   if (isMobile) {
     return (
       <div ref={secRef} style={{ position: 'relative', zIndex: 5, marginTop: '-5vh' }}>
-        <section id="gwa" style={{ backgroundColor: '#ffffff', boxSizing: 'border-box', overflow: 'hidden', padding: '14vw 6vw 18vw', display: 'flex', flexDirection: 'column' }}>
+        <section id="gwa" style={{ backgroundColor: '#ffffff', boxSizing: 'border-box', overflow: 'hidden', padding: '20vw 5vw 18vw', display: 'flex', flexDirection: 'column' }}>
           <div style={{ marginBottom: 'clamp(20px,5vw,32px)' }}><StaticHeadingGWA /></div>
           <div style={{ width: '100%', height: '72vw', maxHeight: 340, marginBottom: 'clamp(24px,6vw,40px)' }}>
-            <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} />
+            <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} autoRotate={true} />
           </div>
           <LogoRow />
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'clamp(20px,5vw,32px)' }}>
@@ -514,6 +537,7 @@ function MobileLivestreamBtn({ lang }: { lang: 'de' | 'en' }) {
   return (
     <a href="https://www.youtube.com/live/WTt66Ojzi44?si=ufzNc8ExJtfVg_mo&t=4409" target="_blank" rel="noopener noreferrer"
       onMouseEnter={() => { setHov(true); scramble() }} onMouseLeave={() => setHov(false)}
+      onTouchStart={scramble}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 10, backgroundColor: hov ? '#333' : '#0a0a0a', color: '#ffffff', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '11px 20px', textDecoration: 'none', transition: 'background-color 0.15s ease', cursor: 'pointer' }}>
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polygon points="2,1 12,6.5 2,12" fill="#ffffff"/></svg>
       {disp}

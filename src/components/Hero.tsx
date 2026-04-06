@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useMobile } from '@/hooks/use-mobile'
 
 const chars = "0123456789!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ"
 
@@ -239,6 +240,7 @@ function ScrambleText({ text, className }: { text: string; className?: string })
       ref={elementRef}
       className={`font-mono ${className || ''}`}
       onMouseEnter={scramble}
+      onTouchStart={scramble}
     >
       {text}
     </span>
@@ -274,8 +276,11 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   const [progress, setProgress] = useState(0)
   const [isRussian, setIsRussian] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const { isMobile, width, height } = useMobile()
   const ivanScramble = useScramble('IVAN')
   const kolesnikovScramble = useScramble('KOLESNIKOV')
+
+  const [showBackdrop, setShowBackdrop] = useState(false)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -285,14 +290,20 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
     const handleScroll = () => {
       const p = Math.min(1, window.scrollY / window.innerHeight)
       setProgress(p)
+      
+      // Mobile backdrop blur starting from projects section
+      const projekte = document.getElementById('projekte')
+      if (projekte) {
+        const rect = projekte.getBoundingClientRect()
+        setShowBackdrop(rect.top < window.innerHeight * 0.5)
+      }
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const vw = mounted ? window.innerWidth / 100 : 0
-  const vh = mounted ? window.innerHeight / 100 : 0
-  const isMobile = mounted ? window.innerWidth < 768 : false
+  const vw = mounted ? width / 100 : 0
+  const vh = mounted ? height / 100 : 0
 
   // Desktop (unverändert)
   const desktopStartLeft = 8 * vw
@@ -366,15 +377,36 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   if (!mounted) return null
 
   return (
-    <div
-      className="fixed z-30 fixed-ui"
-      style={{
-        left,
-        top,
-        mixBlendMode: 'difference',
-        pointerEvents: 'none',
-      }}
-    >
+    <>
+      {/* Mobile backdrop blur stripe */}
+      {isMobile && showBackdrop && (
+        <div
+          className="mobile-nav-blur"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '120px',
+            zIndex: 25,
+            pointerEvents: 'none',
+            backdropFilter: 'blur(50px) saturate(1.2)',
+            WebkitBackdropFilter: 'blur(50px) saturate(1.2)',
+            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)',
+            transition: 'opacity 0.3s ease',
+          }}
+        />
+      )}
+      <div
+        className="fixed z-30 fixed-ui"
+        style={{
+          left,
+          top,
+          mixBlendMode: 'difference',
+          pointerEvents: 'none',
+        }}
+      >
       <div
         style={{
           pointerEvents: 'auto',
@@ -423,12 +455,14 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
         </span>
       </div>
     </div>
+    </>
   )
 }
 
 function BgImage() {
   const [progress, setProgress] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const { isMobile } = useMobile()
 
   useEffect(() => {
     setMounted(true)
@@ -443,7 +477,6 @@ function BgImage() {
 
   const blur = progress * 20
   const opacity = 1 - progress
-  const isMobile = mounted ? window.innerWidth < 768 : false
 
   return (
     <div

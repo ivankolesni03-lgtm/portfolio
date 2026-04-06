@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { useMobile } from '@/hooks/use-mobile'
 
 interface TrailPoint {
   id: number
@@ -15,16 +16,17 @@ export function BrushCursor({ active }: BrushCursorProps) {
   const [trailPoints, setTrailPoints] = useState<TrailPoint[]>([])
   const lastTimeRef = useRef(0)
   const pointIdRef = useRef(0)
+  const { isMobile, isTouch } = useMobile()
 
   useEffect(() => {
-    if (!active) {
+    // Disable on mobile/touch devices - no mouse to track
+    if (!active || isMobile || isTouch) {
       setTrailPoints([])
       return
     }
 
     const handleMouseMove = (e: MouseEvent) => {
       const now = Date.now()
-      // Jeden Pixel – kein Zeitlimit, nur Positions-Throttle
       if (now - lastTimeRef.current > 4) {
         lastTimeRef.current = now
         const newPoint: TrailPoint = {
@@ -33,7 +35,6 @@ export function BrushCursor({ active }: BrushCursorProps) {
           y: e.clientY,
         }
         setTrailPoints(prev => [...prev, newPoint])
-        // 2 Sekunden sichtbar
         setTimeout(() => {
           setTrailPoints(prev => prev.filter(p => p.id !== newPoint.id))
         }, 2000)
@@ -42,9 +43,10 @@ export function BrushCursor({ active }: BrushCursorProps) {
 
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [active])
+  }, [active, isMobile, isTouch])
 
-  if (!active) return null
+  // Don't render anything on mobile/touch devices
+  if (!active || isMobile || isTouch) return null
 
   return (
     <>

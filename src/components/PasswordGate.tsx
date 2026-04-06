@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { CustomCursor } from '@/components/CustomCursor'
+import { useMobile } from '@/hooks/use-mobile'
 
 interface EyePos { x: number; y: number }
 
@@ -59,19 +61,24 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   const [errorMessage, setErrorMessage] = useState('')
   const [pupil, setPupil] = useState<EyePos>({ x: 0, y: 0 })
   const [blinking, setBlinking] = useState(false)
+  const [inputFocused, setInputFocused] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const smooth = useRef<EyePos>({ x: 0, y: 0 })
   const target = useRef<EyePos>({ x: 0, y: 0 })
   const rafRef = useRef(0)
   const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoAnimTime = useRef(0)
+  const { isMobile } = useMobile()
 
   useEffect(() => {
     const saved = sessionStorage.getItem('unlocked')
     setStatus(saved === 'true' ? 'unlocked' : 'locked')
   }, [])
 
+  // Desktop: Mouse tracking
   useEffect(() => {
     if (status !== 'locked' && status !== 'submitting') return
+    if (isMobile) return
 
     const onMove = (e: MouseEvent) => {
       const el = containerRef.current
@@ -90,7 +97,24 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener('mousemove', onMove)
     return () => window.removeEventListener('mousemove', onMove)
-  }, [status])
+  }, [status, isMobile])
+
+  // Mobile: Gentle automatic eye movement
+  useEffect(() => {
+    if (status !== 'locked' && status !== 'submitting') return
+    if (!isMobile) return
+
+    const autoAnimate = () => {
+      autoAnimTime.current += 0.03
+      // Subtle circular/figure-8 movement
+      const autoX = Math.sin(autoAnimTime.current) * 12
+      const autoY = Math.sin(autoAnimTime.current * 1.5) * 6
+      target.current = { x: autoX, y: autoY }
+    }
+
+    const interval = setInterval(autoAnimate, 50)
+    return () => clearInterval(interval)
+  }, [status, isMobile])
 
   useEffect(() => {
     if (status !== 'locked' && status !== 'submitting') {
@@ -173,23 +197,31 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   if (status === 'checking') return null
   if (status === 'unlocked') return <>{children}</>
 
-  const eyeSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 120 : 160
+  const eyeSize = isMobile ? 120 : 160
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: '#000',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        fontFamily: 'monospace',
-      }}
-    >
+    <>
+      {!inputFocused && <CustomCursor />}
+      <div
+        ref={containerRef}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: '#000',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          fontFamily: 'monospace',
+          overflow: 'hidden',
+        }}
+      >
       <div style={{ textAlign: 'center', width: '90%', maxWidth: '400px' }}>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '48px' }}>
@@ -222,6 +254,8 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
           value={input}
           onChange={e => { setInput(e.target.value); setErrorMessage('') }}
           onKeyDown={handleKeyDown}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setInputFocused(false)}
           autoFocus
           placeholder="••••••"
           disabled={status === 'submitting'}
@@ -277,6 +311,7 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
         </button>
       </div>
     </div>
+    </>
   )
 }
 

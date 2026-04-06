@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useMobile } from '@/hooks/use-mobile'
 
 export type Lang = 'de' | 'en'
 
@@ -133,17 +134,348 @@ function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: 
   )
 }
 
+// ─── Mobile Timeline (Instagram Stories Style) ─────────────────────────────
+function MobileTimeline({ lang }: { lang: Lang }) {
+  const outerRef = useRef<HTMLDivElement>(null)
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [exitP, setExitP] = useState(0)
+  const [swipeOffset, setSwipeOffset] = useState(0)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+  const N = entries.length
+
+  // Heading scramble
+  const headingText = lang === 'de' ? 'MEIN WEG' : 'MY PATH'
+  const [headingDisp, setHeadingDisp] = useState(headingText)
+  const headingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const prevLang = useRef(lang)
+
+  useEffect(() => {
+    if (prevLang.current !== lang) {
+      scramble(headingText, setHeadingDisp, headingRef)
+    }
+    prevLang.current = lang
+  }, [lang, headingText])
+
+  // Exit blur effect when scrolling past
+  useEffect(() => {
+    const fn = () => {
+      const el = outerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const vh = window.innerHeight
+      const totalH = el.offsetHeight
+      const maxScroll = totalH - vh
+      const scrolled = Math.max(0, -rect.top)
+      const scrollProgress = Math.min(1, scrolled / maxScroll)
+      
+      const blurStart = 0.85
+      const blurProgress = Math.max(0, (scrollProgress - blurStart) / (1 - blurStart))
+      setExitP(blurProgress)
+    }
+    window.addEventListener('scroll', fn, { passive: true })
+    fn()
+    return () => window.removeEventListener('scroll', fn)
+  }, [])
+
+  const goTo = useCallback((idx: number) => {
+    if (isAnimating || idx < 0 || idx >= N) return
+    setIsAnimating(true)
+    setActiveIdx(idx)
+    setSwipeOffset(0)
+    setTimeout(() => setIsAnimating(false), 350)
+  }, [isAnimating, N])
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (isAnimating) return
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+  }, [isAnimating])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current || isAnimating) return
+    const touch = e.touches[0]
+    const dx = touch.clientX - touchStartRef.current.x
+    const dy = touch.clientY - touchStartRef.current.y
+    
+    // Only track horizontal swipes (prevent vertical scroll interference)
+    if (Math.abs(dx) > Math.abs(dy) * 1.5) {
+      // Limit swipe offset and add resistance at edges
+      let offset = dx
+      if ((activeIdx === 0 && dx > 0) || (activeIdx === N - 1 && dx < 0)) {
+        offset = dx * 0.3 // Resistance at edges
+      }
+      setSwipeOffset(offset)
+    }
+  }, [isAnimating, activeIdx, N])
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStartRef.current || isAnimating) {
+      touchStartRef.current = null
+      return
+    }
+    
+    const dx = swipeOffset
+    const dt = Date.now() - touchStartRef.current.time
+    const velocity = Math.abs(dx) / dt
+    const threshold = window.innerWidth * 0.25
+    
+    // Navigate if swipe is fast enough or far enough
+    if (dx < -threshold || (dx < -50 && velocity > 0.3)) {
+      goTo(activeIdx + 1)
+    } else if (dx > threshold || (dx > 50 && velocity > 0.3)) {
+      goTo(activeIdx - 1)
+    } else {
+      setSwipeOffset(0)
+    }
+    
+    touchStartRef.current = null
+  }, [swipeOffset, isAnimating, activeIdx, goTo])
+
+  const entry = entries[activeIdx]
+
+  return (
+    <div ref={outerRef} style={{ position: 'relative', zIndex: 3, height: '250vh', marginTop: '-100vh' }}>
+      <section
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          position: 'sticky',
+          top: 0,
+          width: '100%',
+          height: '100vh',
+          backgroundColor: '#ffffff',
+          overflow: 'hidden',
+          touchAction: 'pan-y',
+        }}
+      >
+        {/* Content wrapper with exit blur */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          filter: exitP > 0.02 ? `blur(${exitP * 24}px)` : 'none',
+          opacity: 1 - exitP * 0.95,
+          transform: `scale(${1 - exitP * 0.05})`,
+          transformOrigin: 'center center',
+          willChange: 'filter, opacity, transform',
+        }}>
+          {/* Heading */}
+          <div style={{ padding: '20vw 5vw 0', flexShrink: 0 }}>
+            <h2 style={{
+              fontSize: '10vw',
+              fontWeight: 900,
+              textTransform: 'uppercase',
+              letterSpacing: '-2px',
+              margin: 0,
+              lineHeight: 0.9,
+              color: '#0a0a0a',
+            }}>
+              {headingDisp}
+            </h2>
+          </div>
+
+          {/* Card container */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px 6vw',
+            overflow: 'hidden',
+          }}>
+            {/* Swipeable card */}
+            <div style={{
+              width: '100%',
+              maxWidth: 400,
+              transform: `translateX(${swipeOffset}px)`,
+              transition: swipeOffset === 0 && !touchStartRef.current ? 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+              willChange: 'transform',
+            }}>
+              <MobileStationCard entry={entry} lang={lang} key={entry.id} />
+            </div>
+          </div>
+
+          {/* Bottom navigation hint */}
+          <div style={{
+            padding: '12px 20px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <button
+              onClick={() => goTo(activeIdx - 1)}
+              disabled={activeIdx === 0}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 8,
+                cursor: activeIdx === 0 ? 'default' : 'pointer',
+                opacity: activeIdx === 0 ? 0.2 : 0.6,
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <polyline points="15,4 7,12 15,20" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            
+            <span style={{
+              fontFamily: 'monospace',
+              fontSize: 12,
+              color: '#888',
+              letterSpacing: '0.1em',
+            }}>
+              {String(activeIdx + 1).padStart(2, '0')} / {String(N).padStart(2, '0')}
+            </span>
+            
+            <button
+              onClick={() => goTo(activeIdx + 1)}
+              disabled={activeIdx === N - 1}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 8,
+                cursor: activeIdx === N - 1 ? 'default' : 'pointer',
+                opacity: activeIdx === N - 1 ? 0.2 : 0.6,
+                transition: 'opacity 0.2s',
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <polyline points="9,4 17,12 9,20" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+// Mobile card component
+function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }) {
+  const [titleD, setTitleD] = useState(entry.title[lang])
+  const [periodD, setPeriodD] = useState(entry.period[lang])
+  const [orgD, setOrgD] = useState(entry.org[lang])
+  const titleRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const periodRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const orgRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const prevLang = useRef(lang)
+  const prevId = useRef(entry.id)
+
+  // Scramble on card change
+  useEffect(() => {
+    if (prevId.current !== entry.id) {
+      scramble(entry.title[lang], setTitleD, titleRef)
+      scramble(entry.period[lang], setPeriodD, periodRef)
+      if (entry.org[lang]) scramble(entry.org[lang], setOrgD, orgRef)
+    }
+    prevId.current = entry.id
+  }, [entry, lang])
+
+  // Scramble on language change
+  useEffect(() => {
+    if (prevLang.current !== lang) {
+      scramble(entry.period[lang], setPeriodD, periodRef)
+      scramble(entry.title[lang], setTitleD, titleRef)
+      if (entry.org[lang]) scramble(entry.org[lang], setOrgD, orgRef)
+    }
+    prevLang.current = lang
+  }, [lang, entry])
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      textAlign: 'center',
+      gap: 20,
+    }}>
+      {/* Image */}
+      <div style={{
+        width: 'min(70vw, 280px)',
+        height: 'min(70vw, 280px)',
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: '0 16px 48px rgba(0,0,0,0.15)',
+      }}>
+        <img
+          src={entry.img}
+          alt=""
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
+      </div>
+
+      {/* Text info */}
+      <div style={{ width: '100%', padding: '0 8px' }}>
+        <div style={{
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: '0.1em',
+          color: '#888',
+          marginBottom: 8,
+          fontFamily: 'monospace',
+        }}>
+          {periodD}
+        </div>
+        
+        <h3 style={{
+          margin: '0 0 8px',
+          fontSize: 'clamp(18px, 6vw, 28px)',
+          fontWeight: 900,
+          textTransform: 'uppercase',
+          letterSpacing: '-0.5px',
+          color: '#0a0a0a',
+          lineHeight: 1.15,
+          whiteSpace: 'pre-line',
+        }}>
+          {titleD}
+        </h3>
+        
+        {entry.org[lang] && (
+          <div style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: '#666',
+            letterSpacing: '0.02em',
+          }}>
+            {orgD}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Desktop Timeline (Original) ────────────────────────────────────────────
 export function ResumeTimeline() {
+  const { isMobile } = useMobile()
+  const { language } = useLanguage()
+  const lang = language as Lang
+
+  // Render mobile or desktop version
+  if (isMobile) {
+    return <MobileTimeline lang={lang} />
+  }
+
+  return <DesktopTimeline lang={lang} />
+}
+
+function DesktopTimeline({ lang }: { lang: Lang }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [exitP, setExitP] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [vw, setVw] = useState(1440)
-  const { language } = useLanguage()
-  const lang = language as Lang
   const N = entries.length
 
-  // Track viewport width and mounted state
   useEffect(() => {
     setVw(window.innerWidth)
     setMounted(true)
@@ -152,7 +484,6 @@ export function ResumeTimeline() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Heading scramble effect on language change
   const headingText = lang === 'de' ? 'MEIN WEG' : 'MY PATH'
   const [headingDisp, setHeadingDisp] = useState(headingText)
   const headingRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -167,21 +498,19 @@ export function ResumeTimeline() {
 
   useEffect(() => {
     const fn = () => {
-      const el = outerRef.current; if (!el) return
+      const el = outerRef.current
+      if (!el) return
       const rect = el.getBoundingClientRect()
       const vh = window.innerHeight
       const totalH = el.offsetHeight
       const maxScroll = totalH - vh
-      // How far we've scrolled through this element (0 to 1)
       const scrolled = Math.max(0, -rect.top)
       const scrollProgress = Math.min(1, scrolled / maxScroll)
       
-      // Timeline entries: use first 70% of scroll for entries
       const timelineEnd = 0.7
       const p = Math.min(1, scrollProgress / timelineEnd)
       setProgress(p)
       
-      // Exit blur: starts at 85% scroll, ends at 100%
       const blurStart = 0.85
       const blurProgress = Math.max(0, (scrollProgress - blurStart) / (1 - blurStart))
       setExitP(blurProgress)
@@ -191,28 +520,19 @@ export function ResumeTimeline() {
     return () => window.removeEventListener('scroll', fn)
   }, [N])
 
-  // Continuous position: 0 = first card centered, N-1 = last card centered
   const pos = progress * (N - 1)
 
-  // Each card has a proximity score: 1 when centered, falls off with distance
   const proximities = entries.map((_, i) => {
     const dist = Math.abs(pos - i)
-    // Gaussian-ish falloff: within 0.5 = mostly active, > 1.5 = near 0
     return Math.max(0, 1 - dist)
   })
 
-  // Active index for counter
   const activeIdx = Math.round(pos)
-
-  // Fixed base width for consistent positioning (use minimum container width)
   const baseCardW = 220
   const gap = 60
-  // Position highlight at 65% from left (fixed position)
   const highlightX = vw * 0.65
-  // Smooth offset: position the active card center at highlightX
   const offset = highlightX - (pos * (baseCardW + gap) + baseCardW / 2)
 
-  // Total height: N*100vh for timeline entries + 2*100vh for exit transition buffer
   return (
     <div ref={outerRef} style={{ position: 'relative', zIndex: 3, height: `${(N + 2) * 100}vh`, marginTop: '-100vh' }}>
       <section style={{
@@ -221,7 +541,6 @@ export function ResumeTimeline() {
         display: 'flex', flexDirection: 'column',
         boxSizing: 'border-box',
       }}>
-        {/* Content wrapper with exit blur effect */}
         <div style={{
           position: 'absolute',
           inset: 0,
@@ -234,29 +553,22 @@ export function ResumeTimeline() {
           willChange: 'filter, opacity, transform',
           transition: 'filter 0.1s ease-out',
         }}>
-          {/* Heading – matching ProjectsSection */}
           <div style={{ padding: 'clamp(60px,10vw,120px) 9vw 0', flexShrink: 0 }}>
             <h2 style={{ fontSize: '8vw', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-2px', margin: 0, lineHeight: 0.9, color: '#0a0a0a' }}>
               {headingDisp}
             </h2>
           </div>
 
-          {/* Timeline area */}
           <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-
-            {/* Thick horizontal line – positioned to run through image centers */}
             <div style={{
               position: 'absolute', left: 0, right: 0,
               top: 'calc(50% - 80px)',
               height: 12, background: '#0a0a0a', zIndex: 1,
             }} />
 
-            {/* Left fade */}
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '20vw', background: 'linear-gradient(to right, #ffffff 30%, transparent)', zIndex: 10, pointerEvents: 'none' }} />
-            {/* Right fade */}
             <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '20vw', background: 'linear-gradient(to left, #ffffff 30%, transparent)', zIndex: 10, pointerEvents: 'none' }} />
 
-            {/* Track – no CSS transition so it follows scroll instantly */}
             <div style={{
               position: 'absolute',
               top: 'calc(50% - 80px)',
@@ -275,7 +587,6 @@ export function ResumeTimeline() {
             </div>
           </div>
 
-          {/* Counter */}
           <div style={{ position: 'absolute', bottom: 'clamp(20px,3vh,36px)', right: 'clamp(40px,9vw,120px)', fontFamily: 'monospace', fontSize: 11, color: '#aaa', letterSpacing: '0.1em' }}>
             {String(activeIdx + 1).padStart(2, '0')} / {String(N).padStart(2, '0')}
           </div>

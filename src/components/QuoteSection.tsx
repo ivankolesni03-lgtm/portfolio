@@ -65,7 +65,7 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
       ref={ref}
       onMouseEnter={() => scramble(targetText)}
       style={{
-        fontSize: isMobile ? '11vw' : '8vw',
+        fontSize: isMobile ? '10vw' : '8vw',
         fontWeight: '900',
         lineHeight: '0.92',
         letterSpacing: isMobile ? '-1px' : '-3px',

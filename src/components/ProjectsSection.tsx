@@ -61,7 +61,7 @@ function useScramble(text: string) {
 
 function ScrambleText({ text, style }: { text: string; style?: React.CSSProperties }) {
   const { disp, scramble } = useScramble(text)
-  return <span onMouseEnter={scramble} style={{ cursor: 'default', ...style }}>{disp}</span>
+  return <span onMouseEnter={scramble} onTouchStart={scramble} style={{ cursor: 'default', ...style }}>{disp}</span>
 }
 
 function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelSize?: number }) {
@@ -290,8 +290,8 @@ function AnimatedHeading({ overlayOpen }: { overlayOpen: boolean }) {
   if (isMobile === null) return null
   if (isMobile) {
     return (
-      <div onMouseEnter={scramble} style={{
-        fontSize: '16vw', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
+      <div onMouseEnter={scramble} onTouchStart={scramble} style={{
+        fontSize: '10vw', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
         textTransform: 'uppercase', color: '#0a0a0a', margin: 0, cursor: 'default',
         filter: overlayOpen ? 'blur(8px)' : 'none',
         transition: 'filter 0.35s ease',
@@ -299,7 +299,7 @@ function AnimatedHeading({ overlayOpen }: { overlayOpen: boolean }) {
     )
   }
   return (
-    <div ref={staticRef} className="projekte-heading" onMouseEnter={scramble} style={{
+    <div ref={staticRef} className="projekte-heading" onMouseEnter={scramble} onTouchStart={scramble} style={{
       fontSize: '8vw', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
       textTransform: 'uppercase', color: '#0a0a0a', margin: 0, cursor: 'default', visibility: 'visible',
       filter: overlayOpen ? 'blur(8px)' : 'none',
@@ -339,6 +339,9 @@ function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
       onMouseLeave={() => { setHov(false); setPressed(false); runScramble(titleText, setDisp, sRef) }}
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
+      onTouchStart={() => { setPressed(true); setHov(true); runScramble(fieldText, setDisp, sRef) }}
+      onTouchEnd={() => { setPressed(false); setTimeout(() => { setHov(false); runScramble(titleText, setDisp, sRef) }, 150) }}
+      onTouchCancel={() => { setPressed(false); setHov(false); runScramble(titleText, setDisp, sRef) }}
       style={{
         position: 'relative', cursor: 'pointer',
         transform: pressed ? 'scale(0.93)' : isActive ? 'scale(0.97)' : 'scale(1)',
@@ -361,7 +364,7 @@ function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
         left: 'clamp(8px,2.5vw,18px)', right: 'clamp(8px,2.5vw,18px)', zIndex: 2,
       }}>
         <h3 style={{
-          color: '#fff', fontSize: 'clamp(11px,2.2vw,24px)', fontWeight: 800,
+          color: '#fff', fontSize: 'clamp(14px,4vw,24px)', fontWeight: 800,
           textTransform: 'uppercase', margin: 0, lineHeight: 1.1,
           letterSpacing: '-0.5px', whiteSpace: 'pre-line',
         }}>{disp}</h3>
@@ -387,8 +390,8 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
     <>
       <section id="projekte" style={{
         backgroundColor: '#ffffff',
-        padding: isMobile ? '48px 5vw 40px' : 'clamp(60px,10vw,120px) 9vw clamp(120px,18vw,240px)',
-        position: 'relative', zIndex: 1,
+        padding: isMobile ? '20vw 5vw 40px' : 'clamp(60px,10vw,120px) 9vw clamp(120px,18vw,240px)',
+        position: 'relative', zIndex: isMobile ? 10 : 1,
         marginTop: isMobile ? '-5vh' : '-70vh',
       }}>
         <div style={{ marginBottom: isMobile ? '6vw' : 'clamp(40px,6vw,72px)' }}>
@@ -397,10 +400,9 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3,1fr)',
-          gap: isMobile ? '2vw' : 'clamp(12px,2vw,24px)',
+          gap: isMobile ? '3vw' : 'clamp(12px,2vw,24px)',
           filter: overlayOpen ? 'blur(8px)' : 'none',
           transition: 'filter 0.35s ease',
-          ...(isMobile ? { maxHeight: 'calc(100svh - 120px)', overflow: 'hidden' } : {}),
         }}>
           {PROJECTS.map((p, i) => (
             <ProjectCard key={p.id} project={p} forceHover={activeIdx === i} overlayOpen={overlayOpen} onClick={() => open(i)} />
@@ -426,9 +428,10 @@ function Overlay({ idx, onClose, onNav }: {
   const cur = PROJECTS[curIdx]
 
   const vw  = typeof window !== 'undefined' ? window.innerWidth : 1440
+  const vh  = typeof window !== 'undefined' ? window.innerHeight : 800
   const mob = vw < 768
-  const imgW = mob ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.42), 520)
-  const panW = mob ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.46), 580)
+  const imgW = mob ? Math.round(vw * 0.88) : Math.min(Math.round(vw * 0.42), 520)
+  const panW = mob ? Math.round(vw * 0.88) : Math.min(Math.round(vw * 0.46), 580)
 
   useEffect(() => {
     document.documentElement.style.setProperty('scrollbar-gutter', 'stable')
@@ -498,6 +501,10 @@ function Overlay({ idx, onClose, onNav }: {
           transition: filter 0.35s ease !important;
           pointer-events: none !important;
         }
+        body.overlay-open .mobile-nav-blur {
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
       `}</style>
       <div onClick={close} style={{
         position: 'fixed', inset: 0, zIndex: 999999,
@@ -517,8 +524,6 @@ function Overlay({ idx, onClose, onNav }: {
           flexDirection: mob ? 'column' : 'row',
           alignItems: mob ? 'center' : 'stretch',
           pointerEvents: 'auto',
-          maxHeight: mob ? '90vh' : 'none',
-          overflowY: mob ? 'auto' : 'visible',
           cursor: 'default',
         }}>
           <div style={{
@@ -545,7 +550,7 @@ function Overlay({ idx, onClose, onNav }: {
                 <line x1="17" y1="1" x2="1" y2="17" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square"/>
               </svg>
             </button>
-            <PanelContent key={curIdx} project={cur} idx={curIdx} lang={lang} doScramble={navKey > 0} onNav={navigate} />
+            <PanelContent key={curIdx} project={cur} idx={curIdx} lang={lang} doScramble={navKey > 0} onNav={navigate} isMobile={mob} />
           </div>
         </div>
       </div>
@@ -553,9 +558,9 @@ function Overlay({ idx, onClose, onNav }: {
   )
 }
 
-function PanelContent({ project, idx, lang, doScramble, onNav }: {
+function PanelContent({ project, idx, lang, doScramble, onNav, isMobile }: {
   project: Project; idx: number; lang: Lang
-  doScramble: boolean; onNav: (d:'l'|'r') => void
+  doScramble: boolean; onNav: (d:'l'|'r') => void; isMobile: boolean
 }) {
   const titleRaw = project.title[lang]
   const descRaw  = project.description[lang]
@@ -584,33 +589,45 @@ function PanelContent({ project, idx, lang, doScramble, onNav }: {
   return (
     <div style={{
       height: '100%', display: 'flex', flexDirection: 'column',
-      padding: 'clamp(56px,6vw,72px) clamp(28px,3.5vw,42px) clamp(28px,3.5vw,42px)',
+      padding: isMobile
+        ? '20px 16px 16px'
+        : 'clamp(56px,6vw,72px) clamp(28px,3.5vw,42px) clamp(28px,3.5vw,42px)',
       boxSizing: 'border-box',
     }}>
       <h2
         onMouseEnter={() => runScramble(titleRaw, setTitleDisp, titleRef)}
+        onTouchStart={() => runScramble(titleRaw, setTitleDisp, titleRef)}
         style={{
-          color: '#0a0a0a', fontSize: 'clamp(24px,3vw,54px)', fontWeight: 900,
-          textTransform: 'uppercase', margin: '0 0 clamp(12px,1.8vw,22px)',
+          color: '#0a0a0a',
+          fontSize: isMobile ? '9vw' : 'clamp(24px,3vw,54px)',
+          fontWeight: 900,
+          textTransform: 'uppercase',
+          margin: isMobile ? '0 0 12px' : '0 0 clamp(12px,1.8vw,22px)',
           lineHeight: 1.0, letterSpacing: '-1.5px', flexShrink: 0,
           whiteSpace: 'pre-line', cursor: 'default',
         }}
       >{titleDisp}</h2>
       <p style={{
-        color: '#555', fontSize: 'clamp(13px,1.4vw,16px)',
-        lineHeight: 1.85, margin: '0 0 clamp(14px,1.8vw,24px)', flex: 1,
+        color: '#555',
+        fontSize: isMobile ? '13px' : 'clamp(13px,1.4vw,16px)',
+        lineHeight: isMobile ? 1.5 : 1.85,
+        margin: isMobile ? '0 0 12px' : '0 0 clamp(14px,1.8vw,24px)',
+        flex: isMobile ? 'none' : 1,
         userSelect: 'text',
       }}>{descDisp}</p>
       {project.youtube && (
         <a href={project.youtube} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setHovYT(true)} onMouseLeave={() => setHovYT(false)}
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
+            display: 'inline-flex', alignItems: 'center', gap: isMobile ? 8 : 10,
             backgroundColor: hovYT ? '#333' : '#0a0a0a',
-            color: '#ffffff', fontSize: 11, fontWeight: 700,
+            color: '#ffffff',
+            fontSize: isMobile ? 10 : 11,
+            fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
-            padding: '11px 20px', textDecoration: 'none',
-            marginBottom: 'clamp(16px,2vw,24px)',
+            padding: isMobile ? '9px 16px' : '11px 20px',
+            textDecoration: 'none',
+            marginBottom: isMobile ? '12px' : 'clamp(16px,2vw,24px)',
             transition: 'background-color 0.15s ease',
             cursor: 'pointer', alignSelf: 'flex-start', flexShrink: 0,
           }}
@@ -621,12 +638,18 @@ function PanelContent({ project, idx, lang, doScramble, onNav }: {
           {lang === 'de' ? 'Ansehen' : 'Watch'}
         </a>
       )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 'clamp(16px,2vw,24px)', flexShrink: 0 }}>
-        {project.tags[lang].map((tag, i) => <TagPill key={i} label={tag} />)}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap',
+        gap: isMobile ? 4 : 6,
+        marginBottom: isMobile ? '12px' : 'clamp(16px,2vw,24px)',
+        flexShrink: 0
+      }}>
+        {project.tags[lang].map((tag, i) => <TagPill key={i} label={tag} isMobile={isMobile} />)}
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexShrink: 0 }}>
         <span style={{
-          color: '#0a0a0a', fontSize: 'clamp(14px,1.6vw,22px)',
+          color: '#0a0a0a',
+          fontSize: isMobile ? '14px' : 'clamp(14px,1.6vw,22px)',
           fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1,
         }}>
           {String(idx + 1).padStart(2, '0')} / {String(PROJECTS.length).padStart(2, '0')}
@@ -648,7 +671,7 @@ function PanelContent({ project, idx, lang, doScramble, onNav }: {
   )
 }
 
-function TagPill({ label }: { label: string }) {
+function TagPill({ label, isMobile }: { label: string; isMobile?: boolean }) {
   const [pressed, setPressed] = useState(false)
   return (
     <span
@@ -657,8 +680,10 @@ function TagPill({ label }: { label: string }) {
       onMouseLeave={() => setPressed(false)}
       style={{
         backgroundColor: '#0a0a0a', color: '#ffffff',
-        fontSize: 9, letterSpacing: '0.12em',
-        textTransform: 'uppercase', padding: '5px 10px',
+        fontSize: isMobile ? 8 : 9,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        padding: isMobile ? '4px 8px' : '5px 10px',
         transform: pressed ? 'scale(0.92)' : 'scale(1)',
         transition: 'transform 0.12s ease',
         cursor: 'default', display: 'inline-block',

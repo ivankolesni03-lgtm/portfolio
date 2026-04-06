@@ -98,25 +98,22 @@ export function Header({ isVisible }: { isVisible: boolean }) {
     )
   }
 
+  // Mobile: Match IVAN nav position and size (right side, same height as logo)
   return (
     <header className="fixed-ui" style={{
-      position: 'fixed', top: 0, left: 0, right: 0,
+      position: 'fixed',
+      top: '12px',
+      right: '16px',
       zIndex: 30,
       opacity: isVisible ? opacity : 0,
-      transition: 'opacity 0.3s ease',
+      transition: 'opacity 0.2s ease',
       pointerEvents: opacity > 0.5 ? 'auto' : 'none',
-      background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)',
-      backdropFilter: 'blur(20px) saturate(1.6)',
-      WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
-      maskImage: 'linear-gradient(to bottom, black 0%, black 35%, rgba(0,0,0,0.6) 65%, transparent 100%)',
-      WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 35%, rgba(0,0,0,0.6) 65%, transparent 100%)',
-      padding: '1.2rem 2rem 4rem',
-      display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start',
+      mixBlendMode: 'difference',
     }}>
-      <button onClick={handleToggle} onMouseEnter={handleMouseEnter} style={{
+      <button onClick={handleToggle} onMouseEnter={handleMouseEnter} onTouchStart={handleMouseEnter} style={{
         background: 'none', border: 'none', cursor: 'pointer',
-        fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
-        color: '#ffffff', letterSpacing: '1px', lineHeight: '1.2',
+        fontSize: '11px', fontWeight: '700', fontFamily: 'inherit',
+        color: '#ffffff', letterSpacing: '-0.02em', lineHeight: '1.2',
         whiteSpace: 'nowrap', padding: 0,
       }}>
         {displayText}

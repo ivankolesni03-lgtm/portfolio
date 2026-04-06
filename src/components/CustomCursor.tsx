@@ -21,16 +21,17 @@ export function CustomCursor() {
 
   return (
     <div
-      className="fixed top-0 left-0 pointer-events-none z-[200000] mix-blend-difference"
+      className="pointer-events-none z-[200000] mix-blend-difference"
       style={{
+        position: 'fixed',
         left: position.x,
         top: position.y,
+        transform: 'translate(-50%, -50%)',
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        backgroundColor: '#fff',
       }}
-    >
-      <div
-        className="w-3 h-3 bg-white rounded-full"
-        style={{ transform: 'translate(-50%, -50%)' }}
-      />
-    </div>
+    />
   )
 }

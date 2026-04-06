@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useMobile } from '@/hooks/use-mobile'
 
 type Lang = 'de' | 'en'
 type Port = { x: number; y: number }
@@ -43,6 +44,7 @@ function useScramble(text: string) {
 
 // ─── Neon Heading ─────────────────────────────────────────────────────────────
 function NeonHeading() {
+  const { isMobile } = useMobile()
   const [fl, setFl] = useState(1)
   const { disp: d1, scramble: s1 } = useScramble('PROMPT')
   const { disp: d2, scramble: s2 } = useScramble('DESIGN')
@@ -54,7 +56,7 @@ function NeonHeading() {
   const glow = '0 0 7px #fff,0 0 18px #fff,0 0 40px rgba(255,255,255,0.5)'
   return (
     <div onMouseEnter={() => { s1(); s2() }} style={{ cursor:'default', userSelect:'none', opacity:fl, transition:'opacity 0.04s' }}>
-      <div style={{ fontSize:'8vw', fontWeight:900, lineHeight:0.88, letterSpacing:'-2px', textTransform:'uppercase', color:'#fff', textShadow:glow, fontFamily:BORNA }}>
+      <div style={{ fontSize: isMobile ? '10vw' : '8vw', fontWeight:900, lineHeight:0.88, letterSpacing:'-2px', textTransform:'uppercase', color:'#fff', textShadow:glow, fontFamily:BORNA }}>
         <div>{d1}</div><div>{d2}</div>
       </div>
     </div>
@@ -413,6 +415,7 @@ export function AISection() {
   )
   const [seed, setSeed] = useState(42667)
   const steps = 28
+  const autoGenerateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -544,6 +547,33 @@ export function AISection() {
     rafRef.current = requestAnimationFrame(tick)
   }, [isActive])
 
+  // Auto-generate after 10 seconds of inactivity
+  useEffect(() => {
+    if (!mounted) return
+
+    const startAutoTimer = () => {
+      if (autoGenerateTimerRef.current) {
+        clearTimeout(autoGenerateTimerRef.current)
+      }
+      autoGenerateTimerRef.current = setTimeout(() => {
+        if (!isActive) {
+          generate()
+        }
+      }, 10000)
+    }
+
+    // Start timer on mount and after each generation completes
+    if (!isActive) {
+      startAutoTimer()
+    }
+
+    return () => {
+      if (autoGenerateTimerRef.current) {
+        clearTimeout(autoGenerateTimerRef.current)
+      }
+    }
+  }, [mounted, isActive, generate])
+
   const wLit = (seg: number) => isActive && phase >= seg / SEG_N
 
   // Always render the outer wrapper with sectionRef attached so we can measure
@@ -563,37 +593,182 @@ export function AISection() {
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes spinReverse{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}
+        @keyframes terminalScroll{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
         @font-face{font-family:'Borna';src:url('/fonts/Borna-Medium.woff2') format('woff2');font-weight:500;font-display:swap}
         @font-face{font-family:'Borna';src:url('/fonts/Borna-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
         @font-face{font-family:'Borna';src:url('/fonts/Borna-SemiBold.woff2') format('woff2');font-weight:600;font-display:swap}
       `}</style>
       <section id="ki" style={{ backgroundColor:'#000', minHeight:'100vh', boxSizing:'border-box', padding:'0 0 40px' }}>
         <GridBg/>
-        <div style={{ position:'relative', zIndex:3, padding:'20vw 5vw 5vw', display:'flex', flexDirection:'column', gap:16 }}>
+        <div style={{ position:'relative', zIndex:3, padding:'20vw 5vw 5vw', display:'flex', flexDirection:'column', gap: 20 }}>
           <NeonHeading/>
-          <div ref={previewRef} style={{ width:'100%', aspectRatio:'1/1', position:'relative', overflow:'hidden', background:'#111', border:'1px solid rgba(255,255,255,0.2)' }}>
-            <canvas ref={canvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }}/>
-            <div style={{ position:'absolute', bottom:5, left:8, right:8, display:'flex', justifyContent:'space-between', color:'rgba(255,255,255,0.4)', fontSize:9, fontFamily:MONO, zIndex:4 }}>
-              <span>{isActive ? '▓ LOADING...' : 'NIKITA AI'}</span><span>SEED:{seed}</span>
+          
+          {/* ═══ AI GENERATOR INTERFACE ═══ */}
+          <div style={{ position: 'relative', background: '#111', border: '1px solid rgba(57,255,20,0.3)', overflow: 'hidden' }}>
+            
+            {/* Terminal Background Layer */}
+            <div style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              opacity: isActive ? 0.15 : 0.08,
+              overflow: 'hidden',
+              pointerEvents: 'none',
+              transition: 'opacity 0.5s'
+            }}>
+              <div style={{ 
+                fontFamily: MONO, 
+                fontSize: 8, 
+                color: '#39ff14', 
+                lineHeight: 1.4,
+                padding: 8,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all'
+              }}>
+                {CRAZY.map((l, i) => (
+                  <div key={i} style={{ opacity: isActive && phase * CRAZY.length > i ? 1 : 0.3 }}>{l.c}</div>
+                ))}
+              </div>
             </div>
+            
+            {/* Main Preview Area */}
+            <div ref={previewRef} style={{ 
+              position: 'relative', 
+              width: '100%', 
+              aspectRatio: '1/1', 
+              background: 'transparent',
+              zIndex: 2
+            }}>
+              <canvas ref={canvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }}/>
+              
+              {/* Scanlines overlay */}
+              <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'repeating-linear-gradient(0deg,rgba(0,0,0,0.08) 0px,rgba(0,0,0,0.08) 1px,transparent 1px,transparent 3px)', zIndex:3 }}/>
+              
+              {/* Corner brackets */}
+              {([{top:8,left:8},{top:8,right:8},{bottom:8,left:8},{bottom:8,right:8}] as const).map((s,i) => (
+                <div key={i} style={{ position:'absolute', ...s, width:16, height:16,
+                  borderTop:   i<2  ? `2px solid ${isActive ? '#39ff14' : 'rgba(57,255,20,0.4)'}` : 'none',
+                  borderBottom:i>=2 ? `2px solid ${isActive ? '#39ff14' : 'rgba(57,255,20,0.4)'}` : 'none',
+                  borderLeft:  i%2===0 ? `2px solid ${isActive ? '#39ff14' : 'rgba(57,255,20,0.4)'}` : 'none',
+                  borderRight: i%2===1 ? `2px solid ${isActive ? '#39ff14' : 'rgba(57,255,20,0.4)'}` : 'none',
+                  zIndex:4, transition: 'border-color 0.3s' }}/>
+              ))}
+              
+              {/* Progress ring overlay when generating */}
+              {isActive && (
+                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 5 }}>
+                  <svg width={80} height={80} style={{ filter: 'drop-shadow(0 0 10px rgba(57,255,20,0.5))' }}>
+                    <circle cx={40} cy={40} r={35} fill="none" stroke="rgba(57,255,20,0.2)" strokeWidth={2}/>
+                    <circle cx={40} cy={40} r={35} fill="none" stroke="#39ff14" strokeWidth={2}
+                      strokeDasharray={`${2*Math.PI*35*phase} ${2*Math.PI*35*(1-phase)}`} strokeLinecap="round"
+                      style={{ transformOrigin:'40px 40px', transform: 'rotate(-90deg)' }}/>
+                    <circle cx={40} cy={40} r={24} fill="rgba(0,0,0,0.6)" stroke="rgba(57,255,20,0.3)" strokeWidth={1}/>
+                    <text x={40} y={44} textAnchor="middle" fill="#39ff14" fontSize={14} fontFamily={MONO} fontWeight="bold">{Math.round(phase*100)}%</text>
+                  </svg>
+                </div>
+              )}
+              
+              {/* Status bar */}
+              <div style={{ 
+                position: 'absolute', 
+                bottom: 0, 
+                left: 0, 
+                right: 0, 
+                padding: '8px 12px',
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                zIndex: 4 
+              }}>
+                <span style={{ color: isActive ? '#39ff14' : 'rgba(255,255,255,0.5)', fontSize: 9, fontFamily: MONO }}>
+                  {isActive ? `► ${STAGES.find(s=>phase>=s.start&&phase<s.end)?.label ?? 'COMPLETE'}` : 'READY'}
+                </span>
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontFamily: MONO }}>SEED:{seed}</span>
+              </div>
+            </div>
+            
+            {/* Generate Button */}
+            <button onClick={() => generate()} disabled={isActive}
+              style={{ 
+                display: 'block',
+                width: '100%',
+                background: isActive ? 'rgba(57,255,20,0.1)' : '#39ff14', 
+                border: 'none',
+                color: isActive ? '#39ff14' : '#000', 
+                padding: '16px', 
+                fontFamily: BORNA, 
+                fontSize: 14, 
+                letterSpacing: '0.1em', 
+                cursor: isActive ? 'not-allowed' : 'pointer', 
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                transition: 'all 0.3s'
+              }}>
+              {isActive ? '◈ GENERATING...' : '[ GENERATE ]'}
+            </button>
           </div>
-          <button onClick={() => generate()} disabled={isActive}
-            style={{ background:isActive?'rgba(0,0,0,0.1)':'#000', border:'2px solid #000', color:isActive?'rgba(0,0,0,0.3)':'#fff', padding:'16px', width:'100%', fontFamily:BORNA, fontSize:16, letterSpacing:'0.08em', cursor:isActive?'not-allowed':'pointer', animation:isActive?'aiBlink 0.75s infinite':'none', fontWeight:800 }}>
-            {isActive ? '[ GENERATING ]' : '[ GENERATE ]'}
-          </button>
-          <div style={{ height:220, background:'#0d0d0d', border:'1px solid rgba(255,255,255,0.1)' }}><ProgressTerm phase={phase} isActive={isActive}/></div>
-          <div style={{ background:'#e8e8e8', border:'1px solid rgba(255,255,255,0.15)' }}>
-            <div style={{ padding:'8px 12px', background:'rgba(0,0,0,0.06)', borderBottom:'1px solid rgba(0,0,0,0.12)', fontFamily:BORNA, fontSize:11, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase' }}>{lang==='de'?'ERFAHRUNG':'EXPERIENCE'}</div>
-            <ExpandCard lang={lang} hint="ComfyUI · LoRA · Sora · Deepfakes..."
-              text={lang==='de'?'Ich teste stets die neuesten Tools wie Sora oder Kling und baue daraus eigene lokale Workflows. Mit ComfyUI, N8N und gezieltem LoRA-Training erschaffe ich Bild und Video. Auch Deepfakes nutze ich vielseitig für neue Dimensionen der digitalen Inszenierung. Technik und Ästhetik verschmelzen hier zu meiner eigenen Sprache.':'I constantly test the latest tools like Sora and Kling, building my own local workflows. Using ComfyUI, N8N and targeted LoRA training, I create image and video. I also use deepfakes for new dimensions of digital staging. Technology and aesthetics merge into my own language.'}
-              tags={['ComfyUI','LoRA-Training','N8N','Sora','Kling','Deepfakes','Python','Next.js']}/>
+          
+          {/* ═══ INFO CARDS ═══ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            
+            {/* ERFAHRUNG Card */}
+            <div style={{ background: '#0d0d0d', border: '1px solid rgba(57,255,20,0.2)' }}>
+              <div style={{ 
+                padding: '10px 14px', 
+                borderBottom: '1px solid rgba(57,255,20,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <span style={{ color: '#39ff14', fontSize: 10 }}>◈</span>
+                <span style={{ color: '#fff', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: BORNA, fontWeight: 600 }}>
+                  {lang==='de'?'ERFAHRUNG':'EXPERIENCE'}
+                </span>
+              </div>
+              <div style={{ padding: '12px 14px' }}>
+                <p style={{ margin: '0 0 12px', color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.6, fontFamily: BORNA }}>
+                  {lang==='de'
+                    ?'Ich teste stets die neuesten Tools wie Sora oder Kling und baue daraus eigene lokale Workflows. Mit ComfyUI, N8N und gezieltem LoRA-Training erschaffe ich Bild und Video.'
+                    :'I constantly test the latest tools like Sora and Kling, building my own local workflows. Using ComfyUI, N8N and targeted LoRA training, I create image and video.'}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {['ComfyUI','LoRA','N8N','Sora','Kling','Deepfakes'].map((t,i) => (
+                    <span key={i} style={{ 
+                      background: 'rgba(57,255,20,0.1)', 
+                      border: '1px solid rgba(57,255,20,0.3)', 
+                      color: '#39ff14', 
+                      fontSize: 9, 
+                      padding: '4px 8px', 
+                      fontFamily: MONO,
+                      letterSpacing: '0.05em'
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* VISION Card */}
+            <div style={{ background: '#0d0d0d', border: '1px solid rgba(57,255,20,0.2)' }}>
+              <div style={{ 
+                padding: '10px 14px', 
+                borderBottom: '1px solid rgba(57,255,20,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <span style={{ color: '#39ff14', fontSize: 10 }}>◈</span>
+                <span style={{ color: '#fff', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: BORNA, fontWeight: 600 }}>VISION</span>
+              </div>
+              <div style={{ padding: '12px 14px' }}>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.6, fontFamily: BORNA }}>
+                  {lang==='de'
+                    ?'KI ist für mich kein bloßes Werkzeug, sondern ein neues Medium der Inspiration. Als Pionier der ersten Stunde nutze ich die generative Kraft, um meine künstlerische Ausdruckskraft zu schärfen.'
+                    :'AI is not merely a tool for me, but a new medium of inspiration. As an early adopter, I use generative power to sharpen my artistic expression and make visions more precisely tangible.'}
+                </p>
+              </div>
+            </div>
+            
           </div>
-          <div style={{ background:'#e8e8e8', border:'1px solid rgba(255,255,255,0.15)' }}>
-            <div style={{ padding:'8px 12px', background:'rgba(0,0,0,0.06)', borderBottom:'1px solid rgba(0,0,0,0.12)', fontFamily:BORNA, fontSize:11, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase' }}>VISION</div>
-            <ExpandCard lang={lang} hint={lang==='de'?'KI als neues Medium...':'AI as a new medium...'}
-              text={lang==='de'?'KI ist für mich kein bloßes Werkzeug, sondern ein neues Medium der Inspiration. Als Pionier der ersten Stunde nutze ich die generative Kraft, um meine künstlerische Ausdruckskraft zu schärfen und Visionen präziser greifbar zu machen. Es ist die Suche nach der perfekten Symbiose aus Mensch und Maschine.':'AI is not merely a tool for me, but a new medium of inspiration. As an early adopter, I use generative power to sharpen my artistic expression and make visions more precisely tangible. It is the search for the perfect symbiosis of human and machine.'}/>
-          </div>
-          <div style={{ height:240, background:'#0d0d0d', border:'1px solid rgba(57,255,20,0.2)' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang}/></div>
         </div>
       </section>
     </div>

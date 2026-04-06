@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 type Lang = 'de' | 'en'
@@ -13,7 +13,9 @@ const STATS = [
 function ScrambleLabel({ text }: { text: string }) {
   const [disp, setDisp] = useState(text)
   const iv = useRef<ReturnType<typeof setInterval>|null>(null)
-  const scramble = () => {
+  const hasScrambledRef = useRef(false)
+  
+  const scramble = useCallback(() => {
     let i = 0; const rev = new Set<number>()
     if (iv.current) clearInterval(iv.current)
     iv.current = setInterval(() => {
@@ -23,9 +25,27 @@ function ScrambleLabel({ text }: { text: string }) {
       setDisp(text.split('').map((c,j)=>rev.has(j)||c===' '?text[j]:CHARS[Math.floor(Math.random()*CHARS.length)]).join(''))
       if (i >= 16) { clearInterval(iv.current!); setDisp(text) }
     }, 30)
-  }
+  }, [text])
+
+  // Auto-scramble on first scroll into view (for mobile)
+  const handleScrollScramble = useCallback(() => {
+    if (!hasScrambledRef.current) {
+      hasScrambledRef.current = true
+      scramble()
+    }
+  }, [scramble])
+
   useEffect(() => () => { if (iv.current) clearInterval(iv.current) }, [])
-  return <span onMouseEnter={scramble} style={{ cursor:'default' }}>{disp}</span>
+  
+  return (
+    <span 
+      onMouseEnter={scramble} 
+      onTouchStart={scramble}
+      style={{ cursor:'default' }}
+    >
+      {disp}
+    </span>
+  )
 }
 
 export function StatsSection() {
@@ -39,8 +59,10 @@ export function StatsSection() {
   const [isMobile,  setIsMobile]  = useState(false)
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', () => setIsMobile(window.innerWidth < 768))
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
 
   useEffect(() => {
@@ -85,30 +107,30 @@ export function StatsSection() {
   const grid = (
     <div style={{ width:'100%', filter: blur > 0 ? `blur(${blur}px)` : 'none', opacity }}>
       <div style={{
-        paddingLeft:  isMobile ? '8vw' : 'clamp(80px,18vw,260px)',
-        paddingRight: isMobile ? '8vw' : 'clamp(24px,6vw,80px)',
+        paddingLeft:  isMobile ? '5vw' : 'clamp(80px,18vw,260px)',
+        paddingRight: isMobile ? '5vw' : 'clamp(24px,6vw,80px)',
         boxSizing: 'border-box',
       }}>
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
-          columnGap: 'clamp(40px,8vw,120px)',
-          rowGap: isMobile ? '10vw' : 0,
-          alignItems: 'end',
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '8vw' : 'clamp(40px,8vw,120px)',
+          alignItems: isMobile ? 'flex-start' : 'flex-end',
+          justifyContent: 'flex-start',
         }}>
           {STATS.map((s, i) => {
             const label = lang === 'de' ? s.labelDe : s.labelEn
             const val   = Math.round(progress * s.value)
             return (
-              <div key={i}>
+              <div key={i} style={{ textAlign: 'left' }}>
                 <div style={{
-                  fontSize: isMobile ? 'clamp(72px,22vw,120px)' : 'clamp(80px,13vw,192px)',
+                  fontSize: isMobile ? 'clamp(64px,18vw,100px)' : 'clamp(80px,13vw,192px)',
                   fontWeight: 900, lineHeight: 0.85,
                   letterSpacing: isMobile ? '-3px' : '-6px',
                   color: '#0a0a0a', margin: '0 0 clamp(8px,1vw,16px)',
                   fontVariantNumeric: 'tabular-nums',
                 }}>{val}{s.suffix}</div>
-                <div style={{ color:'#0a0a0a', fontSize: isMobile ? '18px' : 'clamp(14px,2.2vw,24px)', fontWeight:800, letterSpacing:'-0.5px', textTransform:'uppercase', lineHeight:1.1 }}>
+                <div style={{ color:'#0a0a0a', fontSize: isMobile ? '16px' : 'clamp(14px,2.2vw,24px)', fontWeight:800, letterSpacing:'-0.5px', textTransform:'uppercase', lineHeight:1.1 }}>
                   <ScrambleLabel text={label} />
                 </div>
               </div>
@@ -121,7 +143,7 @@ export function StatsSection() {
 
   return (
     <>
-      <div ref={spacerRef} style={{ height: isMobile ? '200vh' : '180vh', backgroundColor:'#ffffff', position:'relative', zIndex:1 }}>
+      <div ref={spacerRef} style={{ height: isMobile ? '200vh' : '180vh', backgroundColor:'#ffffff', position:'relative', zIndex:1, marginTop: isMobile ? '30vh' : 0 }}>
         {/* Sticky: sichtbar nur bevor der fixed-Modus aktiviert wird */}
         <div style={{ position:'sticky', top:'50%', transform:'translateY(-50%)', width:'100%', pointerEvents:'none', opacity: showFixed ? 0 : 1 }}>
           {grid}
@@ -129,7 +151,7 @@ export function StatsSection() {
       </div>
 
       {/* Fixed Overlay */}
-      <div style={{ position:'fixed', inset:0, zIndex:2, display:'flex', alignItems:'center', backgroundColor:'#ffffff', pointerEvents:'none', opacity: showFixed ? 1 : 0, transition:'opacity 0.06s' }}>
+      <div style={{ position:'fixed', inset:0, zIndex: isMobile ? 3 : 2, display:'flex', alignItems:'center', backgroundColor:'#ffffff', pointerEvents:'none', opacity: showFixed ? 1 : 0, transition:'opacity 0.06s' }}>
         {grid}
       </div>
     </>

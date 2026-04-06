@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useMobile } from '@/hooks/use-mobile'
 import {
   CONTACT_MAX_EMAIL_LENGTH,
   CONTACT_MAX_MESSAGE_LENGTH,
@@ -229,6 +230,7 @@ function Eyes({
   const target = useRef<EyePos>({ x: 0, y: 0 })
   const rafRef = useRef(0)
   const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoAnimTime = useRef(0)
 
   // responsive eye size
   const eyeSize = isMobile ? 90 : 170
@@ -250,7 +252,10 @@ function Eyes({
     return () => cancelAnimationFrame(rafRef.current)
   }, [])
 
+  // Desktop: Mouse tracking
   useEffect(() => {
+    if (isMobile) return
+    
     const onMove = (e: MouseEvent) => {
       const el = containerRef.current
       if (!el) return
@@ -267,7 +272,52 @@ function Eyes({
     }
     window.addEventListener('mousemove', onMove)
     return () => window.removeEventListener('mousemove', onMove)
-  }, [containerRef])
+  }, [containerRef, isMobile])
+
+  // Mobile: Scroll-based + gentle automatic movement
+  useEffect(() => {
+    if (!isMobile) return
+    
+    let lastScrollY = window.scrollY
+    let scrollVelocity = 0
+    
+    const onScroll = () => {
+      const currentScrollY = window.scrollY
+      scrollVelocity = (currentScrollY - lastScrollY) * 0.15
+      lastScrollY = currentScrollY
+      
+      // Clamp velocity to reasonable range
+      scrollVelocity = Math.max(-20, Math.min(20, scrollVelocity))
+      
+      // Eyes look up when scrolling down, down when scrolling up
+      target.current.y = -scrollVelocity
+    }
+    
+    // Gentle automatic horizontal movement when not scrolling
+    const autoAnimate = () => {
+      autoAnimTime.current += 0.02
+      
+      // Subtle figure-8 pattern
+      const autoX = Math.sin(autoAnimTime.current) * 8
+      const autoY = Math.sin(autoAnimTime.current * 2) * 4
+      
+      // Blend scroll velocity with auto animation
+      const scrollInfluence = Math.abs(scrollVelocity) / 20
+      target.current.x = autoX * (1 - scrollInfluence)
+      target.current.y = target.current.y * scrollInfluence + autoY * (1 - scrollInfluence)
+      
+      // Decay scroll velocity over time
+      scrollVelocity *= 0.95
+    }
+    
+    window.addEventListener('scroll', onScroll, { passive: true })
+    const autoAnimInterval = setInterval(autoAnimate, 50)
+    
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      clearInterval(autoAnimInterval)
+    }
+  }, [isMobile])
 
   useEffect(() => {
     const schedule = () => {
@@ -329,14 +379,7 @@ export function ContactSection() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
   const [errorCode, setErrorCode] = useState<ContactApiErrorCode | null>(null)
   const eyesRef = useRef<HTMLDivElement>(null)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const { isMobile } = useMobile()
 
   const updateField = (field: 'name' | 'email' | 'message' | 'company', value: string) => {
     setForm(current => ({ ...current, [field]: value }))
@@ -404,16 +447,17 @@ export function ContactSection() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          padding: '14vw 6vw 10vw',
+          padding: '20vw 5vw 10vw',
           gap: 'clamp(32px,8vw,52px)',
         }}>
 
           {/* Heading */}
           <h2
             onMouseEnter={headingScramble}
+            onTouchStart={headingScramble}
             style={{
               color: '#ffffff',
-              fontSize: 'clamp(48px,16vw,80px)',
+              fontSize: '10vw',
               fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
               textTransform: 'uppercase', margin: 0,
               cursor: 'default', userSelect: 'none',
@@ -527,6 +571,7 @@ export function ContactSection() {
         }}>
           <h2
             onMouseEnter={headingScramble}
+            onTouchStart={headingScramble}
             style={{
               color: '#ffffff', fontSize: '8vw', fontWeight: 900,
               lineHeight: 0.9, letterSpacing: '-2px', textTransform: 'uppercase',

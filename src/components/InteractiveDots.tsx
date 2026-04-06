@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useMobile } from '@/hooks/use-mobile'
 
 export type Lang = 'de' | 'en'
 
@@ -57,24 +58,26 @@ function useScramble(text: string) {
 // ─── ProgrammeHeading ───────────────────────────────────────────────────────
 function ProgrammeHeading() {
   const { language } = useLanguage()
+  const { isMobile } = useMobile()
   const text = language === 'de' ? 'Läuft\nbei mir' : 'My Toolkit'
   const { disp, scramble } = useScramble(text)
 
   return (
     <div 
-      onMouseEnter={scramble} 
+      onMouseEnter={scramble}
+      onTouchStart={scramble}
       style={{ 
         position: 'absolute', 
-        top: '9vw',     
-        left: '9vw',    
+        top: isMobile ? '20vw' : '9vw',     
+        left: isMobile ? '5vw' : '9vw',    
         zIndex: 20, 
-        pointerEvents: 'none',
+        pointerEvents: 'auto',
         textAlign: 'left',
         maxWidth: '85vw' 
       }}
     >
       <div style={{
-        fontSize: '8vw',           
+        fontSize: isMobile ? '10vw' : '8vw',           
         fontWeight: 900,           
         lineHeight: 0.95,         
         letterSpacing: '-2px',     
@@ -83,7 +86,7 @@ function ProgrammeHeading() {
         margin: 0,
         cursor: 'default',
         userSelect: 'none',
-        whiteSpace: 'pre-wrap', // Zwingt den Browser, \n als Zeilenumbruch darzustellen
+        whiteSpace: 'pre-wrap',
       }}>
         {disp}
       </div>
@@ -154,9 +157,9 @@ function SkillBar({ skill, color, active }: { skill: number; color: string; acti
 // ── Main Component ────────────────────────────────────────────────────────────
 export function InteractiveDots({
   programs = defaultProgramData,
-  circleSize = 56,
-  spacing = 72,
-  padding = 40,
+  circleSize: defaultCircleSize = 56,
+  spacing: defaultSpacing = 72,
+  padding: defaultPadding = 40,
   backgroundColor = '#000000',
 }: {
   programs?: Program[]
@@ -167,11 +170,19 @@ export function InteractiveDots({
 }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const { isMobile, isTouch } = useMobile()
+  
+  // More icons on mobile with tighter spacing
+  const circleSize = isMobile ? 44 : defaultCircleSize
+  const spacing = isMobile ? 52 : defaultSpacing
+  const padding = isMobile ? 24 : defaultPadding
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   const [exitP, setExitP] = useState(0)
   const [isEntering, setIsEntering] = useState(true)
   const [simulatedHover, setSimulatedHover] = useState<number | null>(null)
   const [simulatedNeighbors, setSimulatedNeighbors] = useState<Set<number>>(new Set())
+  const prevSimulatedHoverRef = useRef<number | null>(null)
+  const prevSimulatedNeighborsRef = useRef<Set<number>>(new Set())
   const [neighborIds, setNeighborIds] = useState<Set<number>>(new Set())
   const [tick, setTick] = useState(0)
   const [openIdx, setOpenIdx] = useState<number | null>(null)
@@ -180,6 +191,11 @@ export function InteractiveDots({
   const circlesRef = useRef<{ id: number; x: number; y: number; iconIndex: number }[]>([])
   const simulationRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const userInteractedRef = useRef(false)
+  
+  // Touch-specific state for swipe-reveal
+  const [touchRevealedIds, setTouchRevealedIds] = useState<Set<number>>(new Set())
+  const touchRevealTimersRef = useRef<Map<number, NodeJS.Timeout>>(new Map())
+  const lastTouchPosRef = useRef<{ x: number; y: number } | null>(null)
 
   const hoveredIdRef = useRef<number | null>(null)
   const neighborIdsRef = useRef<Set<number>>(new Set())
@@ -188,6 +204,30 @@ export function InteractiveDots({
 
   useEffect(() => { hoveredIdRef.current = hoveredId }, [hoveredId])
   useEffect(() => { neighborIdsRef.current = neighborIds }, [neighborIds])
+  
+  // Trigger fade effects for simulated hover (same as real hover)
+  useEffect(() => {
+    const now = Date.now()
+    
+    // Fade out previous simulated hover
+    if (prevSimulatedHoverRef.current !== null && prevSimulatedHoverRef.current !== simulatedHover) {
+      if (!hoveredExitFadeRef.current.has(prevSimulatedHoverRef.current)) {
+        hoveredExitFadeRef.current.set(prevSimulatedHoverRef.current, now)
+      }
+    }
+    
+    // Fade out previous simulated neighbors that are no longer neighbors
+    prevSimulatedNeighborsRef.current.forEach(id => {
+      if (!simulatedNeighbors.has(id) && id !== simulatedHover) {
+        if (!fadingCirclesRef.current.has(id)) {
+          fadingCirclesRef.current.set(id, now)
+        }
+      }
+    })
+    
+    prevSimulatedHoverRef.current = simulatedHover
+    prevSimulatedNeighborsRef.current = new Set(simulatedNeighbors)
+  }, [simulatedHover, simulatedNeighbors])
 
   const generateCircles = useCallback(() => {
     if (!containerRef.current) return
@@ -242,11 +282,19 @@ export function InteractiveDots({
     return () => clearInterval(interval)
   }, [])
 
+  const interactionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    // Stop simulated hover when user interacts
+    // Pause simulated hover when user interacts
     userInteractedRef.current = true
     setSimulatedHover(null)
     setSimulatedNeighbors(new Set())
+    
+    // Resume simulation after 3 seconds of no interaction
+    if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current)
+    interactionTimeoutRef.current = setTimeout(() => {
+      userInteractedRef.current = false
+    }, 3000)
     
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
@@ -297,16 +345,123 @@ export function InteractiveDots({
     setNeighborIds(new Set())
   }, [])
 
+  // Touch handlers for swipe-reveal on mobile
+  const revealCirclesNearTouch = useCallback((touchX: number, touchY: number) => {
+    const REVEAL_RADIUS = spacing * 1.8
+    const FADE_DELAY = 2500 // Icons stay visible for 2.5s after touch leaves
+    
+    const circlesNearTouch: number[] = []
+    
+    for (const circle of circlesRef.current) {
+      const dx = touchX - circle.x
+      const dy = touchY - circle.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      
+      if (dist < REVEAL_RADIUS) {
+        circlesNearTouch.push(circle.id)
+        
+        // Clear existing timer for this circle if any
+        const existingTimer = touchRevealTimersRef.current.get(circle.id)
+        if (existingTimer) {
+          clearTimeout(existingTimer)
+        }
+      }
+    }
+    
+    if (circlesNearTouch.length > 0) {
+      setTouchRevealedIds(prev => {
+        const next = new Set(prev)
+        circlesNearTouch.forEach(id => next.add(id))
+        return next
+      })
+    }
+    
+    // Set timers for fade-out (only for circles not currently being touched)
+    circlesNearTouch.forEach(id => {
+      const timer = setTimeout(() => {
+        setTouchRevealedIds(prev => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+        touchRevealTimersRef.current.delete(id)
+      }, FADE_DELAY)
+      touchRevealTimersRef.current.set(id, timer)
+    })
+  }, [spacing])
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    userInteractedRef.current = true
+    setSimulatedHover(null)
+    setSimulatedNeighbors(new Set())
+    
+    // Resume simulation after 3 seconds of no interaction
+    if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current)
+    interactionTimeoutRef.current = setTimeout(() => {
+      userInteractedRef.current = false
+    }, 3000)
+    
+    if (!containerRef.current) return
+    const touch = e.touches[0]
+    const rect = containerRef.current.getBoundingClientRect()
+    const touchX = touch.clientX - rect.left
+    const touchY = touch.clientY - rect.top
+    
+    lastTouchPosRef.current = { x: touchX, y: touchY }
+    revealCirclesNearTouch(touchX, touchY)
+  }, [revealCirclesNearTouch])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!containerRef.current) return
+    const touch = e.touches[0]
+    const rect = containerRef.current.getBoundingClientRect()
+    const touchX = touch.clientX - rect.left
+    const touchY = touch.clientY - rect.top
+    
+    // Only reveal if finger moved significantly (prevents accidental reveals)
+    if (lastTouchPosRef.current) {
+      const dx = touchX - lastTouchPosRef.current.x
+      const dy = touchY - lastTouchPosRef.current.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist > 5) { // Small threshold to debounce
+        revealCirclesNearTouch(touchX, touchY)
+        lastTouchPosRef.current = { x: touchX, y: touchY }
+      }
+    } else {
+      lastTouchPosRef.current = { x: touchX, y: touchY }
+      revealCirclesNearTouch(touchX, touchY)
+    }
+  }, [revealCirclesNearTouch])
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchPosRef.current = null
+    // Timers are already set in revealCirclesNearTouch, so icons will fade naturally
+  }, [])
+
+  // Cleanup touch timers on unmount
+  useEffect(() => {
+    return () => {
+      touchRevealTimersRef.current.forEach(timer => clearTimeout(timer))
+      touchRevealTimersRef.current.clear()
+    }
+  }, [])
+
   const openOverlay = useCallback((idx: number) => {
     setOpenIdx(idx)
     document.body.style.overflow = 'hidden'
+    document.body.classList.add('overlay-open')
     requestAnimationFrame(() => requestAnimationFrame(() => setPhase('open')))
   }, [])
 
   const closeOverlay = useCallback(() => {
     if (phase === 'closing') return
     setPhase('closing')
-    setTimeout(() => { setOpenIdx(null); setPhase('in'); document.body.style.overflow = '' }, 520)
+    setTimeout(() => { 
+      setOpenIdx(null)
+      setPhase('in')
+      document.body.style.overflow = ''
+      document.body.classList.remove('overlay-open')
+    }, 520)
   }, [phase])
 
   const navigate = useCallback((dir: 'l' | 'r') => {
@@ -335,12 +490,11 @@ export function InteractiveDots({
       setExitP(Math.max(0, Math.min(1, (scrolled - vh * 0.3) / (vh * 1.5))))
       
       // Section is "entering" when top is between 0 and vh (scrolling into view)
-      // Once rect.top <= 0, section is sticky/fixed
       const entering = rect.top > 0 && rect.top < vh
       setIsEntering(entering)
       
-      // Stop simulation when section becomes sticky or user has interacted
-      if (rect.top <= 0 || userInteractedRef.current) {
+      // Only stop simulation if user has actively interacted
+      if (userInteractedRef.current) {
         setSimulatedHover(null)
         setSimulatedNeighbors(new Set())
       }
@@ -349,9 +503,10 @@ export function InteractiveDots({
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
-  // Simulated hover effects during entering phase - natural cursor movement
+  // Simulated hover effects - continuous natural cursor movement
   useEffect(() => {
-    if (!isEntering || userInteractedRef.current || circlesRef.current.length === 0) {
+    // Only stop if user is actively interacting
+    if (userInteractedRef.current || circlesRef.current.length === 0) {
       if (simulationRef.current) {
         clearTimeout(simulationRef.current)
         simulationRef.current = null
@@ -361,6 +516,7 @@ export function InteractiveDots({
 
     let currentCircleId: number | null = null
     let isActive = true
+    let direction = { x: 1, y: 0.5 } // Movement direction for smooth paths
 
     const findNearbyCircle = (fromId: number | null) => {
       const circles = circlesRef.current
@@ -375,24 +531,50 @@ export function InteractiveDots({
           const distB = Math.sqrt((b.x - centerX) ** 2 + (b.y - centerY) ** 2)
           return distA - distB
         })
-        // Pick one of the closest circles randomly
         return sorted[Math.floor(Math.random() * Math.min(5, sorted.length))]
       }
       
       const current = circles.find(c => c.id === fromId)
       if (!current) return circles[Math.floor(Math.random() * circles.length)]
       
-      // Find nearby circles (within 2x spacing) and pick one randomly
+      // Find nearby circles and prefer ones in the current direction
       const nearby = circles.filter(c => {
         if (c.id === fromId) return false
         const dx = c.x - current.x
         const dy = c.y - current.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        return dist < spacing * 2.5
+        return dist < spacing * 3
       })
       
-      if (nearby.length === 0) return circles[Math.floor(Math.random() * circles.length)]
-      return nearby[Math.floor(Math.random() * nearby.length)]
+      if (nearby.length === 0) {
+        // Change direction when hitting edge
+        direction.x = -direction.x + (Math.random() - 0.5) * 0.5
+        direction.y = -direction.y + (Math.random() - 0.5) * 0.5
+        return circles[Math.floor(Math.random() * circles.length)]
+      }
+      
+      // Score circles based on direction alignment
+      const scored = nearby.map(c => {
+        const dx = c.x - current.x
+        const dy = c.y - current.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const dirScore = (dx * direction.x + dy * direction.y) / dist
+        return { circle: c, score: dirScore + Math.random() * 0.5 }
+      })
+      
+      scored.sort((a, b) => b.score - a.score)
+      const chosen = scored[Math.floor(Math.random() * Math.min(3, scored.length))]
+      
+      // Slightly adjust direction towards chosen circle
+      if (chosen && current) {
+        const dx = chosen.circle.x - current.x
+        const dy = chosen.circle.y - current.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        direction.x = direction.x * 0.7 + (dx / dist) * 0.3
+        direction.y = direction.y * 0.7 + (dy / dist) * 0.3
+      }
+      
+      return chosen?.circle || nearby[0]
     }
 
     const simulate = () => {
@@ -401,31 +583,30 @@ export function InteractiveDots({
       const circles = circlesRef.current
       if (circles.length === 0) return
       
-      // Move to a nearby circle (natural cursor movement)
       const nextCircle = findNearbyCircle(currentCircleId)
       if (!nextCircle) return
       
       currentCircleId = nextCircle.id
       setSimulatedHover(nextCircle.id)
       
-      // Find neighbors
+      // Find neighbors with larger radius for more visible effect
       const neighbors = new Set<number>()
       circles.forEach(c => {
         if (c.id === nextCircle.id) return
         const dx = c.x - nextCircle.x
         const dy = c.y - nextCircle.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < spacing * 1.6) neighbors.add(c.id)
+        if (dist < spacing * 2) neighbors.add(c.id)
       })
       setSimulatedNeighbors(neighbors)
       
-      // Schedule next movement with random delay (600-1200ms)
-      const delay = 600 + Math.random() * 600
+      // Faster movement - 200-400ms intervals
+      const delay = 200 + Math.random() * 200
       simulationRef.current = setTimeout(simulate, delay)
     }
 
-    // Start simulation with initial delay
-    simulationRef.current = setTimeout(simulate, 400)
+    // Start simulation quickly
+    simulationRef.current = setTimeout(simulate, 100)
 
     return () => {
       isActive = false
@@ -434,7 +615,7 @@ export function InteractiveDots({
         simulationRef.current = null
       }
     }
-  }, [isEntering, spacing])
+  }, [spacing])
 
   const renderedCircles = useMemo(() => {
     const now = Date.now()
@@ -442,13 +623,18 @@ export function InteractiveDots({
       const program = programs[circle.iconIndex]
       const isHovered = circle.id === hoveredId || circle.id === simulatedHover
       const isNeighbor = neighborIds.has(circle.id) || simulatedNeighbors.has(circle.id)
+      const isTouchRevealed = touchRevealedIds.has(circle.id)
       const hoveredExitData = hoveredExitFadeRef.current.get(circle.id)
       const fadingData = fadingCirclesRef.current.get(circle.id)
 
       let opacity = 0
       let scale = 1.0
 
-      if (isHovered) {
+      // Touch-revealed icons take priority on mobile
+      if (isTouchRevealed) {
+        opacity = 1
+        scale = 1.15
+      } else if (isHovered) {
         opacity = 1; scale = 1.22
       } else if (hoveredExitData !== undefined) {
         const elapsed = now - hoveredExitData
@@ -470,8 +656,8 @@ export function InteractiveDots({
 
       return (
         <button key={circle.id} onClick={() => openOverlay(circle.iconIndex)}
-          style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize, cursor:'pointer', zIndex: isHovered ? 12 : 10, border:'none', background:'none', padding:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ width: circleSize, height: circleSize, borderRadius:'18%', overflow:'hidden', opacity, transition: isHovered ? 'transform 0.12s ease' : 'opacity 0.08s linear, transform 0.08s linear', transform:`scale(${scale})`, transformOrigin:'center' }}>
+          style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize, cursor:'pointer', zIndex: isHovered || isTouchRevealed ? 12 : 10, border:'none', background:'none', padding:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ width: circleSize, height: circleSize, borderRadius:'18%', overflow:'hidden', opacity, transition: isHovered || isTouchRevealed ? 'transform 0.15s ease, opacity 0.15s ease' : 'opacity 0.08s linear, transform 0.08s linear', transform:`scale(${scale})`, transformOrigin:'center' }}>
             <img src={program.iconImg} alt={program.name[lang]}
               style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
               onError={(e) => {
@@ -488,7 +674,7 @@ export function InteractiveDots({
         </button>
       )
     })
-  }, [hoveredId, neighborIds, simulatedHover, simulatedNeighbors, tick, circleSize, openOverlay, programs, lang])
+  }, [hoveredId, neighborIds, simulatedHover, simulatedNeighbors, touchRevealedIds, tick, circleSize, openOverlay, programs, lang])
 
   const selectedProgram = openIdx !== null ? programs[openIdx] : null
 
@@ -499,7 +685,10 @@ export function InteractiveDots({
           ref={containerRef} 
           onMouseMove={handleMouseMove} 
           onMouseLeave={handleMouseLeave}
-          style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden', userSelect: 'none', cursor: 'crosshair', backgroundColor }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden', userSelect: 'none', cursor: isTouch ? 'default' : 'crosshair', backgroundColor, touchAction: 'pan-y' }}
         >
           <div style={{
             position: 'absolute',
@@ -553,6 +742,12 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
 
   return (
     <>
+      <style>{`
+        body.overlay-open .mobile-nav-blur {
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+      `}</style>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:999999, backgroundColor: phase==='open'?'rgba(0,0,0,0.22)':'rgba(0,0,0,0)', backdropFilter: phase==='open'?'blur(12px)':'blur(0px)', WebkitBackdropFilter: phase==='open'?'blur(12px)':'blur(0px)', transition:'background-color 0.35s ease, backdrop-filter 0.35s ease', cursor:'pointer' }} />
       <div style={{ position:'fixed', inset:0, zIndex:1000000, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
         <div style={{ display:'flex', flexDirection: isMobile?'column':'row', alignItems: isMobile?'center':'stretch', pointerEvents:'auto', cursor:'default' }}>
