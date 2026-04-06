@@ -107,8 +107,8 @@ export function StatsSection() {
   const grid = (
     <div style={{ width:'100%', filter: blur > 0 ? `blur(${blur}px)` : 'none', opacity }}>
       <div style={{
-        paddingLeft:  isMobile ? '5vw' : 'clamp(80px,18vw,260px)',
-        paddingRight: isMobile ? '5vw' : 'clamp(24px,6vw,80px)',
+        paddingLeft:  isMobile ? '5vw' : '5vw',
+        paddingRight: isMobile ? '5vw' : '5vw',
         boxSizing: 'border-box',
       }}>
         <div style={{
@@ -116,13 +116,13 @@ export function StatsSection() {
           flexDirection: isMobile ? 'column' : 'row',
           gap: isMobile ? '8vw' : 'clamp(40px,8vw,120px)',
           alignItems: isMobile ? 'flex-start' : 'flex-end',
-          justifyContent: 'flex-start',
+          justifyContent: isMobile ? 'flex-start' : 'center',
         }}>
           {STATS.map((s, i) => {
             const label = lang === 'de' ? s.labelDe : s.labelEn
             const val   = Math.round(progress * s.value)
             return (
-              <div key={i} style={{ textAlign: 'left' }}>
+              <div key={i} style={{ textAlign: isMobile ? 'left' : 'center' }}>
                 <div style={{
                   fontSize: isMobile ? 'clamp(64px,18vw,100px)' : 'clamp(80px,13vw,192px)',
                   fontWeight: 900, lineHeight: 0.85,
