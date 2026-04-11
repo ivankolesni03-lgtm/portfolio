@@ -60,8 +60,8 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    //<PasswordGate>
+    <PasswordGate>
       <HomeContent />
-    //</PasswordGate>
+    </PasswordGate>
   )
 }
