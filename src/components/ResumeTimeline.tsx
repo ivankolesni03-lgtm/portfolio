@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
+import { useScroll } from '@/contexts/ScrollContext'
+import { runScramble } from '@/hooks/use-scramble'
 
 export type Lang = 'de' | 'en'
 
@@ -24,35 +26,30 @@ const entries: TimelineEntry[] = [
   { id:7, period:{de:'2026',en:'2026'}, title:{de:'Freelancer',en:'Freelancer'}, org:{de:'Selbstständig',en:'Self-employed'}, img:'/icons/freelancer.jpg' },
 ]
 
-const SCHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ01'
-
-function scramble(target: string, set: (s: string) => void, ref: React.MutableRefObject<ReturnType<typeof setInterval> | null>) {
-  if (ref.current) clearInterval(ref.current)
-  let i = 0; const rev = new Set<number>()
-  ref.current = setInterval(() => {
-    i++
-    const pool = target.split('').map((_, j) => j).filter(j => !rev.has(j) && target[j] !== ' ' && target[j] !== '\n')
-    if (pool.length) rev.add(pool[Math.floor(Math.random() * pool.length)])
-    set(target.split('').map((c, j) => rev.has(j) || c === ' ' || c === '\n' ? target[j] : SCHARS[Math.floor(Math.random() * SCHARS.length)]).join(''))
-    if (i >= 14) { clearInterval(ref.current!); set(target) }
-  }, 28)
-}
-
 // proximity: 0 = far, 1 = centered
 function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: number; lang: Lang }) {
   const [titleD, setTitleD] = useState(entry.title[lang])
   const [periodD, setPeriodD] = useState(entry.period[lang])
   const [orgD, setOrgD] = useState(entry.org[lang])
-  const titleRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const periodRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const orgRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const titleRef = useRef<(() => void) | null>(null)
+  const periodRef = useRef<(() => void) | null>(null)
+  const orgRef = useRef<(() => void) | null>(null)
   const prevProx = useRef(0)
   const prevLang = useRef(lang)
   const isActive = proximity > 0.85
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      titleRef.current?.()
+      periodRef.current?.()
+      orgRef.current?.()
+    }
+  }, [])
+
   // Scramble on becoming active
   useEffect(() => {
-    if (isActive && prevProx.current <= 0.85) scramble(entry.title[lang], setTitleD, titleRef)
+    if (isActive && prevProx.current <= 0.85) runScramble(entry.title[lang], setTitleD, titleRef)
     else if (!isActive) setTitleD(entry.title[lang])
     prevProx.current = proximity
   }, [isActive, entry, lang, proximity])
@@ -60,9 +57,9 @@ function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: 
   // Scramble all text on language change
   useEffect(() => {
     if (prevLang.current !== lang) {
-      scramble(entry.period[lang], setPeriodD, periodRef)
-      scramble(entry.title[lang], setTitleD, titleRef)
-      if (entry.org[lang]) scramble(entry.org[lang], setOrgD, orgRef)
+      runScramble(entry.period[lang], setPeriodD, periodRef)
+      runScramble(entry.title[lang], setTitleD, titleRef)
+      if (entry.org[lang]) runScramble(entry.org[lang], setOrgD, orgRef)
     }
     prevLang.current = lang
   }, [lang, entry])
@@ -147,36 +144,34 @@ function MobileTimeline({ lang }: { lang: Lang }) {
   // Heading scramble
   const headingText = lang === 'de' ? 'MEIN WEG' : 'MY PATH'
   const [headingDisp, setHeadingDisp] = useState(headingText)
-  const headingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const headingRef = useRef<(() => void) | null>(null)
   const prevLang = useRef(lang)
 
   useEffect(() => {
     if (prevLang.current !== lang) {
-      scramble(headingText, setHeadingDisp, headingRef)
+      runScramble(headingText, setHeadingDisp, headingRef)
     }
     prevLang.current = lang
+    return () => { headingRef.current?.() }
   }, [lang, headingText])
+
+  const { scrollY, vh: scrollVh, mounted } = useScroll()
 
   // Exit blur effect when scrolling past
   useEffect(() => {
-    const fn = () => {
-      const el = outerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const vh = window.innerHeight
-      const totalH = el.offsetHeight
-      const maxScroll = totalH - vh
-      const scrolled = Math.max(0, -rect.top)
-      const scrollProgress = Math.min(1, scrolled / maxScroll)
-      
-      const blurStart = 0.85
-      const blurProgress = Math.max(0, (scrollProgress - blurStart) / (1 - blurStart))
-      setExitP(blurProgress)
-    }
-    window.addEventListener('scroll', fn, { passive: true })
-    fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
+    if (!mounted) return
+    const el = outerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const totalH = el.offsetHeight
+    const maxScroll = totalH - scrollVh
+    const scrolled = Math.max(0, -rect.top)
+    const scrollProgress = Math.min(1, scrolled / maxScroll)
+    
+    const blurStart = 0.85
+    const blurProgress = Math.max(0, (scrollProgress - blurStart) / (1 - blurStart))
+    setExitP(blurProgress)
+  }, [scrollY, scrollVh, mounted])
 
   const goTo = useCallback((idx: number) => {
     if (isAnimating || idx < 0 || idx >= N) return
@@ -248,6 +243,8 @@ function MobileTimeline({ lang }: { lang: Lang }) {
           backgroundColor: '#ffffff',
           overflow: 'hidden',
           touchAction: 'pan-y',
+          opacity: mounted ? 1 : 0,
+          transition: 'opacity 0.15s ease',
         }}
       >
         {/* Content wrapper with exit blur */}
@@ -359,18 +356,27 @@ function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }
   const [titleD, setTitleD] = useState(entry.title[lang])
   const [periodD, setPeriodD] = useState(entry.period[lang])
   const [orgD, setOrgD] = useState(entry.org[lang])
-  const titleRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const periodRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const orgRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const titleRef = useRef<(() => void) | null>(null)
+  const periodRef = useRef<(() => void) | null>(null)
+  const orgRef = useRef<(() => void) | null>(null)
   const prevLang = useRef(lang)
   const prevId = useRef(entry.id)
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      titleRef.current?.()
+      periodRef.current?.()
+      orgRef.current?.()
+    }
+  }, [])
 
   // Scramble on card change
   useEffect(() => {
     if (prevId.current !== entry.id) {
-      scramble(entry.title[lang], setTitleD, titleRef)
-      scramble(entry.period[lang], setPeriodD, periodRef)
-      if (entry.org[lang]) scramble(entry.org[lang], setOrgD, orgRef)
+      runScramble(entry.title[lang], setTitleD, titleRef)
+      runScramble(entry.period[lang], setPeriodD, periodRef)
+      if (entry.org[lang]) runScramble(entry.org[lang], setOrgD, orgRef)
     }
     prevId.current = entry.id
   }, [entry, lang])
@@ -378,9 +384,9 @@ function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }
   // Scramble on language change
   useEffect(() => {
     if (prevLang.current !== lang) {
-      scramble(entry.period[lang], setPeriodD, periodRef)
-      scramble(entry.title[lang], setTitleD, titleRef)
-      if (entry.org[lang]) scramble(entry.org[lang], setOrgD, orgRef)
+      runScramble(entry.period[lang], setPeriodD, periodRef)
+      runScramble(entry.title[lang], setTitleD, titleRef)
+      if (entry.org[lang]) runScramble(entry.org[lang], setOrgD, orgRef)
     }
     prevLang.current = lang
   }, [lang, entry])
@@ -472,53 +478,40 @@ function DesktopTimeline({ lang }: { lang: Lang }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [exitP, setExitP] = useState(0)
-  const [mounted, setMounted] = useState(false)
-  const [vw, setVw] = useState(1440)
+  const { scrollY, vh: scrollVh, vw, mounted } = useScroll()
   const N = entries.length
-
-  useEffect(() => {
-    setVw(window.innerWidth)
-    setMounted(true)
-    const onResize = () => setVw(window.innerWidth)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
 
   const headingText = lang === 'de' ? 'MEIN WEG' : 'MY PATH'
   const [headingDisp, setHeadingDisp] = useState(headingText)
-  const headingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const headingRef = useRef<(() => void) | null>(null)
   const prevLang = useRef(lang)
 
   useEffect(() => {
     if (prevLang.current !== lang) {
-      scramble(headingText, setHeadingDisp, headingRef)
+      runScramble(headingText, setHeadingDisp, headingRef)
     }
     prevLang.current = lang
+    return () => { headingRef.current?.() }
   }, [lang, headingText])
 
   useEffect(() => {
-    const fn = () => {
-      const el = outerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const vh = window.innerHeight
-      const totalH = el.offsetHeight
-      const maxScroll = totalH - vh
-      const scrolled = Math.max(0, -rect.top)
-      const scrollProgress = Math.min(1, scrolled / maxScroll)
-      
-      const timelineEnd = 0.7
-      const p = Math.min(1, scrollProgress / timelineEnd)
-      setProgress(p)
-      
-      const blurStart = 0.85
-      const blurProgress = Math.max(0, (scrollProgress - blurStart) / (1 - blurStart))
-      setExitP(blurProgress)
-    }
-    window.addEventListener('scroll', fn, { passive: true })
-    fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [N])
+    if (!mounted) return
+    const el = outerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const totalH = el.offsetHeight
+    const maxScroll = totalH - scrollVh
+    const scrolled = Math.max(0, -rect.top)
+    const scrollProgress = Math.min(1, scrolled / maxScroll)
+    
+    const timelineEnd = 0.7
+    const p = Math.min(1, scrollProgress / timelineEnd)
+    setProgress(p)
+    
+    const blurStart = 0.85
+    const blurProgress = Math.max(0, (scrollProgress - blurStart) / (1 - blurStart))
+    setExitP(blurProgress)
+  }, [scrollY, scrollVh, N, mounted])
 
   const pos = progress * (N - 1)
 

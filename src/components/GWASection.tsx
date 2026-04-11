@@ -2,27 +2,9 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
-
-// ─── Scramble ─────────────────────────────────────────────────────────────────
-const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
-function runScramble(target:string,set:(s:string)=>void,ref:React.MutableRefObject<ReturnType<typeof setInterval>|null>){
-  let i=0;const rev=new Set<number>()
-  if(ref.current)clearInterval(ref.current)
-  ref.current=setInterval(()=>{
-    i++;const pool=target.split('').map((_,j)=>j).filter(j=>!rev.has(j)&&target[j]!==' '&&target[j]!=='\n')
-    if(pool.length)rev.add(pool[Math.floor(Math.random()*pool.length)])
-    set(target.split('').map((c,j)=>rev.has(j)||c===' '||c==='\n'?target[j]:CHARS[Math.floor(Math.random()*CHARS.length)]).join(''))
-    if(i>=16){clearInterval(ref.current!);set(target)}
-  },30)
-}
-function useScramble(text:string){
-  const [disp,setDisp]=useState(text)
-  const ref=useRef<ReturnType<typeof setInterval>|null>(null)
-  const prev=useRef(text)
-  useEffect(()=>{if(prev.current!==text){prev.current=text;runScramble(text,setDisp,ref)}},[text])
-  const scramble=useCallback(()=>runScramble(text,setDisp,ref),[text])
-  return {disp,scramble}
-}
+import { useScroll } from '@/contexts/ScrollContext'
+import { useMouse } from '@/contexts/MouseContext'
+import { useScramble, runScramble } from '@/hooks/use-scramble'
 
 // ─── StaticHeadingGWA ────────────────────────────────────────────────────────
 function StaticHeadingGWA() {
@@ -46,6 +28,15 @@ function StaticHeadingGWA() {
 // ─── Trophy3D ────────────────────────────────────────────────────────────────
 function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObject<HTMLDivElement>; autoRotate?: boolean }) {
   const mountRef = useRef<HTMLDivElement>(null)
+  const { mouseX, mouseY } = useMouse()
+  const mouseRef = useRef({ x: 0, y: 0 })
+  const isVisibleRef = useRef(false)
+  
+  // Keep mouse ref updated from context
+  useEffect(() => {
+    mouseRef.current = { x: mouseX, y: mouseY }
+  }, [mouseX, mouseY])
+  
   useEffect(() => {
     const el = mountRef.current
     if (!el) return
@@ -78,16 +69,16 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
       const targetRot = { x: 0, y: 0 }
       let autoRotationY = 0
       
-      const onMouseMove = (e: MouseEvent) => {
-        if (autoRotate) return // Skip mouse tracking on mobile (auto-rotate mode)
+      // Mouse tracking function reads from ref (updated by context)
+      const updateMouseRotation = () => {
+        if (autoRotate) return
         const sec = sectionRef.current; if (!sec) return
         const sr = sec.getBoundingClientRect()
-        if (e.clientX < sr.left || e.clientX > sr.right || e.clientY < sr.top || e.clientY > sr.bottom) return
-        targetRot.x = ((e.clientY - (sr.top + sr.height / 2)) / (sr.height / 2)) * 0.3
-        targetRot.y = ((e.clientX - (sr.left + sr.width / 2)) / (sr.width / 2)) * 0.3
-      }
-      if (!autoRotate) {
-        window.addEventListener('mousemove', onMouseMove)
+        const mx = mouseRef.current.x
+        const my = mouseRef.current.y
+        if (mx < sr.left || mx > sr.right || my < sr.top || my > sr.bottom) return
+        targetRot.x = ((my - (sr.top + sr.height / 2)) / (sr.height / 2)) * 0.3
+        targetRot.y = ((mx - (sr.left + sr.width / 2)) / (sr.width / 2)) * 0.3
       }
       
       let loadedModel: any = null
@@ -107,11 +98,14 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
       }
       window.addEventListener('resize', onResize)
       let rafId = 0; const currentRot = { x: 0, y: 0 }
+      
       const animate = () => {
         rafId = requestAnimationFrame(animate)
         
+        // Skip rendering if not visible
+        if (!isVisibleRef.current) return
+        
         if (autoRotate) {
-          // Auto-rotation mode for mobile: slow continuous Y rotation with gentle X wobble
           autoRotationY += 0.008
           const wobbleX = Math.sin(autoRotationY * 0.5) * 0.1
           if (loadedModel) {
@@ -119,7 +113,7 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
             loadedModel.rotation.y = autoRotationY
           }
         } else {
-          // Mouse-controlled mode for desktop
+          updateMouseRotation()
           currentRot.x += (targetRot.x - currentRot.x) * 0.06
           currentRot.y += (targetRot.y - currentRot.y) * 0.06
           if (loadedModel) { loadedModel.rotation.x = currentRot.x; loadedModel.rotation.y = currentRot.y }
@@ -128,9 +122,17 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
         controls.update(); renderer.render(scene, camera)
       }
       animate()
+      
+      // Visibility observer - only render when visible
+      const observer = new IntersectionObserver(
+        ([entry]) => { isVisibleRef.current = entry.isIntersecting },
+        { threshold: 0.05 }
+      )
+      observer.observe(el)
+      
       cleanupFn = () => {
+        observer.disconnect()
         cancelAnimationFrame(rafId); window.removeEventListener('resize', onResize)
-        if (!autoRotate) window.removeEventListener('mousemove', onMouseMove)
         controls.dispose(); renderer.dispose()
         if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement)
       }
@@ -183,10 +185,11 @@ function LogoRow() {
 // ─── ScrambleP – Fließtext mit Scramble bei Sprachwechsel ────────────────────
 function ScrambleP({ text, style }: { text: string; style?: React.CSSProperties }) {
   const [disp, setDisp] = useState(text)
-  const ref  = useRef<ReturnType<typeof setInterval>|null>(null)
+  const ref  = useRef<(() => void) | null>(null)
   const prev = useRef(text)
   useEffect(() => {
     if (prev.current !== text) { prev.current = text; runScramble(text, setDisp, ref) }
+    return () => { ref.current?.() }
   }, [text])
   return <p style={style}>{disp}</p>
 }
@@ -217,19 +220,16 @@ function ProcessTimeline({ lang }: { lang: 'de' | 'en' }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [hovIdx,   setHovIdx]   = useState<number|null>(null)
+  const { scrollY, vh } = useScroll()
   const steps = PROCESS_STEPS[lang]
   const hints = PROCESS_HINTS[lang]
 
   useEffect(() => {
-    const fn = () => {
-      const el = containerRef.current; if (!el) return
-      const rect = el.getBoundingClientRect(); const vh = window.innerHeight
-      const raw = (vh * 0.6 - rect.top) / (rect.height * 0.55)
-      setProgress(Math.max(0, Math.min(1, raw)))
-    }
-    window.addEventListener('scroll', fn, { passive: true }); fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
+    const el = containerRef.current; if (!el) return
+    const rect = el.getBoundingClientRect()
+    const raw = (vh * 0.6 - rect.top) / (rect.height * 0.55)
+    setProgress(Math.max(0, Math.min(1, raw)))
+  }, [scrollY, vh])
 
   return (
     <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -319,23 +319,20 @@ function ScrollLinkedVideo({ lang }: { lang: 'de' | 'en' }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [scale, setScale] = useState(0.4)
   const [hovBtn, setHovBtn] = useState(false)
+  const { scrollY, vh } = useScroll()
   const btnText = lang === 'de' ? 'Ansehen' : 'Watch'
   const { disp: btnDisp, scramble: btnScramble } = useScramble(btnText)
 
   // Scale on scroll
   useEffect(() => {
-    const fn = () => {
-      const el = wrapRef.current; if (!el) return
-      const rect = el.getBoundingClientRect(); const vh = window.innerHeight
-      const elCenter = rect.top + rect.height / 2
-      const distFromCenter = elCenter - vh / 2
-      const range = vh * 0.7
-      const s = 1.2 - Math.min(1, Math.abs(distFromCenter) / range) * 0.8
-      setScale(s)
-    }
-    window.addEventListener('scroll', fn, { passive: true }); fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
+    const el = wrapRef.current; if (!el) return
+    const rect = el.getBoundingClientRect()
+    const elCenter = rect.top + rect.height / 2
+    const distFromCenter = elCenter - vh / 2
+    const range = vh * 0.7
+    const s = 1.2 - Math.min(1, Math.abs(distFromCenter) / range) * 0.8
+    setScale(s)
+  }, [scrollY, vh])
 
   // Autoplay when visible – runs once on mount, never resets video
   useEffect(() => {
@@ -424,40 +421,30 @@ type Lang = 'de' | 'en'
 // ─── GWASection ───────────────────────────────────────────────────────────────
 export function GWASection() {
   const { language } = useLanguage(); const lang = language as Lang
+  const { scrollY, vh, vw } = useScroll()
   const secRef  = useRef<HTMLDivElement>(null)
   const figRef  = useRef<HTMLDivElement>(null)
   const [figureExit, setFigureExit] = useState({ blur: 0, opacity: 1 })
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check(); window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  
+  const isMobile = vw < 768
 
   useEffect(() => {
     if (isMobile) return
-    const applyStyle = () => {
-      const fig = figRef.current; const sec = secRef.current; if (!fig || !sec) return
-      const vw = window.innerWidth; const vh = window.innerHeight
-      const sr = sec.getBoundingClientRect()
-      const TARGET = vh * 0.12; const figW = vw * 0.42; const figH = Math.min(Math.max(vw * 0.82, 460), 860)
-      if (sr.top + TARGET > TARGET) {
-        fig.style.position = 'absolute'; fig.style.top = `${TARGET}px`
-        fig.style.left = ''; fig.style.right = `${vw * 0.01}px`
-        fig.style.width = `${figW}px`; fig.style.height = `${figH}px`
-      } else {
-        fig.style.position = 'fixed'; fig.style.top = `${TARGET}px`
-        fig.style.left = `${vw - vw * 0.01 - figW}px`; fig.style.right = ''
-        fig.style.width = `${figW}px`; fig.style.height = `${figH}px`
-      }
-      const p = Math.max(0, Math.min(1, 1 - sr.bottom / (vh * 0.8)))
-      setFigureExit({ blur: p * 24, opacity: 1 - p * 0.95 })
+    const fig = figRef.current; const sec = secRef.current; if (!fig || !sec) return
+    const sr = sec.getBoundingClientRect()
+    const TARGET = vh * 0.12; const figW = vw * 0.42; const figH = Math.min(Math.max(vw * 0.82, 460), 860)
+    if (sr.top + TARGET > TARGET) {
+      fig.style.position = 'absolute'; fig.style.top = `${TARGET}px`
+      fig.style.left = ''; fig.style.right = `${vw * 0.01}px`
+      fig.style.width = `${figW}px`; fig.style.height = `${figH}px`
+    } else {
+      fig.style.position = 'fixed'; fig.style.top = `${TARGET}px`
+      fig.style.left = `${vw - vw * 0.01 - figW}px`; fig.style.right = ''
+      fig.style.width = `${figW}px`; fig.style.height = `${figH}px`
     }
-    window.addEventListener('scroll', applyStyle, { passive: true })
-    window.addEventListener('resize', applyStyle); applyStyle()
-    return () => { window.removeEventListener('scroll', applyStyle); window.removeEventListener('resize', applyStyle) }
-  }, [isMobile])
+    const p = Math.max(0, Math.min(1, 1 - sr.bottom / (vh * 0.8)))
+    setFigureExit({ blur: p * 24, opacity: 1 - p * 0.95 })
+  }, [scrollY, vh, vw, isMobile])
 
   // ── Mobile ──────────────────────────────────────────────────────────────────
   if (isMobile) {

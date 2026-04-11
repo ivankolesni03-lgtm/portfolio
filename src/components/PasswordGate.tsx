@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { CustomCursor } from '@/components/CustomCursor'
 import { useMobile } from '@/hooks/use-mobile'
+import { useMouse } from '@/contexts/MouseContext'
 
 interface EyePos { x: number; y: number }
 
@@ -69,35 +70,32 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoAnimTime = useRef(0)
   const { isMobile } = useMobile()
+  const { mouseX, mouseY } = useMouse()
 
   useEffect(() => {
     const saved = sessionStorage.getItem('unlocked')
     setStatus(saved === 'true' ? 'unlocked' : 'locked')
   }, [])
 
-  // Desktop: Mouse tracking
+  // Desktop: Mouse tracking via context
   useEffect(() => {
     if (status !== 'locked' && status !== 'submitting') return
     if (isMobile) return
 
-    const onMove = (e: MouseEvent) => {
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const cx = rect.left + rect.width / 2
-      const cy = rect.top + rect.height / 2
-      const dx = e.clientX - cx
-      const dy = e.clientY - cy
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      const max = 28
-      target.current = {
-        x: (dx / Math.max(dist, 1)) * Math.min(dist / 15, max),
-        y: (dy / Math.max(dist, 1)) * Math.min(dist / 15, max),
-      }
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dx = mouseX - cx
+    const dy = mouseY - cy
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    const max = 28
+    target.current = {
+      x: (dx / Math.max(dist, 1)) * Math.min(dist / 15, max),
+      y: (dy / Math.max(dist, 1)) * Math.min(dist / 15, max),
     }
-    window.addEventListener('mousemove', onMove)
-    return () => window.removeEventListener('mousemove', onMove)
-  }, [status, isMobile])
+  }, [status, isMobile, mouseX, mouseY])
 
   // Mobile: Gentle automatic eye movement
   useEffect(() => {

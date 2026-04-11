@@ -1,9 +1,10 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useScroll } from '@/contexts/ScrollContext'
+import { useScramble } from '@/hooks/use-scramble'
 
 type Lang = 'de' | 'en'
-const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
 const STATS = [
   { value: 20,  suffix: '+', labelDe: 'Projekte',  labelEn: 'Projects'  },
   { value: 100, suffix: '%', labelDe: 'Ambition',  labelEn: 'Ambition'  },
@@ -11,31 +12,7 @@ const STATS = [
 ]
 
 function ScrambleLabel({ text }: { text: string }) {
-  const [disp, setDisp] = useState(text)
-  const iv = useRef<ReturnType<typeof setInterval>|null>(null)
-  const hasScrambledRef = useRef(false)
-  
-  const scramble = useCallback(() => {
-    let i = 0; const rev = new Set<number>()
-    if (iv.current) clearInterval(iv.current)
-    iv.current = setInterval(() => {
-      i++
-      const pool = text.split('').map((_,j)=>j).filter(j=>!rev.has(j)&&text[j]!==' ')
-      if (pool.length) rev.add(pool[Math.floor(Math.random()*pool.length)])
-      setDisp(text.split('').map((c,j)=>rev.has(j)||c===' '?text[j]:CHARS[Math.floor(Math.random()*CHARS.length)]).join(''))
-      if (i >= 16) { clearInterval(iv.current!); setDisp(text) }
-    }, 30)
-  }, [text])
-
-  // Auto-scramble on first scroll into view (for mobile)
-  const handleScrollScramble = useCallback(() => {
-    if (!hasScrambledRef.current) {
-      hasScrambledRef.current = true
-      scramble()
-    }
-  }, [scramble])
-
-  useEffect(() => () => { if (iv.current) clearInterval(iv.current) }, [])
+  const { disp, scramble } = useScramble(text)
   
   return (
     <span 
@@ -51,58 +28,44 @@ function ScrambleLabel({ text }: { text: string }) {
 export function StatsSection() {
   const { language } = useLanguage()
   const lang = language as Lang
+  const { scrollY, vh, vw } = useScroll()
   const spacerRef = useRef<HTMLDivElement>(null)
   const [progress,  setProgress]  = useState(0)
   const [showFixed, setShowFixed] = useState(false)
   const [blur,      setBlur]      = useState(0)
   const [opacity,   setOpacity]   = useState(1)
-  const [isMobile,  setIsMobile]  = useState(false)
+  
+  const isMobile = vw < 768
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+    const el = spacerRef.current; if (!el) return
+    const rect   = el.getBoundingClientRect()
+    const totalH = el.offsetHeight
+    
+    // Wie viele Pixel wir in den Spacer hineingescrollt sind
+    const scrolled = -rect.top
 
-  useEffect(() => {
-    const fn = () => {
-      const el = spacerRef.current; if (!el) return
-      const rect   = el.getBoundingClientRect()
-      const vh     = window.innerHeight
-      const totalH = el.offsetHeight
-      
-      // Wie viele Pixel wir in den Spacer hineingescrollt sind
-      const scrolled = -rect.top
+    // Phase 1 – COUNT UP
+    const countStart = -vh
+    const countEnd   = -vh * 0.5 
+    const p = Math.max(0, Math.min(1, (scrolled - countStart) / (countEnd - countStart)))
+    setProgress(p)
 
-      // Phase 1 – COUNT UP
-      const countStart = -vh
-      const countEnd   = -vh * 0.5 
-      const p = Math.max(0, Math.min(1, (scrolled - countStart) / (countEnd - countStart)))
-      setProgress(p)
+    // Phase 2 – FIXED
+    const fixedActive = scrolled >= 0 && rect.bottom >= vh
+    setShowFixed(fixedActive)
 
-      // Phase 2 – FIXED
-      const fixedActive = scrolled >= 0 && rect.bottom >= vh
-      setShowFixed(fixedActive)
-
-      // Phase 3 – EXIT BLUR (beginnt verzögert)
-      // Der Blur fängt erst nach einem gewissen Scroll-Weg im Fixed-Zustand an
-      const blurDelay = vh * 0.5 // <- HIER DEN WERT ÄNDERN (z.B. vh * 0.6 für noch später)
-      const exitTotal = totalH - vh
-      const effectiveScrolled = Math.max(0, scrolled - blurDelay)
-      const blurDuration = exitTotal - blurDelay
-      
-      // Berechne den Fortschritt nur für die verbleibende Zeit nach der Verzögerung
-      const ep = blurDuration > 0 ? Math.max(0, Math.min(1, effectiveScrolled / blurDuration)) : 0
-      
-      setBlur(ep * 24)
-      setOpacity(1 - ep)
-    }
-
-    window.addEventListener('scroll', fn, { passive: true })
-    requestAnimationFrame(fn)
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
+    // Phase 3 – EXIT BLUR (beginnt verzögert)
+    const blurDelay = vh * 0.5
+    const exitTotal = totalH - vh
+    const effectiveScrolled = Math.max(0, scrolled - blurDelay)
+    const blurDuration = exitTotal - blurDelay
+    
+    const ep = blurDuration > 0 ? Math.max(0, Math.min(1, effectiveScrolled / blurDuration)) : 0
+    
+    setBlur(ep * 24)
+    setOpacity(1 - ep)
+  }, [scrollY, vh])
 
   const grid = (
     <div style={{ width:'100%', filter: blur > 0 ? `blur(${blur}px)` : 'none', opacity }}>

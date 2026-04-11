@@ -2,62 +2,37 @@
 
 import { useRef, useCallback, useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-const chars = "0123456789!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ"
+import { useScroll } from '@/contexts/ScrollContext'
+import { startScramble } from '@/lib/scramble'
 
 export function Header({ isVisible }: { isVisible: boolean }) {
   const context = useLanguage()
   const language = context?.language ?? 'de'
   const toggleLanguage = context?.toggleLanguage
+  const { scrollY, vh, vw } = useScroll()
 
   const languageRef = useRef(language)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
   const isAnimating = useRef(false)
 
   const [displayText, setDisplayText] = useState(language === 'de' ? 'DE' : 'ENG')
-  const [opacity, setOpacity] = useState(0)
-  const [isMobile, setIsMobile] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-  }, [])
+  
+  const isMobile = vw < 768
+  const opacity = Math.max(0, Math.min(1, (scrollY - vh * 0.6) / (vh * 0.4)))
 
   useEffect(() => {
     languageRef.current = language
     setDisplayText(language === 'de' ? 'DE' : 'ENG')
   }, [language])
 
-  useEffect(() => {
-    const fn = () => {
-      const vh = window.innerHeight
-      const y = window.scrollY
-      const progress = Math.max(0, Math.min(1, (y - vh * 0.6) / (vh * 0.4)))
-      setOpacity(progress)
-    }
-    window.addEventListener('scroll', fn, { passive: true }); fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
-
   const scrambleTo = useCallback((target: string) => {
     if (isAnimating.current) return
     isAnimating.current = true
-    let iteration = 0
-    const revealed = new Set<number>()
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    setDisplayText(target.split('').map(() => chars[Math.floor(Math.random() * chars.length)]).join(''))
-    intervalRef.current = setInterval(() => {
-      iteration++
-      const unrevealed = target.split('').map((_, i) => i).filter(i => !revealed.has(i))
-      if (unrevealed.length > 0) revealed.add(unrevealed[Math.floor(Math.random() * unrevealed.length)])
-      setDisplayText(target.split('').map((_, i) =>
-        revealed.has(i) ? target[i] : chars[Math.floor(Math.random() * chars.length)]
-      ).join(''))
-      if (iteration >= 12) {
-        clearInterval(intervalRef.current!)
-        setDisplayText(target)
-        isAnimating.current = false
-      }
-    }, 40)
+    cleanupRef.current?.()
+    cleanupRef.current = startScramble(target, setDisplayText, {
+      maxIterations: 12,
+      onComplete: () => { isAnimating.current = false }
+    })
   }, [])
 
   const handleToggle = useCallback(() => {

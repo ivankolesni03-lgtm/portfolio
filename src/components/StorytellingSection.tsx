@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useEffect, useState } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useScroll } from '@/contexts/ScrollContext'
 
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
@@ -9,6 +10,7 @@ function easeInOutCubic(t: number): number {
 export function StorytellingSection() {
   const { language } = useLanguage()
   const lang = language as 'de' | 'en'
+  const { scrollY, vw, vh, mounted } = useScroll()
 
   const sectionRef = useRef<HTMLDivElement>(null)
   const videoRef   = useRef<HTMLVideoElement>(null)
@@ -16,39 +18,23 @@ export function StorytellingSection() {
 
   const [progress, setProgress] = useState(0)
   const [exitBlur, setExitBlur] = useState(0)
-  const [vw, setVw]     = useState(0)
-  const [vh, setVh]     = useState(0)
   const [textH, setTextH] = useState(0)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const update = () => {
-      setVw(window.innerWidth)
-      setVh(window.innerHeight)
-      setIsMobile(window.innerWidth < 768)
-      if (headingRef.current) setTextH(headingRef.current.offsetHeight)
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
+  
+  const isMobile = vw < 768
 
   useEffect(() => {
     if (headingRef.current) setTextH(headingRef.current.offsetHeight)
   }, [vw])
 
   useEffect(() => {
-    const fn = () => {
-      const sec = sectionRef.current; if (!sec) return
-      const scrolled = -sec.getBoundingClientRect().top
-      const total    = sec.offsetHeight - window.innerHeight
-      setProgress(Math.max(0, Math.min(1, scrolled / (total * 0.4))))
-      const exitP = Math.max(0, Math.min(1, (scrolled - total * 0.82) / (total * 0.18)))
-      setExitBlur(exitP * 28)
-    }
-    window.addEventListener('scroll', fn, { passive: true }); fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
+    if (!mounted) return
+    const sec = sectionRef.current; if (!sec) return
+    const scrolled = -sec.getBoundingClientRect().top
+    const total    = sec.offsetHeight - vh
+    setProgress(Math.max(0, Math.min(1, scrolled / (total * 0.4))))
+    const exitP = Math.max(0, Math.min(1, (scrolled - total * 0.82) / (total * 0.18)))
+    setExitBlur(exitP * 28)
+  }, [scrollY, vh, mounted])
 
   useEffect(() => {
     const v = videoRef.current; if (!v) return
@@ -128,6 +114,7 @@ export function StorytellingSection() {
         position: 'sticky', top: 0, height: '100vh', width: '100%', overflow: 'hidden',
         filter: exitBlur > 0.1 ? `blur(${exitBlur}px)` : 'none',
         transition: 'filter 0.05s linear',
+        opacity: mounted ? 1 : 0,
       }}>
 
         {/* STORY – top left on desktop, centered above video on mobile */}

@@ -1,9 +1,9 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
-
+import { useScroll } from '@/contexts/ScrollContext'
+import { useScramble, runScramble } from '@/hooks/use-scramble'
+import { startScramble } from '@/lib/scramble'
 
 const PROJECTS = [
   { id:1, title:{de:'Hochschule\nHannover',en:'Hannover\nUASA'}, field:{de:'Image\nKampagne',en:'Image\nCampaign'}, description:{de:'Mangelnde Brand-Sichtbarkeit und eine zu sachliche Web-Präsenz verhindern den emotionalen Zugang. „Home of Community" positioniert die Hochschule als ein Ort für Kreative.',en:'Lack of brand visibility and an overly factual web presence prevent emotional engagement. "Home of Community" positions the university as a place for creatives.'}, image:'/images/hochschule.jpg', images:['/images/hochschule0.jpg','/images/hochschule1.jpg','/images/hochschule3.jpg','/images/hochschule4.jpg'], tags:{de:['Social Media','OOH','Brand Strategie'],en:['Social Media','OOH','Brand Strategy']}, youtube: null },
@@ -21,43 +21,6 @@ const PROJECTS = [
 ]
 type Project = typeof PROJECTS[0]
 type Lang = 'de'|'en'
-
-function runScramble(
-  target: string,
-  set: (s:string) => void,
-  ref: React.MutableRefObject<ReturnType<typeof setInterval>|null>,
-  onDone?: () => void
-) {
-  let i = 0
-  const rev = new Set<number>()
-  if (ref.current) clearInterval(ref.current)
-  ref.current = setInterval(() => {
-    i++
-    const pool = target.split('').map((_,j)=>j)
-      .filter(j => !rev.has(j) && target[j] !== ' ' && target[j] !== '\n')
-    if (pool.length) rev.add(pool[Math.floor(Math.random() * pool.length)])
-    set(target.split('').map((c,j) =>
-      rev.has(j) || c === ' ' || c === '\n'
-        ? target[j]
-        : CHARS[Math.floor(Math.random() * CHARS.length)]
-    ).join(''))
-    if (i >= 16) { clearInterval(ref.current!); set(target); onDone?.() }
-  }, 30)
-}
-
-function useScramble(text: string) {
-  const [disp, setDisp] = useState(text)
-  const ref = useRef<ReturnType<typeof setInterval>|null>(null)
-  const prevText = useRef(text)
-  useEffect(() => {
-    if (prevText.current !== text) {
-      prevText.current = text
-      runScramble(text, setDisp, ref)
-    }
-  }, [text])
-  const go = useCallback(() => runScramble(text, setDisp, ref), [text])
-  return { disp, scramble: go }
-}
 
 function ScrambleText({ text, style }: { text: string; style?: React.CSSProperties }) {
   const { disp, scramble } = useScramble(text)
@@ -183,25 +146,24 @@ function PixelCarouselOneShot({ images, w, animateIn = true }: {
 // ─── AnimatedHeading ──────────────────────────────────────────────────────────
 function AnimatedHeading({ overlayOpen }: { overlayOpen: boolean }) {
   const { language } = useLanguage()
+  const { scrollY, vw } = useScroll()
   const text = language === 'de' ? 'PROJEKTE' : 'PROJECTS'
   const { disp, scramble } = useScramble(text)
   const staticRef  = useRef<HTMLDivElement>(null)
   const fixedElRef = useRef<HTMLDivElement | null>(null)
-  const [isMobile, setIsMobile] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-    const onResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
+  const startPosRef = useRef({ l: 0, t: 0 })
+  const scrambleCleanupRef = useRef<(() => void) | null>(null)
+  
+  const isMobile = vw < 768
 
   useEffect(() => {
     if (fixedElRef.current) fixedElRef.current.textContent = disp
   }, [disp])
 
   useEffect(() => {
-    if (isMobile === null || isMobile) return
+    if (isMobile) return
+    if (fixedElRef.current) return // Already created
+    
     const el = document.createElement('div')
     el.textContent = text
     Object.assign(el.style, {
@@ -216,64 +178,64 @@ function AnimatedHeading({ overlayOpen }: { overlayOpen: boolean }) {
       window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' })
     })
     el.addEventListener('mouseenter', () => {
-      let i = 0
-      const rev = new Set<number>()
-      const iv = setInterval(() => {
-        i++
-        const pool = text.split('').map((_,j)=>j).filter(j => !rev.has(j) && text[j] !== ' ')
-        if (pool.length) rev.add(pool[Math.floor(Math.random() * pool.length)])
-        el.textContent = text.split('').map((c,j) =>
-          rev.has(j) || c === ' ' ? text[j] : CHARS[Math.floor(Math.random() * CHARS.length)]
-        ).join('')
-        if (i >= 16) { clearInterval(iv); el.textContent = text }
-      }, 30)
+      scrambleCleanupRef.current?.()
+      scrambleCleanupRef.current = startScramble(text, (s) => { el.textContent = s }, { maxIterations: 16 })
     })
     document.body.appendChild(el)
     fixedElRef.current = el
+    ;(el as any).__overlayOpenRef = { current: false }
 
-    const startPos = { l: 0, t: 0 }
-    const overlayOpenRef = { current: false }
-    const fn = () => {
-      const staticEl = staticRef.current
-      const section  = document.getElementById('projekte')
-      if (!staticEl || !section) return
-      const sr  = section.getBoundingClientRect()
-      const hr  = staticEl.getBoundingClientRect()
-      const raw = Math.max(0, Math.min(1, (-hr.top + 80) / 200))
-      if (raw < 0.01) {
-        startPos.l = hr.left; startPos.t = hr.top
-        staticEl.style.visibility = 'visible'
-        el.style.display = 'none'; el.style.pointerEvents = 'none'
-        return
-      }
-      if (sr.top > 200) {
-        staticEl.style.visibility = 'visible'
-        el.style.display = 'none'; el.style.pointerEvents = 'none'
-        return
-      }
-      staticEl.style.visibility = 'hidden'
-      el.style.display = 'block'
-      el.style.pointerEvents = overlayOpenRef.current ? 'none' : 'auto'
-      const vw = window.innerWidth / 100
-      el.style.fontSize      = `${8 * vw + (14 - 8 * vw) * raw}px`
-      el.style.lineHeight    = `${0.9 + 0.3 * raw}`
-      el.style.left          = `${32 + (startPos.l - 32) * (1 - raw)}px`
-      el.style.top           = `${68 + (startPos.t - 68) * (1 - raw)}px`
-      el.style.letterSpacing = `${-2 + raw * 1.72}px`
-      if (raw >= 0.98) {
-        el.style.fontSize = '14px'; el.style.lineHeight = '1.2'
-        el.style.left = '32px'; el.style.top = '68px'
-        el.style.letterSpacing = '-0.02em'
-      }
-    }
-    ;(el as any).__overlayOpenRef = overlayOpenRef
-    window.addEventListener('scroll', fn, { passive: true }); fn()
     return () => {
-      window.removeEventListener('scroll', fn)
+      scrambleCleanupRef.current?.()
       el.remove()
       fixedElRef.current = null
     }
-  }, [isMobile]) // eslint-disable-line
+  }, [isMobile, text])
+
+  // Scroll-based animation using shared scroll context
+  useEffect(() => {
+    if (isMobile) return
+    const el = fixedElRef.current
+    const staticEl = staticRef.current
+    const section = document.getElementById('projekte')
+    if (!el || !staticEl || !section) return
+
+    const sr = section.getBoundingClientRect()
+    const hr = staticEl.getBoundingClientRect()
+    const raw = Math.max(0, Math.min(1, (-hr.top + 80) / 200))
+    
+    if (raw < 0.01) {
+      startPosRef.current = { l: hr.left, t: hr.top }
+      staticEl.style.visibility = 'visible'
+      el.style.display = 'none'
+      el.style.pointerEvents = 'none'
+      return
+    }
+    if (sr.top > 200) {
+      staticEl.style.visibility = 'visible'
+      el.style.display = 'none'
+      el.style.pointerEvents = 'none'
+      return
+    }
+    
+    const overlayOpenRef = (el as any).__overlayOpenRef
+    staticEl.style.visibility = 'hidden'
+    el.style.display = 'block'
+    el.style.pointerEvents = overlayOpenRef?.current ? 'none' : 'auto'
+    const vwUnit = vw / 100
+    el.style.fontSize = `${8 * vwUnit + (14 - 8 * vwUnit) * raw}px`
+    el.style.lineHeight = `${0.9 + 0.3 * raw}`
+    el.style.left = `${32 + (startPosRef.current.l - 32) * (1 - raw)}px`
+    el.style.top = `${68 + (startPosRef.current.t - 68) * (1 - raw)}px`
+    el.style.letterSpacing = `${-2 + raw * 1.72}px`
+    if (raw >= 0.98) {
+      el.style.fontSize = '14px'
+      el.style.lineHeight = '1.2'
+      el.style.left = '32px'
+      el.style.top = '68px'
+      el.style.letterSpacing = '-0.02em'
+    }
+  }, [scrollY, vw, isMobile])
 
   useEffect(() => {
     const el = fixedElRef.current; if (!el) return
@@ -322,8 +284,12 @@ function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
   const titleText = project.title[lang]
   const fieldText = project.field[lang]
   const [disp, setDisp] = useState(titleText)
-  const sRef = useRef<ReturnType<typeof setInterval>|null>(null)
+  const sRef = useRef<(() => void) | null>(null)
   const prevLang = useRef(lang)
+
+  useEffect(() => {
+    return () => { sRef.current?.() }
+  }, [])
 
   useEffect(() => {
     if (prevLang.current !== lang) {
@@ -374,11 +340,11 @@ function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
 }
 
 export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: boolean) => void }) {
+  const { vw } = useScroll()
   const [openIdx, setOpenIdx] = useState<number|null>(null)
   const [activeIdx, setActiveIdx] = useState<number|null>(null)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => { setIsMobile(window.innerWidth < 768) }, [])
+  
+  const isMobile = vw < 768
 
   const open  = (i: number) => { setActiveIdx(i); setOpenIdx(i); onOverlayChange?.(true) }
   const close = () => { setOpenIdx(null); setTimeout(() => setActiveIdx(null), 500); onOverlayChange?.(false) }
@@ -566,9 +532,16 @@ function PanelContent({ project, idx, lang, doScramble, onNav, isMobile }: {
   const descRaw  = project.description[lang]
   const [titleDisp, setTitleDisp] = useState(titleRaw)
   const [descDisp,  setDescDisp]  = useState(descRaw)
-  const titleRef = useRef<ReturnType<typeof setInterval>|null>(null)
-  const descRef  = useRef<ReturnType<typeof setInterval>|null>(null)
+  const titleRef = useRef<(() => void) | null>(null)
+  const descRef  = useRef<(() => void) | null>(null)
   const [hovYT, setHovYT] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      titleRef.current?.()
+      descRef.current?.()
+    }
+  }, [])
 
   useEffect(() => {
     if (doScramble) {

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Hero } from '@/components/Hero'
 import { StorytellingSection } from '@/components/StorytellingSection'
 import { ProjectsSection } from '@/components/ProjectsSection'
 import { CustomCursor } from '@/components/CustomCursor'
 import { Header } from '@/components/Header'
-import { BrushCursor } from '@/components/BrushCursor'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import { ScrollProvider, useScroll } from '@/contexts/ScrollContext'
+import { MouseProvider } from '@/contexts/MouseContext'
 import { ContactSection } from '@/components/ContactSection'
 import { AISection } from '@/components/AISection'
 import { GWASection } from '@/components/GWASection'
@@ -16,21 +16,9 @@ import { StatsSection } from '@/components/StatsSection'
 import { InteractiveDots } from '@/components/InteractiveDots'
 import { ResumeTimeline } from '@/components/ResumeTimeline'
 
-function HomeContent() {
-  const [headerVisible, setHeaderVisible] = useState(false)
-  const [brushActive, setBrushActive] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const vh = window.innerHeight
-      const y = window.scrollY
-      setHeaderVisible(y > vh * 0.8)
-      setBrushActive(y > vh * 0.9 && y < vh * 3)
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+function HomeContentInner() {
+  const { scrollY, vh } = useScroll()
+  const headerVisible = scrollY > vh * 0.8
 
   return (
     <LanguageProvider>
@@ -44,7 +32,6 @@ function HomeContent() {
         `}</style>
         <CustomCursor />
         <Header isVisible={headerVisible} />
-        <BrushCursor active={brushActive} />
         <Hero />
         <StorytellingSection />
         <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
@@ -61,10 +48,20 @@ function HomeContent() {
   )
 }
 
+function HomeContent() {
+  return (
+    <ScrollProvider>
+      <MouseProvider>
+        <HomeContentInner />
+      </MouseProvider>
+    </ScrollProvider>
+  )
+}
+
 export default function Home() {
   return (
-    <PasswordGate>
+    //<PasswordGate>
       <HomeContent />
-    </PasswordGate>
+    //</PasswordGate>
   )
 }

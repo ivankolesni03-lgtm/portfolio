@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useMobile } from '@/hooks/use-mobile'
+import { useScroll } from '@/contexts/ScrollContext'
+import { startScramble } from '@/lib/scramble'
 
 const chars = "0123456789!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ"
 
@@ -199,40 +201,18 @@ if (typeof window !== 'undefined') {
 
 function ScrambleText({ text, className }: { text: string; className?: string }) {
   const elementRef = useRef<HTMLSpanElement>(null)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const totalIterations = 10
-  const intervalMs = 40
+  const cleanupRef = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    return () => { cleanupRef.current?.() }
+  }, [])
 
   const scramble = useCallback(() => {
     if (!elementRef.current) return
-    const revealed = new Set<number>()
-    const indices = text.split('').map((_, i) => i)
-    let iteration = 0
-    elementRef.current.textContent = text
-      .split("")
-      .map(() => chars[Math.floor(Math.random() * chars.length)])
-      .join("")
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(() => {
-      iteration++
-      const unrevealed = indices.filter(i => !revealed.has(i))
-      if (unrevealed.length > 0) {
-        const randomIndex = unrevealed[Math.floor(Math.random() * unrevealed.length)]
-        revealed.add(randomIndex)
-      }
-      if (elementRef.current) {
-        elementRef.current.textContent = text
-          .split("")
-          .map((char, i) =>
-            revealed.has(i) || char === ' ' ? text[i] : chars[Math.floor(Math.random() * chars.length)]
-          )
-          .join("")
-      }
-      if (iteration >= totalIterations) {
-        if (intervalRef.current) clearInterval(intervalRef.current)
-        if (elementRef.current) elementRef.current.textContent = text
-      }
-    }, intervalMs)
+    cleanupRef.current?.()
+    cleanupRef.current = startScramble(text, (s) => {
+      if (elementRef.current) elementRef.current.textContent = s
+    }, { maxIterations: 10 })
   }, [text])
 
   return (
@@ -249,34 +229,25 @@ function ScrambleText({ text, className }: { text: string; className?: string })
 
 function useScramble(initial: string) {
   const [display, setDisplay] = useState(initial)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
   const scrambleTo = useCallback((target: string) => {
-    let iteration = 0
-    const revealed = new Set<number>()
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(() => {
-      iteration++
-      const unrevealed = target.split('').map((_, i) => i).filter(i => !revealed.has(i) && target[i] !== ' ')
-      if (unrevealed.length > 0) revealed.add(unrevealed[Math.floor(Math.random() * unrevealed.length)])
-      setDisplay(target.split('').map((char, i) =>
-        revealed.has(i) || char === ' ' ? target[i] : chars[Math.floor(Math.random() * chars.length)]
-      ).join(''))
-      if (iteration >= 14) {
-        clearInterval(intervalRef.current!)
-        setDisplay(target)
-      }
-    }, 35)
+    cleanupRef.current?.()
+    cleanupRef.current = startScramble(target, setDisplay, { maxIterations: 14 })
+  }, [])
+
+  useEffect(() => {
+    return () => { cleanupRef.current?.() }
   }, [])
 
   return { display, scrambleTo }
 }
 
 export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean; onMouseMove?: (e: React.MouseEvent) => void }) {
-  const [progress, setProgress] = useState(0)
   const [isRussian, setIsRussian] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { isMobile, width, height } = useMobile()
+  const { scrollY, vh: scrollVh } = useScroll()
   const ivanScramble = useScramble('IVAN')
   const kolesnikovScramble = useScramble('KOLESNIKOV')
 
@@ -285,22 +256,19 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   useEffect(() => {
     window.scrollTo(0, 0)
     setMounted(true)
-    setProgress(0)
-
-    const handleScroll = () => {
-      const p = Math.min(1, window.scrollY / window.innerHeight)
-      setProgress(p)
-      
-      // Mobile backdrop blur starting from projects section
-      const projekte = document.getElementById('projekte')
-      if (projekte) {
-        const rect = projekte.getBoundingClientRect()
-        setShowBackdrop(rect.top < window.innerHeight * 0.5)
-      }
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Calculate progress from scroll context
+  const progress = scrollVh > 0 ? Math.min(1, scrollY / scrollVh) : 0
+
+  // Mobile backdrop blur starting from projects section
+  useEffect(() => {
+    const projekte = document.getElementById('projekte')
+    if (projekte) {
+      const rect = projekte.getBoundingClientRect()
+      setShowBackdrop(rect.top < scrollVh * 0.5)
+    }
+  }, [scrollY, scrollVh])
 
   const vw = mounted ? width / 100 : 0
   const vh = mounted ? height / 100 : 0
@@ -460,21 +428,10 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
 }
 
 function BgImage() {
-  const [progress, setProgress] = useState(0)
-  const [mounted, setMounted] = useState(false)
   const { isMobile } = useMobile()
+  const { scrollY, vh } = useScroll()
 
-  useEffect(() => {
-    setMounted(true)
-    const handleScroll = () => {
-      const p = Math.min(1, window.scrollY / window.innerHeight)
-      setProgress(p)
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
+  const progress = vh > 0 ? Math.min(1, scrollY / vh) : 0
   const blur = progress * 20
   const opacity = 1 - progress
 

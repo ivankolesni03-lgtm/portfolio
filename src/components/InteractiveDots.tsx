@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
+import { useScroll } from '@/contexts/ScrollContext'
+import { useScramble, runScramble } from '@/hooks/use-scramble'
 
 export type Lang = 'de' | 'en'
 
@@ -15,44 +17,6 @@ export interface Program {
   description: { de: string; en: string }
   skill: number
   works: { title: { de: string; en: string }; year: string; type: { de: string; en: string } }[]
-}
-
-const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
-
-// ─── Scramble (angepasst für Zeilenumbrüche \n) ────────────────────────────
-const SCHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦШЩЪ01アイウエオ'
-function useScramble(text: string) {
-  const [d, setD] = useState(text)
-  const iv = useRef<ReturnType<typeof setInterval>|null>(null)
-  const p = useRef(text)
-  
-  useEffect(() => {
-    if (p.current === text) return; p.current = text
-    let i = 0; const r = new Set<number>()
-    if (iv.current) clearInterval(iv.current)
-    iv.current = setInterval(() => {
-      i++
-      // WICHTIG: \n wird herausgefiltert, damit der Umbruch nicht scrambelt wird
-      const pool = text.split('').map((_,j)=>j).filter(j=>!r.has(j)&&text[j]!==' '&&text[j]!=='\n')
-      if (pool.length) r.add(pool[Math.floor(Math.random()*pool.length)])
-      // WICHTIG: \n wird auch beim Rendern geschützt
-      setD(text.split('').map((c,j)=>r.has(j)||c===' '||c==='\n'?text[j]:SCHARS[Math.floor(Math.random()*SCHARS.length)]).join(''))
-      if (i >= 14) { clearInterval(iv.current!); setD(text) }
-    }, 30)
-  }, [text])
-  
-  const scramble = useCallback(() => {
-    let i = 0; const r = new Set<number>()
-    if (iv.current) clearInterval(iv.current)
-    iv.current = setInterval(() => {
-      i++
-      const pool = text.split('').map((_,j)=>j).filter(j=>!r.has(j)&&text[j]!==' '&&text[j]!=='\n')
-      if (pool.length) r.add(pool[Math.floor(Math.random()*pool.length)])
-      setD(text.split('').map((c,j)=>r.has(j)||c===' '||c==='\n'?text[j]:SCHARS[Math.floor(Math.random()*SCHARS.length)]).join(''))
-      if (i >= 14) { clearInterval(iv.current!); setD(text) }
-    }, 30)
-  }, [text])
-  return { disp: d, scramble }
 }
 
 // ─── ProgrammeHeading ───────────────────────────────────────────────────────
@@ -92,25 +56,6 @@ function ProgrammeHeading() {
       </div>
     </div>
   )
-}
-
-function runScramble(
-  target: string,
-  set: (s: string) => void,
-  ref: React.MutableRefObject<ReturnType<typeof setInterval> | null>
-) {
-  if (ref.current) clearInterval(ref.current)
-  if (!target) return
-  let i = 0
-  const rev = new Set<number>()
-  const chars = target.split('')
-  ref.current = setInterval(() => {
-    i++
-    const pool = chars.map((_, j) => j).filter(j => !rev.has(j) && chars[j] !== ' ')
-    if (pool.length) rev.add(pool[Math.floor(Math.random() * pool.length)])
-    set(chars.map((c, j) => rev.has(j) || c === ' ' ? c : CHARS[Math.floor(Math.random() * CHARS.length)]).join(''))
-    if (i >= 16) { clearInterval(ref.current!); set(target) }
-  }, 30)
 }
 
 export const defaultProgramData: Program[] = [
@@ -181,10 +126,7 @@ export function InteractiveDots({
   const [isEntering, setIsEntering] = useState(true)
   const [simulatedHover, setSimulatedHover] = useState<number | null>(null)
   const [simulatedNeighbors, setSimulatedNeighbors] = useState<Set<number>>(new Set())
-  const prevSimulatedHoverRef = useRef<number | null>(null)
-  const prevSimulatedNeighborsRef = useRef<Set<number>>(new Set())
   const [neighborIds, setNeighborIds] = useState<Set<number>>(new Set())
-  const [tick, setTick] = useState(0)
   const [openIdx, setOpenIdx] = useState<number | null>(null)
   const [phase, setPhase] = useState<'in' | 'open' | 'closing'>('in')
   const [lang] = useState<Lang>('de')
@@ -199,35 +141,41 @@ export function InteractiveDots({
 
   const hoveredIdRef = useRef<number | null>(null)
   const neighborIdsRef = useRef<Set<number>>(new Set())
-  const fadingCirclesRef = useRef<Map<number, number>>(new Map())
-  const hoveredExitFadeRef = useRef<Map<number, number>>(new Map())
+  
+  // Track previously visible circles for fade-out (CSS handles the animation)
+  const [recentlyVisible, setRecentlyVisible] = useState<Set<number>>(new Set())
 
   useEffect(() => { hoveredIdRef.current = hoveredId }, [hoveredId])
   useEffect(() => { neighborIdsRef.current = neighborIds }, [neighborIds])
   
-  // Trigger fade effects for simulated hover (same as real hover)
+  // Track circles that were recently hovered/neighbors for fade-out effect
   useEffect(() => {
-    const now = Date.now()
+    const allVisible = new Set<number>()
+    if (hoveredId !== null) allVisible.add(hoveredId)
+    if (simulatedHover !== null) allVisible.add(simulatedHover)
+    neighborIds.forEach(id => allVisible.add(id))
+    simulatedNeighbors.forEach(id => allVisible.add(id))
+    touchRevealedIds.forEach(id => allVisible.add(id))
     
-    // Fade out previous simulated hover
-    if (prevSimulatedHoverRef.current !== null && prevSimulatedHoverRef.current !== simulatedHover) {
-      if (!hoveredExitFadeRef.current.has(prevSimulatedHoverRef.current)) {
-        hoveredExitFadeRef.current.set(prevSimulatedHoverRef.current, now)
-      }
-    }
-    
-    // Fade out previous simulated neighbors that are no longer neighbors
-    prevSimulatedNeighborsRef.current.forEach(id => {
-      if (!simulatedNeighbors.has(id) && id !== simulatedHover) {
-        if (!fadingCirclesRef.current.has(id)) {
-          fadingCirclesRef.current.set(id, now)
-        }
-      }
+    // Add currently visible to recently visible
+    setRecentlyVisible(prev => {
+      const next = new Set(prev)
+      allVisible.forEach(id => next.add(id))
+      return next
     })
     
-    prevSimulatedHoverRef.current = simulatedHover
-    prevSimulatedNeighborsRef.current = new Set(simulatedNeighbors)
-  }, [simulatedHover, simulatedNeighbors])
+    // Clear old entries after fade-out duration (6s)
+    const timer = setTimeout(() => {
+      setRecentlyVisible(prev => {
+        const next = new Set<number>()
+        // Only keep currently active ones
+        allVisible.forEach(id => next.add(id))
+        return next
+      })
+    }, 6000)
+    
+    return () => clearTimeout(timer)
+  }, [hoveredId, simulatedHover, neighborIds, simulatedNeighbors, touchRevealedIds])
 
   const generateCircles = useCallback(() => {
     if (!containerRef.current) return
@@ -261,26 +209,6 @@ export function InteractiveDots({
     return () => { window.removeEventListener('resize', onResize); clearTimeout(t) }
   }, [generateCircles])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now()
-      const toTransfer: number[] = []
-      hoveredExitFadeRef.current.forEach((startAt, id) => {
-        if (now - startAt >= 1000) toTransfer.push(id)
-      })
-      if (toTransfer.length > 0) {
-        toTransfer.forEach(id => hoveredExitFadeRef.current.delete(id))
-        toTransfer.forEach(id => {
-          if (!fadingCirclesRef.current.has(id)) fadingCirclesRef.current.set(id, now - 1000)
-        })
-      }
-      fadingCirclesRef.current.forEach((leftAt, id) => {
-        if (now - leftAt >= 6000) fadingCirclesRef.current.delete(id)
-      })
-      setTick(t => t + 1)
-    }, 50)
-    return () => clearInterval(interval)
-  }, [])
 
   const interactionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   
@@ -319,28 +247,11 @@ export function InteractiveDots({
       }
     }
 
-    const now = Date.now()
-    if (hoveredIdRef.current !== null && hoveredIdRef.current !== newHoveredId) {
-      if (!hoveredExitFadeRef.current.has(hoveredIdRef.current)) hoveredExitFadeRef.current.set(hoveredIdRef.current, now)
-    }
-    neighborIdsRef.current.forEach(id => {
-      if (!newNeighbors.has(id) && id !== newHoveredId) {
-        if (!fadingCirclesRef.current.has(id)) fadingCirclesRef.current.set(id, now)
-      }
-    })
-
     setHoveredId(newHoveredId)
     setNeighborIds(newNeighbors)
   }, [circleSize, spacing])
 
   const handleMouseLeave = useCallback(() => {
-    const now = Date.now()
-    if (hoveredIdRef.current !== null) {
-      if (!hoveredExitFadeRef.current.has(hoveredIdRef.current)) hoveredExitFadeRef.current.set(hoveredIdRef.current, now)
-    }
-    neighborIdsRef.current.forEach(id => {
-      if (!fadingCirclesRef.current.has(id)) fadingCirclesRef.current.set(id, now)
-    })
     setHoveredId(null)
     setNeighborIds(new Set())
   }, [])
@@ -479,29 +390,26 @@ export function InteractiveDots({
     return () => window.removeEventListener('keydown', handler)
   }, [closeOverlay, navigate])
 
+  const { scrollY, vh: scrollVh } = useScroll()
+
   // Exit blur/opacity effect when next section scrolls over
   // Also track if section is entering (not yet sticky)
   useEffect(() => {
-    const fn = () => {
-      const el = outerRef.current; if (!el) return
-      const vh = window.innerHeight
-      const rect = el.getBoundingClientRect()
-      const scrolled = Math.max(0, -rect.top)
-      setExitP(Math.max(0, Math.min(1, (scrolled - vh * 0.3) / (vh * 1.5))))
-      
-      // Section is "entering" when top is between 0 and vh (scrolling into view)
-      const entering = rect.top > 0 && rect.top < vh
-      setIsEntering(entering)
-      
-      // Only stop simulation if user has actively interacted
-      if (userInteractedRef.current) {
-        setSimulatedHover(null)
-        setSimulatedNeighbors(new Set())
-      }
+    const el = outerRef.current; if (!el) return
+    const rect = el.getBoundingClientRect()
+    const scrolled = Math.max(0, -rect.top)
+    setExitP(Math.max(0, Math.min(1, (scrolled - scrollVh * 0.3) / (scrollVh * 1.5))))
+    
+    // Section is "entering" when top is between 0 and vh (scrolling into view)
+    const entering = rect.top > 0 && rect.top < scrollVh
+    setIsEntering(entering)
+    
+    // Only stop simulation if user has actively interacted
+    if (userInteractedRef.current) {
+      setSimulatedHover(null)
+      setSimulatedNeighbors(new Set())
     }
-    window.addEventListener('scroll', fn, { passive: true }); fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
+  }, [scrollY, scrollVh])
 
   // Simulated hover effects - continuous natural cursor movement
   useEffect(() => {
@@ -618,46 +526,44 @@ export function InteractiveDots({
   }, [spacing])
 
   const renderedCircles = useMemo(() => {
-    const now = Date.now()
     return circlesRef.current.map((circle) => {
       const program = programs[circle.iconIndex]
       const isHovered = circle.id === hoveredId || circle.id === simulatedHover
       const isNeighbor = neighborIds.has(circle.id) || simulatedNeighbors.has(circle.id)
       const isTouchRevealed = touchRevealedIds.has(circle.id)
-      const hoveredExitData = hoveredExitFadeRef.current.get(circle.id)
-      const fadingData = fadingCirclesRef.current.get(circle.id)
+      const wasRecentlyVisible = recentlyVisible.has(circle.id)
 
-      let opacity = 0
-      let scale = 1.0
+      // Determine state: hovered > neighbor > fading > hidden
+      let opacity: number
+      let scale: number
+      let transition: string
 
-      // Touch-revealed icons take priority on mobile
       if (isTouchRevealed) {
         opacity = 1
         scale = 1.15
+        transition = 'transform 0.15s ease, opacity 0.15s ease'
       } else if (isHovered) {
-        opacity = 1; scale = 1.22
-      } else if (hoveredExitData !== undefined) {
-        const elapsed = now - hoveredExitData
-        const progress = Math.min(1, elapsed / 1000)
-        const eased = 1 - Math.pow(1 - progress, 3)
-        opacity = 1 - 0.5 * eased; scale = 1.22 - 0.22 * eased
+        opacity = 1
+        scale = 1.22
+        transition = 'transform 0.15s ease, opacity 0.15s ease'
       } else if (isNeighbor) {
-        opacity = 0.5; scale = 1.0
-      } else if (fadingData !== undefined) {
-        const elapsed = now - fadingData
-        if (elapsed < 1000) { opacity = 0.5 } 
-        else { opacity = Math.max(0, 0.5 * (1 - (elapsed - 1000) / 5000)) }
+        opacity = 0.5
         scale = 1.0
-      }
-
-      if (opacity <= 0.01) {
+        transition = 'transform 0.2s ease, opacity 0.2s ease'
+      } else if (wasRecentlyVisible) {
+        // Was visible, now fading out - CSS handles the 6s fade
+        opacity = 0
+        scale = 1.0
+        transition = 'transform 0.3s ease, opacity 6s ease-out'
+      } else {
+        // Never been visible or fully faded - render placeholder
         return <div key={circle.id} style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize }} />
       }
 
       return (
         <button key={circle.id} onClick={() => openOverlay(circle.iconIndex)}
           style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize, cursor:'pointer', zIndex: isHovered || isTouchRevealed ? 12 : 10, border:'none', background:'none', padding:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ width: circleSize, height: circleSize, borderRadius:'18%', overflow:'hidden', opacity, transition: isHovered || isTouchRevealed ? 'transform 0.15s ease, opacity 0.15s ease' : 'opacity 0.08s linear, transform 0.08s linear', transform:`scale(${scale})`, transformOrigin:'center' }}>
+          <div style={{ width: circleSize, height: circleSize, borderRadius:'18%', overflow:'hidden', opacity, transition, transform:`scale(${scale})`, transformOrigin:'center' }}>
             <img src={program.iconImg} alt={program.name[lang]}
               style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
               onError={(e) => {
@@ -674,7 +580,7 @@ export function InteractiveDots({
         </button>
       )
     })
-  }, [hoveredId, neighborIds, simulatedHover, simulatedNeighbors, touchRevealedIds, tick, circleSize, openOverlay, programs, lang])
+  }, [hoveredId, neighborIds, simulatedHover, simulatedNeighbors, touchRevealedIds, recentlyVisible, circleSize, openOverlay, programs, lang])
 
   const selectedProgram = openIdx !== null ? programs[openIdx] : null
 
@@ -720,14 +626,18 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
 }) {
   const [titleDisp, setTitleDisp] = useState(program.name[lang])
   const [descDisp, setDescDisp] = useState(program.description[lang])
-  const titleRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const descRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const titleRef = useRef<(() => void) | null>(null)
+  const descRef = useRef<(() => void) | null>(null)
   const isOpen = phase === 'open'
 
   useEffect(() => {
     runScramble(program.name[lang], setTitleDisp, titleRef)
     const t = setTimeout(() => runScramble(program.description[lang], setDescDisp, descRef), 60)
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      titleRef.current?.()
+      descRef.current?.()
+    }
   }, [lang, program])
 
   const EASE = 'cubic-bezier(0.76,0,0.24,1)'

@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-const chars = "0123456789!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ"
+import { startScramble } from '@/lib/scramble'
 
 const bigWords = {
   de: ['FALLEN', 'LERNEN', 'AUFSTEHEN', 'WIEDERHOLEN'],
@@ -15,12 +14,13 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
   const ref = useRef<HTMLDivElement>(null)
   const [scrollProgress, setScrollProgress] = useState(0)
   const [displayLetters, setDisplayLetters] = useState(targetText.split(''))
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
   const mountedRef = useRef(false)
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
+    return () => { cleanupRef.current?.() }
   }, [])
 
   useEffect(() => {
@@ -33,21 +33,8 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
   }, [scrollY])
 
   const scramble = useCallback((text: string) => {
-    let iteration = 0
-    const revealed = new Set<number>()
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(() => {
-      iteration++
-      const unrevealed = text.split('').map((_, i) => i).filter(i => !revealed.has(i) && text[i] !== ' ')
-      if (unrevealed.length > 0) revealed.add(unrevealed[Math.floor(Math.random() * unrevealed.length)])
-      setDisplayLetters(text.split('').map((char, i) =>
-        revealed.has(i) || char === ' ' ? text[i] : chars[Math.floor(Math.random() * chars.length)]
-      ))
-      if (iteration >= 14) {
-        clearInterval(intervalRef.current!)
-        setDisplayLetters(text.split(''))
-      }
-    }, 35)
+    cleanupRef.current?.()
+    cleanupRef.current = startScramble(text, (s) => setDisplayLetters(s.split('')), { maxIterations: 14 })
   }, [])
 
   useEffect(() => {

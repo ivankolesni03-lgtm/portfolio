@@ -1,21 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useMouse } from '@/contexts/MouseContext'
+import { useScroll } from '@/contexts/ScrollContext'
 
 export function CustomCursor() {
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-
-    const moveCursor = (e: MouseEvent) => {
-      setPosition({ x: e.clientX, y: e.clientY })
-    }
-
-    window.addEventListener('mousemove', moveCursor)
-    return () => window.removeEventListener('mousemove', moveCursor)
-  }, [])
+  const { mouseX, mouseY } = useMouse()
+  const { vw } = useScroll()
+  
+  const isMobile = vw < 768
 
   if (isMobile) return null
 
@@ -24,8 +17,8 @@ export function CustomCursor() {
       className="pointer-events-none z-[200000] mix-blend-difference"
       style={{
         position: 'fixed',
-        left: position.x,
-        top: position.y,
+        left: mouseX,
+        top: mouseY,
         transform: 'translate(-50%, -50%)',
         width: 12,
         height: 12,

@@ -2,6 +2,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
+import { useScroll } from '@/contexts/ScrollContext'
+import { useMouse } from '@/contexts/MouseContext'
+import { useScramble } from '@/hooks/use-scramble'
 import {
   CONTACT_MAX_EMAIL_LENGTH,
   CONTACT_MAX_MESSAGE_LENGTH,
@@ -10,45 +13,6 @@ import {
   type ContactFormPayload,
   isContactApiErrorCode,
 } from '@/lib/contact-config'
-
-// ─── Scramble ─────────────────────────────────────────────────────────────────
-const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ'
-
-function runScramble(
-  target: string,
-  set: (s: string) => void,
-  ref: React.MutableRefObject<ReturnType<typeof setInterval> | null>
-) {
-  let i = 0
-  const rev = new Set<number>()
-  if (ref.current) clearInterval(ref.current)
-  ref.current = setInterval(() => {
-    i++
-    const pool = target.split('').map((_, j) => j)
-      .filter(j => !rev.has(j) && target[j] !== ' ' && target[j] !== '\n')
-    if (pool.length) rev.add(pool[Math.floor(Math.random() * pool.length)])
-    set(target.split('').map((c, j) =>
-      rev.has(j) || c === ' ' || c === '\n'
-        ? target[j]
-        : CHARS[Math.floor(Math.random() * CHARS.length)]
-    ).join(''))
-    if (i >= 16) { clearInterval(ref.current!); set(target) }
-  }, 30)
-}
-
-function useScramble(text: string) {
-  const [disp, setDisp] = useState(text)
-  const ref = useRef<ReturnType<typeof setInterval> | null>(null)
-  const prev = useRef(text)
-  useEffect(() => {
-    if (prev.current !== text) {
-      prev.current = text
-      runScramble(text, setDisp, ref)
-    }
-  }, [text])
-  const scramble = useCallback(() => runScramble(text, setDisp, ref), [text])
-  return { disp, scramble }
-}
 
 // ─── Texte ────────────────────────────────────────────────────────────────────
 const T = {
@@ -231,6 +195,7 @@ function Eyes({
   const rafRef = useRef(0)
   const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoAnimTime = useRef(0)
+  const { mouseX, mouseY } = useMouse()
 
   // responsive eye size
   const eyeSize = isMobile ? 90 : 170
@@ -252,27 +217,24 @@ function Eyes({
     return () => cancelAnimationFrame(rafRef.current)
   }, [])
 
-  // Desktop: Mouse tracking
+  // Desktop: Mouse tracking via context
   useEffect(() => {
     if (isMobile) return
     
-    const onMove = (e: MouseEvent) => {
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const cx = rect.left + rect.width / 2
-      const cy = rect.top + rect.height / 2
-      const dx = e.clientX - cx; const dy = e.clientY - cy
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      const max = 28
-      target.current = {
-        x: (dx / Math.max(dist, 1)) * Math.min(dist / 15, max),
-        y: (dy / Math.max(dist, 1)) * Math.min(dist / 15, max),
-      }
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dx = mouseX - cx
+    const dy = mouseY - cy
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    const max = 28
+    target.current = {
+      x: (dx / Math.max(dist, 1)) * Math.min(dist / 15, max),
+      y: (dy / Math.max(dist, 1)) * Math.min(dist / 15, max),
     }
-    window.addEventListener('mousemove', onMove)
-    return () => window.removeEventListener('mousemove', onMove)
-  }, [containerRef, isMobile])
+  }, [containerRef, isMobile, mouseX, mouseY])
 
   // Mobile: Scroll-based + gentle automatic movement
   useEffect(() => {

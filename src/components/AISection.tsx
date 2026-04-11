@@ -2,6 +2,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
+import { useScroll } from '@/contexts/ScrollContext'
+import { useScramble } from '@/hooks/use-scramble'
 
 type Lang = 'de' | 'en'
 type Port = { x: number; y: number }
@@ -9,38 +11,6 @@ type PortMap = Record<string, { out: Port; inp: Port }>
 
 const BORNA = "'Borna','Helvetica Neue',Arial,sans-serif"
 const MONO  = '"Courier New",monospace'
-
-// ─── Scramble ─────────────────────────────────────────────────────────────────
-const SCHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦШЩЪ01アイウエオ'
-function useScramble(text: string) {
-  const [d, setD] = useState(text)
-  const iv = useRef<ReturnType<typeof setInterval>|null>(null)
-  const p = useRef(text)
-  useEffect(() => {
-    if (p.current === text) return; p.current = text
-    let i = 0; const r = new Set<number>()
-    if (iv.current) clearInterval(iv.current)
-    iv.current = setInterval(() => {
-      i++
-      const pool = text.split('').map((_,j)=>j).filter(j=>!r.has(j)&&text[j]!==' ')
-      if (pool.length) r.add(pool[Math.floor(Math.random()*pool.length)])
-      setD(text.split('').map((c,j)=>r.has(j)||c===' '?text[j]:SCHARS[Math.floor(Math.random()*SCHARS.length)]).join(''))
-      if (i >= 14) { clearInterval(iv.current!); setD(text) }
-    }, 30)
-  }, [text])
-  const scramble = useCallback(() => {
-    let i = 0; const r = new Set<number>()
-    if (iv.current) clearInterval(iv.current)
-    iv.current = setInterval(() => {
-      i++
-      const pool = text.split('').map((_,j)=>j).filter(j=>!r.has(j)&&text[j]!==' ')
-      if (pool.length) r.add(pool[Math.floor(Math.random()*pool.length)])
-      setD(text.split('').map((c,j)=>r.has(j)||c===' '?text[j]:SCHARS[Math.floor(Math.random()*SCHARS.length)]).join(''))
-      if (i >= 14) { clearInterval(iv.current!); setD(text) }
-    }, 30)
-  }, [text])
-  return { disp: d, scramble }
-}
 
 // ─── Neon Heading ─────────────────────────────────────────────────────────────
 function NeonHeading() {
@@ -460,15 +430,13 @@ export function AISection() {
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [mounted])
 
+  const { scrollY, vh: scrollVh } = useScroll()
+  
   useEffect(() => {
-    const fn = () => {
-      const el = outerRef.current; if (!el) return
-      const vh = window.innerHeight, s = Math.max(0, -el.getBoundingClientRect().top)
-      setExitP(Math.max(0, Math.min(1, (s-vh*0.5)/vh)))
-    }
-    window.addEventListener('scroll', fn, {passive:true}); fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
+    const el = outerRef.current; if (!el) return
+    const s = Math.max(0, -el.getBoundingClientRect().top)
+    setExitP(Math.max(0, Math.min(1, (s-scrollVh*0.5)/scrollVh)))
+  }, [scrollY, scrollVh])
 
   const onPortChange = useCallback((id: string, out: Port, inp: Port) => {
     setPorts(p => {
