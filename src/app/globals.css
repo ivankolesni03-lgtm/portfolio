@@ -94,7 +94,7 @@ html {
 }
 
 body {
-  font-family: var(--font-borna), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-borna), var(--font-montserrat), -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--color-bg);
   color: var(--color-main);
   overflow-x: clip;
@@ -252,4 +252,11 @@ body > * {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Prevent line breaks during scramble text animations */
+.scramble-text {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
 }

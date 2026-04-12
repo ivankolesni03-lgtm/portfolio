@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useRef, useCallback, ReactNode } f
 
 type Language = 'de' | 'en'
 
-const chars = "0123456789!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ"
+const chars = "!@#$%&*АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ01"
 
 interface LanguageContextType {
   language: Language
@@ -17,6 +17,18 @@ const LanguageContext = createContext<LanguageContextType | null>(null)
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>('de')
   const languageRef = useRef<Language>('de')
+  const initialized = useRef(false)
+
+  // Auto-detect browser language on mount
+  if (typeof window !== 'undefined' && !initialized.current) {
+    initialized.current = true
+    const browserLang = navigator.language || (navigator as any).userLanguage || 'en'
+    const detectedLang: Language = browserLang.toLowerCase().startsWith('de') ? 'de' : 'en'
+    languageRef.current = detectedLang
+    if (language !== detectedLang) {
+      setLanguage(detectedLang)
+    }
+  }
 
   const scrambleText = useCallback((
     text: string,

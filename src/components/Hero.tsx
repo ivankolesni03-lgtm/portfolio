@@ -5,7 +5,7 @@ import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
 import { startScramble } from '@/lib/scramble'
 
-const chars = "0123456789!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ"
+const chars = "!@#$%&*АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ01"
 
 const images = [
   "/photos/IMG_0142.JPG",
@@ -250,6 +250,8 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   const { scrollY, vh: scrollVh } = useScroll()
   const ivanScramble = useScramble('IVAN')
   const kolesnikovScramble = useScramble('KOLESNIKOV')
+  const nameRef = useRef<HTMLDivElement>(null)
+  const isHoveredRef = useRef(false)
 
   const [showBackdrop, setShowBackdrop] = useState(false)
 
@@ -257,6 +259,22 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
     window.scrollTo(0, 0)
     setMounted(true)
   }, [])
+
+  // Safety check: reset to English if mouse leaves but state got stuck
+  useEffect(() => {
+    if (!isRussian || isMobile) return
+    
+    const checkHover = () => {
+      if (!isHoveredRef.current && isRussian) {
+        setIsRussian(false)
+        ivanScramble.scrambleTo('IVAN')
+        kolesnikovScramble.scrambleTo('KOLESNIKOV')
+      }
+    }
+    
+    const timer = setInterval(checkHover, 100)
+    return () => clearInterval(timer)
+  }, [isRussian, isMobile, ivanScramble, kolesnikovScramble])
 
   // Calculate progress from scroll context
   const progress = scrollVh > 0 ? Math.min(1, scrollY / scrollVh) : 0
@@ -308,18 +326,18 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   const lineHeight = startLineHeight + (endLineHeight - startLineHeight) * progress
 
   const handleEnter = useCallback(() => {
-    if (isRussian) return
+    isHoveredRef.current = true
     setIsRussian(true)
     ivanScramble.scrambleTo('ИВАН')
     kolesnikovScramble.scrambleTo('КОЛЕСНИКОВ')
-  }, [isRussian, ivanScramble, kolesnikovScramble])
+  }, [ivanScramble, kolesnikovScramble])
 
   const handleLeave = useCallback(() => {
-    if (!isRussian) return
+    isHoveredRef.current = false
     setIsRussian(false)
     ivanScramble.scrambleTo('IVAN')
     kolesnikovScramble.scrambleTo('KOLESNIKOV')
-  }, [isRussian, ivanScramble, kolesnikovScramble])
+  }, [ivanScramble, kolesnikovScramble])
 
   const handleNavClick = useCallback(() => {
     if (progress >= 0.95) {
@@ -391,14 +409,16 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
         onClick={handleNavClick}
       >
         <span
-          className="font-bold text-white"
+          className="text-white scramble-text"
           style={{
             fontSize,
             lineHeight,
             letterSpacing: isRussian ? '-0.04em' : '-0.02em',
-            paddingTop: isRussian ? `${fontSize * 0.03}px` : '0',
+            marginTop: isRussian ? `${fontSize * -0.07}px` : '0',
             display: 'block',
             transformOrigin: 'bottom left',
+            fontWeight: isRussian ? 700 : 700,
+            fontFamily: isRussian ? 'var(--font-montserrat), sans-serif' : undefined,
           }}
         >
           <span style={{ fontSize: isRussian ? '0.92em' : '1em' }}>
@@ -406,15 +426,16 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
           </span>
         </span>
         <span
-          className="font-bold text-white"
+          className="text-white scramble-text"
           style={{
             fontSize,
             lineHeight,
             letterSpacing: isRussian ? '-0.04em' : '-0.02em',
-            paddingTop: isRussian ? `${fontSize * 0.03}px` : '0',
-            marginTop: isInNav ? '-0.12em' : '0',
+            marginTop: isRussian ? `${fontSize * -0.05}px` : (isInNav ? '-0.12em' : '0'),
             display: 'block',
             transformOrigin: 'bottom left',
+            fontWeight: isRussian ? 700 : 700,
+            fontFamily: isRussian ? 'var(--font-montserrat), sans-serif' : undefined,
           }}
         >
           <span style={{ fontSize: isRussian ? '0.92em' : '1em' }}>

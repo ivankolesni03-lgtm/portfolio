@@ -1,6 +1,6 @@
 'use client'
 
-const CHARS = '!@#$%&*АБВГДЕЖИКЛМНОПРСТУФХЦ01アイウエオ'
+const CHARS = '!@#$%&*АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ01'
 
 interface ActiveScramble {
   id: number
