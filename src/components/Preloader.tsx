@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useMobile } from '@/hooks/use-mobile'
 
 const criticalImages = [
-  "/photos/background.jpg",
   "/photos/IMG_0142.JPG",
   "/photos/IMG_0205.JPG",
   "/photos/IMG_0323_3.JPG",
@@ -44,6 +43,8 @@ const criticalImages = [
   "/photos/IMG_9313.JPG",
   "/photos/IMG_9680_2.JPG",
 ]
+
+const backgroundSrc = '/photos/background.jpg'
 
 const criticalStaticImages = [
   '/images/hochschule.jpg',
@@ -123,6 +124,74 @@ const criticalMedia = Array.from(new Set([
 
 interface PreloaderProps {
   onComplete: () => void
+}
+
+function preloadImage(src: string) {
+  return new Promise<void>((resolve) => {
+    const image = new window.Image()
+    image.onload = async () => {
+      try {
+        if (typeof image.decode === 'function') {
+          await image.decode()
+        }
+      } catch {
+        // Ignore decode errors, onload is sufficient fallback.
+      }
+      resolve()
+    }
+    image.onerror = () => resolve()
+    image.src = src
+  })
+}
+
+function preloadVideo(src: string) {
+  return new Promise<void>((resolve) => {
+    const video = document.createElement('video')
+    let done = false
+    let timeout = 0
+
+    const finishWithTimeoutClear = () => {
+      window.clearTimeout(timeout)
+      finish()
+    }
+
+    const cleanup = () => {
+      video.removeEventListener('loadeddata', finishWithTimeoutClear)
+      video.removeEventListener('canplaythrough', finishWithTimeoutClear)
+      video.removeEventListener('error', finishWithTimeoutClear)
+      video.removeAttribute('src')
+      video.load()
+    }
+
+    const finish = () => {
+      if (done) return
+      done = true
+      cleanup()
+      resolve()
+    }
+
+    // Safety timeout so one problematic video cannot block 100% forever.
+    timeout = window.setTimeout(finish, 15000)
+
+    video.addEventListener('loadeddata', finishWithTimeoutClear, { once: true })
+    video.addEventListener('canplaythrough', finishWithTimeoutClear, { once: true })
+    video.addEventListener('error', finishWithTimeoutClear, { once: true })
+    video.preload = 'auto'
+    video.muted = true
+    video.playsInline = true
+    video.src = src
+    video.load()
+  })
+}
+
+function preloadBinary(src: string) {
+  return fetch(src, { cache: 'force-cache' })
+    .then((res) => {
+      if (!res.ok) return null
+      return res.arrayBuffer()
+    })
+    .then(() => undefined)
+    .catch(() => undefined)
 }
 
 function PixelatedImage({ src, progress, style, imgStyle }: { 
@@ -224,8 +293,9 @@ export function Preloader({ onComplete }: PreloaderProps) {
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
+    let cancelled = false
 
-    const total = criticalMedia.length
+    const total = criticalMedia.length + 1
 
     const markLoaded = () => {
       loadedRef.current += 1
@@ -244,13 +314,37 @@ export function Preloader({ onComplete }: PreloaderProps) {
       }
     }
 
-    criticalMedia.forEach(src => {
-      fetch(src, { cache: 'force-cache' })
-        .catch(() => null)
-        .finally(markLoaded)
-    })
+    const startPreload = async () => {
+      const bgTask = preloadImage(backgroundSrc)
+      bgTask.finally(() => {
+        if (!cancelled) markLoaded()
+      })
+
+      // Start all other assets after background has finished first.
+      await bgTask
+      if (cancelled) return
+
+      const preloadTasks = criticalMedia.map((src) => {
+        if (criticalVideos.includes(src)) {
+          return preloadVideo(src)
+        }
+        if (criticalModels.includes(src)) {
+          return preloadBinary(src)
+        }
+        return preloadImage(src)
+      })
+
+      preloadTasks.forEach((task) => {
+        task.finally(() => {
+          if (!cancelled) markLoaded()
+        })
+      })
+    }
+
+    startPreload()
 
     return () => {
+      cancelled = true
       document.body.style.overflow = ''
     }
   }, [onComplete])
@@ -278,7 +372,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
         }}
       >
         <PixelatedImage
-          src="/photos/background.jpg"
+          src={backgroundSrc}
           progress={progress}
           imgStyle={{ width: bgWidth }}
         />
@@ -326,7 +420,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
               flexDirection: 'row',
               alignItems: 'center',
               gap: isMobile ? fontSize * 0.12 : fontSize * 0.15,
-              marginTop: fontSize * 0.1,
+              marginTop: fontSize * 0.045,
               opacity: percentOpacity,
               transition: 'opacity 300ms ease-out',
             }}
@@ -336,6 +430,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
                 width: isMobile ? fontSize * 2 : fontSize * 3,
                 height: isMobile ? fontSize * 0.25 * 0.5 : fontSize * 0.35 * 0.6,
                 backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                marginLeft: isMobile ? fontSize * 0.082 : fontSize * 0.072,
                 overflow: 'hidden',
               }}
             >
@@ -351,7 +446,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
             <span
               className="font-bold text-white"
               style={{
-                fontSize: isMobile ? fontSize * 0.25 : fontSize * 0.35,
+                fontSize: isMobile ? fontSize * 0.215 : fontSize * 0.31,
                 lineHeight: 0.9,
                 letterSpacing: '-0.02em',
                 fontVariantNumeric: 'tabular-nums',
