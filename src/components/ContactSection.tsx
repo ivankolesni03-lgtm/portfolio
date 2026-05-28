@@ -514,7 +514,8 @@ export function ContactSection() {
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        zIndex: 5,
+        zIndex: 6,
+        marginTop: '-85vh',
         boxSizing: 'border-box',
       }}
     >
@@ -623,7 +624,7 @@ function DesktopFooter() {
   return (
     <div style={{
       padding: '18px 9vw 26px',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
       flexWrap: 'wrap', gap: 12,
     }}>
       <span style={{
@@ -642,16 +643,16 @@ function MobileFooter() {
   return (
     <div style={{
       padding: '20px 6vw 32px',
-      display: 'flex', flexDirection: 'column', gap: 16,
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
       borderTop: '1px solid rgba(255,255,255,0.08)',
     }}>
-      <SocialIcons />
       <span style={{
         color: 'rgba(255,255,255,0.4)', fontSize: 12,
         fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
       }}>
         © {new Date().getFullYear()} Ivan Kolesnikov
       </span>
+      <SocialIcons />
     </div>
   )
 }
@@ -659,20 +660,17 @@ function MobileFooter() {
 // ─── SocialIcons ──────────────────────────────────────────────────────────────
 function SocialIcons() {
   return (
-    <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
       <IconLink href="https://www.linkedin.com/in/ivan-kolesnikov-flrr/" label="LinkedIn" newTab>
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="square" strokeLinejoin="miter">
-          <rect x="2" y="2" width="24" height="24"/>
-          <line x1="9" y1="13" x2="9" y2="20"/>
-          <circle cx="9" cy="9.5" r="1" fill="#ffffff" stroke="none"/>
-          <path d="M14 20v-4a3 3 0 0 1 6 0v4"/>
-          <line x1="14" y1="13" x2="14" y2="20"/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="2"/>
+          <path d="M8 11v5M8 8v.01M12 16v-5c0-1.5 1-2 2-2s2 .5 2 2v5"/>
         </svg>
       </IconLink>
       <IconLink href="mailto:ivan.kolesni03@gmail.com" label="E-Mail">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="square" strokeLinejoin="miter">
-          <rect x="2" y="5" width="24" height="18"/>
-          <polyline points="2,5 14,15 26,5"/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="2"/>
+          <polyline points="4,7 12,13 20,7"/>
         </svg>
       </IconLink>
     </div>
@@ -694,9 +692,9 @@ function IconLink({ href, label, children, newTab }: {
       onMouseLeave={() => setHov(false)}
       style={{
         color: '#ffffff', lineHeight: 0, display: 'block',
-        opacity: hov ? 1 : 0.65,
+        opacity: 1,
         transform: hov ? 'scale(1.1)' : 'scale(1)',
-        transition: 'opacity 0.15s, transform 0.15s',
+        transition: 'transform 0.15s',
       }}
     >{children}</a>
   )

@@ -41,10 +41,10 @@ function HomeContentInner() {
         <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
           <ProjectsSection />
           <StatsSection />
-          <InteractiveDots />
-          <ResumeTimeline />
           <AISection />
           <GWASection />
+          <InteractiveDots />
+          <ResumeTimeline />
           <ContactSection />
         </div>
       </main>

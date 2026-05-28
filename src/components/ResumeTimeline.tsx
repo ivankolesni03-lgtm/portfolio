@@ -19,11 +19,12 @@ interface TimelineEntry {
 const entries: TimelineEntry[] = [
   { id:1, period:{de:'2023–2025',en:'2023–2025'}, title:{de:'Ausbildung GTA',en:'Apprenticeship'}, org:{de:'Gestaltungstechnischer Assistent',en:'Design Technical Assistant'}, img:'/icons/mmbbs.jpg' },
   { id:2, period:{de:'2023–HEUTE',en:'2023–NOW'}, title:{de:'Studium IMC',en:'IMC Student'}, org:{de:'Hochschule Hannover',en:'Hannover University'}, img:'/icons/hsh.jpg' },
-  { id:3, period:{de:'2024',en:'2024'}, title:{de:'Graphic,\nSocial Media Intern',en:'Graphic, Ideation,\nSocial Media Intern'}, org:{de:'Graco Berlin',en:'Graco Berlin'}, img:'/icons/graco.jpg' },
-  { id:4, period:{de:'2024',en:'2024'}, title:{de:'Brand\nCommunications Intern',en:'Brand\nCommunications Intern'}, org:{de:'Creative Culture',en:'Creative Culture'}, img:'/icons/cc.jpg' },
-  { id:5, period:{de:'2025',en:'2025'}, title:{de:'International Marketing and\n Communications Intern',en:'International Marketing and\n Communications Intern'}, org:{de:'Continental',en:'Continental'}, img:'/icons/conti.jpg' },
-  { id:6, period:{de:'2025',en:'2025'}, title:{de:'Ai Communications\nIntern',en:'Ai Communications\nIntern'}, org:{de:'Creatom',en:'Creatom'}, img:'/icons/creatom.jpg' },
+  { id:3, period:{de:'2024',en:'2024'}, title:{de:'Graphic Design,\nOnline Marketing',en:'Graphic Design,\nOnline Marketing'}, org:{de:'Graco Berlin',en:'Graco Berlin'}, img:'/icons/graco.jpg' },
+  { id:4, period:{de:'2024',en:'2024'}, title:{de:'Brand\nCommunications',en:'Brand\nCommunications'}, org:{de:'Creative Culture',en:'Creative Culture'}, img:'/icons/cc.jpg' },
+  { id:5, period:{de:'2025',en:'2025'}, title:{de:'International Marketing and\n Communications',en:'International Marketing and\n Communications'}, org:{de:'Continental',en:'Continental'}, img:'/icons/conti.jpg' },
+  { id:6, period:{de:'2025',en:'2025'}, title:{de:'AI Communications',en:'AI Communications'}, org:{de:'Creatom',en:'Creatom'}, img:'/icons/creatom.jpg' },
   { id:7, period:{de:'2026',en:'2026'}, title:{de:'Freelancer',en:'Freelancer'}, org:{de:'Selbstständig',en:'Self-employed'}, img:'/icons/freelancer.jpg' },
+  { id:8, period:{de:'2026–HEUTE',en:'2026–NOW'}, title:{de:'Generative\nIntelligence',en:'Generative\nIntelligence'}, org:{de:'BMW Group',en:'BMW Group'}, img:'/icons/bmw.jpg' },
 ]
 
 // proximity: 0 = far, 1 = centered
@@ -230,7 +231,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
   const entry = entries[activeIdx]
 
   return (
-    <div ref={outerRef} style={{ position: 'relative', zIndex: 3, height: '250vh', marginTop: '-100vh' }}>
+    <div ref={outerRef} style={{ position: 'relative', zIndex: 5, height: '250vh', marginTop: '-160vh' }}>
       <section
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -527,7 +528,7 @@ function DesktopTimeline({ lang }: { lang: Lang }) {
   const offset = highlightX - (pos * (baseCardW + gap) + baseCardW / 2)
 
   return (
-    <div ref={outerRef} style={{ position: 'relative', zIndex: 3, height: `${(N + 2) * 100}vh`, marginTop: '-100vh' }}>
+    <div ref={outerRef} style={{ position: 'relative', zIndex: 5, height: `${(N - 2) * 100}vh`, marginTop: '-160vh' }}>
       <section style={{
         position: 'sticky', top: 0, width: '100%', height: '100vh',
         backgroundColor: '#ffffff', overflow: 'hidden',

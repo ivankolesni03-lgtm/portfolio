@@ -314,27 +314,39 @@ function ProcessTimeline({ lang }: { lang: 'de' | 'en' }) {
 }
 
 // ─── ScrollLinkedVideo ────────────────────────────────────────────────────────
-function ScrollLinkedVideo({ lang }: { lang: 'de' | 'en' }) {
+function ScrollLinkedVideo({ lang, exitBlur, exitOpacity }: { lang: 'de' | 'en'; exitBlur: number; exitOpacity: number }) {
   const wrapRef  = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [scale, setScale] = useState(0.4)
+  const [scale, setScale] = useState(0.45)
+  const [isFixed, setIsFixed] = useState(false)
+  const [fixedLeft, setFixedLeft] = useState(0)
   const [hovBtn, setHovBtn] = useState(false)
   const { scrollY, vh } = useScroll()
   const btnText = lang === 'de' ? 'Ansehen' : 'Watch'
   const { disp: btnDisp, scramble: btnScramble } = useScramble(btnText)
+  const MAX_SCALE = 1.6
 
-  // Scale on scroll
   useEffect(() => {
     const el = wrapRef.current; if (!el) return
     const rect = el.getBoundingClientRect()
+
     const elCenter = rect.top + rect.height / 2
     const distFromCenter = elCenter - vh / 2
-    const range = vh * 0.7
-    const s = 1.2 - Math.min(1, Math.abs(distFromCenter) / range) * 0.8
-    setScale(s)
-  }, [scrollY, vh])
+    const range = vh * 0.8
+    // Scale grows from 0.45 → MAX_SCALE as element approaches center, never shrinks back
+    const s = MAX_SCALE - Math.max(0, distFromCenter / range) * (MAX_SCALE - 0.45)
 
-  // Autoplay when visible – runs once on mount, never resets video
+    if (s >= MAX_SCALE * 0.95 && elCenter <= vh / 2) {
+      if (!isFixed) setFixedLeft(rect.left)
+      setIsFixed(true)
+      setScale(MAX_SCALE)
+    } else {
+      setIsFixed(false)
+      setScale(Math.max(0.45, Math.min(MAX_SCALE, s)))
+    }
+  }, [scrollY, vh, isFixed])
+
+  // Autoplay when visible
   useEffect(() => {
     const video = videoRef.current; if (!video) return
     video.muted = true
@@ -350,25 +362,29 @@ function ScrollLinkedVideo({ lang }: { lang: 'de' | 'en' }) {
   const VIDEO_H   = Math.round(VIDEO_W * 9 / 16)
   const BTN_H     = 42
   const GAP       = 18
-  const CONTENT_H = VIDEO_H + GAP + BTN_H
+  const scaledH   = VIDEO_H * scale + GAP + BTN_H
 
   return (
     <div ref={wrapRef} style={{
       position: 'relative',
-      width: VIDEO_W,
-      height: CONTENT_H * scale,
-      transition: 'height 0.06s linear',
+      width: VIDEO_W * scale,
+      height: scaledH,
       overflow: 'visible',
     }}>
       <div style={{
-        position: 'absolute', top: 0, left: 0,
+        position: isFixed ? 'fixed' : 'absolute',
+        top: isFixed ? '50%' : 0,
+        left: isFixed ? fixedLeft : 0,
+        zIndex: isFixed ? 8 : 'auto',
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-        transform: `scale(${scale})`,
+        transform: isFixed ? 'translateY(-50%)' : 'none',
         transformOrigin: 'left top',
-        transition: 'transform 0.06s linear',
-        width: VIDEO_W,
+        width: VIDEO_W * scale,
+        filter: exitBlur > 0.1 ? `blur(${exitBlur}px)` : 'none',
+        opacity: exitOpacity,
+        pointerEvents: 'auto',
       }}>
-        <div style={{ width: VIDEO_W, height: VIDEO_H, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0 }}>
           <video
             ref={videoRef}
             src="/videos/gwavideo.mp4"
@@ -408,12 +424,8 @@ const T = {
   award2: { de: 'Making-Off Award', en: 'Making-Off Award' },
   award3: { de: 'Publikumspreis', en: 'Audience Award' },
   p1: {
-    de: 'Beim GWA Junior Agency Award 2026 belegte unser Team Hannover den dritten Platz – und holte gleich zwei weitere Auszeichnungen: den Making-Off Award für die beste Behind-the-Scenes-Dokumentation und den Publikumspreis.',
-    en: 'At the GWA Junior Agency Award 2026 our Hannover team secured third place – and took home two additional prizes: the Making-Off Award for best behind-the-scenes documentation and the Audience Award.',
-  },
-  p2: {
-    de: 'Unser Kunde war HateAid, unsere Partneragentur Creative Team. Die Aufgabe: Hass im Netz sichtbar machen und Awareness für HateAid schaffen. Unser Claim – „Einer für alle, alle gegen Hass" – stellte den Teamgedanken ins Zentrum der Kampagne und mobilisierte das Publikum.',
-    en: 'Our client was HateAid, our partner agency Creative Team. The brief: make hate online visible and raise awareness for HateAid. Our claim – "One for all, all against hate" – put the team spirit at the heart of the campaign and mobilised the audience.',
+    de: 'Beim GWA Junior Agency Award 2026 belegte unser Team Hannover den dritten Platz – und holte gleich zwei weitere Auszeichnungen: den Making-Off Award für die beste Behind-the-Scenes-Dokumentation und den Publikumspreis. Unser Kunde war HateAid, unsere Partneragentur Creative Team. Unser Claim – \u201EEiner f\u00FCr alle, alle gegen Hass\u201C – stellte den Teamgedanken ins Zentrum der Kampagne und mobilisierte das Publikum.',
+    en: 'At the GWA Junior Agency Award 2026 our Hannover team secured third place – and took home two additional prizes: the Making-Off Award for best behind-the-scenes documentation and the Audience Award. Our client was HateAid, our partner agency Creative Team. Our claim – "One for all, all against hate" – put the team spirit at the heart of the campaign and mobilised the audience.',
   },
 }
 type Lang = 'de' | 'en'
@@ -432,7 +444,7 @@ export function GWASection() {
     if (isMobile) return
     const fig = figRef.current; const sec = secRef.current; if (!fig || !sec) return
     const sr = sec.getBoundingClientRect()
-    const TARGET = vh * 0.12; const figW = vw * 0.42; const figH = Math.min(Math.max(vw * 0.82, 460), 860)
+    const TARGET = vh * 0.12; const figW = vw * 0.48; const figH = Math.min(Math.max(vh * 0.85, 460), 960)
     if (sr.top + TARGET > TARGET) {
       fig.style.position = 'absolute'; fig.style.top = `${TARGET}px`
       fig.style.left = ''; fig.style.right = `${vw * 0.01}px`
@@ -442,14 +454,14 @@ export function GWASection() {
       fig.style.left = `${vw - vw * 0.01 - figW}px`; fig.style.right = ''
       fig.style.width = `${figW}px`; fig.style.height = `${figH}px`
     }
-    const p = Math.max(0, Math.min(1, 1 - sr.bottom / (vh * 0.8)))
+    const p = Math.max(0, Math.min(1, 1 - sr.bottom / (vh * 1.2)))
     setFigureExit({ blur: p * 24, opacity: 1 - p * 0.95 })
   }, [scrollY, vh, vw, isMobile])
 
   // ── Mobile ──────────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div ref={secRef} style={{ position: 'relative', zIndex: 5, marginTop: '-5vh' }}>
+      <div ref={secRef} style={{ position: 'relative', zIndex: 3, marginTop: '-5vh' }}>
         <section id="gwa" style={{ backgroundColor: '#ffffff', boxSizing: 'border-box', overflow: 'hidden', padding: '20vw 5vw 18vw', display: 'flex', flexDirection: 'column' }}>
           <div style={{ marginBottom: 'clamp(20px,5vw,32px)' }}><StaticHeadingGWA /></div>
           <div style={{ width: '100%', height: '72vw', maxHeight: 340, marginBottom: 'clamp(24px,6vw,40px)' }}>
@@ -461,11 +473,8 @@ export function GWASection() {
             <AwardBadge label={T.award2[lang]} />
             <AwardBadge label={T.award3[lang]} />
           </div>
-          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(12px,3vw,20px)' }} />
-          <ScrambleP text={T.p2[lang]} style={{ color: '#0a0a0a', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(40px,10vw,60px)' }} />
-          <ProcessTimeline lang={lang} />
-          <div style={{ marginTop: 'clamp(40px,10vw,64px)' }}>
-            {/* mobile: simple 16:9 video, no scale trick */}
+          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(20px,5vw,32px)' }} />
+          <div>
             <div style={{ width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)' }}>
               <video src="/videos/gwavideo.mp4" autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
@@ -478,8 +487,8 @@ export function GWASection() {
 
   // ── Desktop ──────────────────────────────────────────────────────────────────
   return (
-    <div ref={secRef} style={{ position: 'relative', zIndex: 5, marginTop: '-110vh' }}>
-      <section id="gwa" style={{ position: 'relative', backgroundColor: '#ffffff', minHeight: '280vh', display: 'flex', alignItems: 'stretch', boxSizing: 'border-box', overflow: 'visible' }}>
+    <div ref={secRef} style={{ position: 'relative', zIndex: 3, marginTop: '-110vh' }}>
+      <section id="gwa" style={{ position: 'relative', backgroundColor: '#ffffff', minHeight: '230vh', display: 'flex', alignItems: 'stretch', boxSizing: 'border-box', overflow: 'visible' }}>
         <div style={{ flex: '0 0 55%', paddingTop: '9vw', paddingBottom: '10vw', paddingLeft: '9vw', paddingRight: '4vw', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', boxSizing: 'border-box' }}>
 
           {/* Heading */}
@@ -496,20 +505,14 @@ export function GWASection() {
           </div>
 
           {/* Body text */}
-          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(16px,1.8vw,24px)', maxWidth: 560 }} />
-          <ScrambleP text={T.p2[lang]} style={{ color: '#0a0a0a', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(56px,7vw,96px)', maxWidth: 560 }} />
-
-          {/* Process timeline */}
-          <ProcessTimeline lang={lang} />
+          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(40px,5vw,64px)', maxWidth: 560 }} />
 
           {/* Scroll-linked 16:9 video + button */}
-          <div style={{ marginTop: 'clamp(56px,7vw,96px)' }}>
-            <ScrollLinkedVideo lang={lang} />
-          </div>
+          <ScrollLinkedVideo lang={lang} exitBlur={figureExit.blur} exitOpacity={figureExit.opacity} />
 
         </div>
         <div style={{ flex: 1 }} />
-        <div ref={figRef} style={{ position: 'absolute', top: '12vh', right: '1vw', width: '42%', height: '82vw', maxHeight: 860, minHeight: 460, zIndex: 10, filter: figureExit.blur > 0.1 ? `blur(${figureExit.blur}px)` : 'none', opacity: figureExit.opacity, boxSizing: 'border-box' }}>
+        <div ref={figRef} style={{ position: 'absolute', top: '12vh', right: '1vw', width: '48%', height: '85vh', maxHeight: 960, minHeight: 460, zIndex: 10, filter: figureExit.blur > 0.1 ? `blur(${figureExit.blur}px)` : 'none', opacity: figureExit.opacity, boxSizing: 'border-box' }}>
           <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} />
         </div>
       </section>

@@ -55,20 +55,16 @@ export function StatsSection() {
     const fixedActive = scrolled >= 0 && rect.bottom >= vh
     setShowFixed(fixedActive)
 
-    // Phase 3 – EXIT BLUR (beginnt verzögert)
-    const blurDelay = vh * 0.5
-    const exitTotal = totalH - vh
-    const effectiveScrolled = Math.max(0, scrolled - blurDelay)
-    const blurDuration = exitTotal - blurDelay
-    
-    const ep = blurDuration > 0 ? Math.max(0, Math.min(1, effectiveScrolled / blurDuration)) : 0
+    // Phase 3 – EXIT BLUR
+    const maxScroll = totalH - vh
+    const ep = maxScroll > 0 ? Math.max(0, Math.min(1, scrolled / maxScroll)) : 0
     
     setBlur(ep * 24)
-    setOpacity(1 - ep)
+    setOpacity(1 - ep * 0.9)
   }, [scrollY, vh])
 
   const grid = (
-    <div style={{ width:'100%', filter: blur > 0 ? `blur(${blur}px)` : 'none', opacity }}>
+    <div style={{ width:'100%' }}>
       <div style={{
         paddingLeft:  isMobile ? '5vw' : '5vw',
         paddingRight: isMobile ? '5vw' : '5vw',
@@ -114,8 +110,10 @@ export function StatsSection() {
       </div>
 
       {/* Fixed Overlay */}
-      <div style={{ position:'fixed', inset:0, zIndex: isMobile ? 3 : 2, display:'flex', alignItems:'center', backgroundColor:'#ffffff', pointerEvents:'none', opacity: showFixed ? 1 : 0, transition:'opacity 0.06s' }}>
-        {grid}
+      <div style={{ position:'fixed', inset:0, zIndex: isMobile ? 3 : 2, display:'flex', alignItems:'center', backgroundColor:'#ffffff', pointerEvents:'none', opacity: showFixed ? 1 : 0, filter: blur > 0.1 ? `blur(${blur}px)` : 'none' }}>
+        <div style={{ width:'100%', opacity }}>
+          {grid}
+        </div>
       </div>
     </>
   )
