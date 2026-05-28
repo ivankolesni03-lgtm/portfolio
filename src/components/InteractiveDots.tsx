@@ -586,7 +586,7 @@ export function InteractiveDots({
 
   return (
     <>
-      <div ref={outerRef} style={{ position: 'relative', zIndex: 2, height: '300vh', marginTop: '-25vh' }}>
+      <div ref={outerRef} style={{ position: 'relative', zIndex: 4, height: '300vh', marginTop: '-25vh' }}>
         <section 
           ref={containerRef} 
           onMouseMove={handleMouseMove} 

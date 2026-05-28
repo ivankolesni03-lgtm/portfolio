@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMobile } from '@/hooks/use-mobile'
 
 const criticalImages = [
@@ -44,6 +44,82 @@ const criticalImages = [
   "/photos/IMG_9313.JPG",
   "/photos/IMG_9680_2.JPG",
 ]
+
+const criticalStaticImages = [
+  '/images/hochschule.jpg',
+  '/images/hochschule0.jpg',
+  '/images/hochschule1.jpg',
+  '/images/hochschule3.jpg',
+  '/images/hochschule4.jpg',
+  '/images/continental.jpg',
+  '/images/continental1.jpg',
+  '/images/continental2.jpg',
+  '/images/hateaid.jpg',
+  '/images/hateaid1.jpg',
+  '/images/hateaid2.jpg',
+  '/images/hateaid3.jpg',
+  '/images/hateaid4.jpg',
+  '/images/lebara.jpg',
+  '/images/ganbatte.jpg',
+  '/images/cavallo.jpg',
+  '/images/bold.jpg',
+  '/images/pocoloco.jpg',
+  '/images/pocoloco1.jpg',
+  '/images/glownation.jpg',
+  '/images/tennisheine.jpg',
+  '/images/gwa.jpg',
+  '/images/weros.jpg',
+  '/images/weros1.jpg',
+  '/images/jing-jang.png',
+  '/images/hsh-logo.png',
+  '/images/hateaid-logo.png',
+  '/images/cc-logo.png',
+]
+
+const criticalIcons = [
+  '/icons/mmbbs.jpg',
+  '/icons/hsh.jpg',
+  '/icons/graco.jpg',
+  '/icons/cc.jpg',
+  '/icons/conti.jpg',
+  '/icons/creatom.jpg',
+  '/icons/freelancer.jpg',
+  '/icons/bmw.jpg',
+  '/icons/premiere-pro.png',
+  '/icons/illustrator.png',
+  '/icons/photoshop.png',
+  '/icons/after-effects.png',
+  '/icons/photoshop-lightroom.png',
+  '/icons/xd.png',
+  '/icons/indesign.png',
+  '/icons/acrobat.png',
+  '/icons/vs-code.png',
+  '/icons/comfy-ui.png',
+  '/icons/adobe-audition.png',
+  '/icons/claude.png',
+  '/icons/blender.png',
+  '/icons/capcut.png',
+  '/icons/fl-studio.png',
+  '/icons/higgsfield.png',
+  '/icons/powerpoint.png',
+]
+
+const criticalVideos = [
+  '/videos/storytelling.mp4',
+  '/videos/gwavideo.mp4',
+]
+
+const criticalModels = [
+  '/models/figur01.glb',
+]
+
+const criticalMedia = Array.from(new Set([
+  ...criticalImages,
+  ...criticalStaticImages,
+  ...criticalIcons,
+  ...criticalVideos,
+  ...criticalModels,
+]))
 
 interface PreloaderProps {
   onComplete: () => void
@@ -148,31 +224,30 @@ export function Preloader({ onComplete }: PreloaderProps) {
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    
-    const total = criticalImages.length
-    
-    criticalImages.forEach(src => {
-      const img = new window.Image()
-      img.onload = img.onerror = () => {
-        loadedRef.current++
-        const newProgress = Math.min(100, Math.round((loadedRef.current / total) * 100))
-        setProgress(newProgress)
-        
-        if (loadedRef.current >= total && !hasCompletedRef.current) {
-          hasCompletedRef.current = true
-          
-          // Only fade out the percentage
-          setPercentOpacity(0)
-          
-          // After percentage fades, instantly switch to real Hero
-          setTimeout(() => {
-            setIsVisible(false)
-            document.body.style.overflow = ''
-            onComplete()
-          }, 300)
-        }
+
+    const total = criticalMedia.length
+
+    const markLoaded = () => {
+      loadedRef.current += 1
+      const newProgress = Math.min(100, Math.round((loadedRef.current / total) * 100))
+      setProgress(newProgress)
+
+      if (loadedRef.current >= total && !hasCompletedRef.current) {
+        hasCompletedRef.current = true
+        setPercentOpacity(0)
+
+        setTimeout(() => {
+          setIsVisible(false)
+          document.body.style.overflow = ''
+          onComplete()
+        }, 300)
       }
-      img.src = src
+    }
+
+    criticalMedia.forEach(src => {
+      fetch(src, { cache: 'force-cache' })
+        .catch(() => null)
+        .finally(markLoaded)
     })
 
     return () => {
@@ -248,25 +323,14 @@ export function Preloader({ onComplete }: PreloaderProps) {
           <div
             style={{
               display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              alignItems: isMobile ? 'flex-start' : 'center',
-              gap: isMobile ? fontSize * 0.08 : fontSize * 0.15,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: isMobile ? fontSize * 0.12 : fontSize * 0.15,
               marginTop: fontSize * 0.1,
               opacity: percentOpacity,
               transition: 'opacity 300ms ease-out',
             }}
           >
-            <span
-              className="font-bold text-white"
-              style={{
-                fontSize: isMobile ? fontSize * 0.25 : fontSize * 0.35,
-                lineHeight: 0.9,
-                letterSpacing: '-0.02em',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {progress}%
-            </span>
             <div
               style={{
                 width: isMobile ? fontSize * 2 : fontSize * 3,
@@ -284,6 +348,17 @@ export function Preloader({ onComplete }: PreloaderProps) {
                 }}
               />
             </div>
+            <span
+              className="font-bold text-white"
+              style={{
+                fontSize: isMobile ? fontSize * 0.25 : fontSize * 0.35,
+                lineHeight: 0.9,
+                letterSpacing: '-0.02em',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {progress}%
+            </span>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Hero } from '@/components/Hero'
 import { StorytellingSection } from '@/components/StorytellingSection'
 import { ProjectsSection } from '@/components/ProjectsSection'
@@ -18,15 +18,15 @@ import { InteractiveDots } from '@/components/InteractiveDots'
 import { ResumeTimeline } from '@/components/ResumeTimeline'
 import { Preloader } from '@/components/Preloader'
 
+type HomePhase = 'locked' | 'preloading' | 'ready'
+
 function HomeContentInner() {
-  const [isLoaded, setIsLoaded] = useState(false)
   const { scrollY, vh } = useScroll()
   const headerVisible = scrollY > vh * 0.8
 
   return (
     <>
-      {!isLoaded && <Preloader onComplete={() => setIsLoaded(true)} />}
-      <main style={{ visibility: isLoaded ? 'visible' : 'hidden' }}>
+      <main>
         <style>{`
           body.overlay-open .fixed-ui {
             filter: blur(8px) !important;
@@ -61,12 +61,19 @@ function HomeContent() {
 }
 
 export default function Home() {
+  const [phase, setPhase] = useState<HomePhase>('locked')
+
+  useEffect(() => {
+    const isUnlocked = sessionStorage.getItem('unlocked') === 'true'
+    setPhase(isUnlocked ? 'preloading' : 'locked')
+  }, [])
+
   return (
     <MouseProvider>
       <LanguageProvider>
-        <PasswordGate>
-          <HomeContent />
-        </PasswordGate>
+        {phase === 'locked' && <PasswordGate onUnlock={() => setPhase('preloading')} />}
+        {phase === 'preloading' && <Preloader onComplete={() => setPhase('ready')} />}
+        {phase !== 'locked' && <HomeContent />}
       </LanguageProvider>
     </MouseProvider>
   )

@@ -9,6 +9,10 @@ interface EyePos { x: number; y: number }
 
 type GateStatus = 'checking' | 'locked' | 'submitting' | 'unlocked'
 
+interface PasswordGateProps {
+  onUnlock: () => void
+}
+
 function SingleEye({ pupil, blinking, size }: { pupil: EyePos; blinking: boolean; size: number }) {
   const h = size * 0.5
   const pupilSize = size * 0.42
@@ -56,8 +60,8 @@ function SingleEye({ pupil, blinking, size }: { pupil: EyePos; blinking: boolean
   )
 }
 
-export function PasswordGate({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<GateStatus>('checking')
+export function PasswordGate({ onUnlock }: PasswordGateProps) {
+  const [status, setStatus] = useState<GateStatus>('locked')
   const [input, setInput] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [pupil, setPupil] = useState<EyePos>({ x: 0, y: 0 })
@@ -71,11 +75,6 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   const autoAnimTime = useRef(0)
   const { isMobile } = useMobile()
   const { mouseX, mouseY } = useMouse()
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem('unlocked')
-    setStatus(saved === 'true' ? 'unlocked' : 'locked')
-  }, [])
 
   // Desktop: Mouse tracking via context
   useEffect(() => {
@@ -182,6 +181,7 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem('unlocked', 'true')
       setStatus('unlocked')
       setInput('')
+      onUnlock()
     } catch {
       setStatus('locked')
       setErrorMessage('TRY AGAIN')
@@ -192,8 +192,7 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
     if (e.key === 'Enter') handleSubmit()
   }
 
-  if (status === 'checking') return null
-  if (status === 'unlocked') return <>{children}</>
+  if (status === 'checking' || status === 'unlocked') return null
 
   const eyeSize = isMobile ? 120 : 160
 
