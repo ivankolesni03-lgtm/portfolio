@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import Image from 'next/image'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
 import { startScramble } from '@/lib/scramble'
@@ -474,17 +473,15 @@ function BgImage() {
         willChange: 'opacity, filter',
       }}
     >
-      <Image
+      <img
         src="/photos/background.jpg"
         alt=""
-        width={bgSize}
-        height={bgSize}
-        priority
         style={{
           width: isMobile ? '100vw' : '660px',
           height: 'auto',
+          display: 'block',
+          objectFit: 'contain',
         }}
-        className="object-contain"
       />
     </div>
   )

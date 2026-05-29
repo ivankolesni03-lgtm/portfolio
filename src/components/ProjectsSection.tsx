@@ -1,6 +1,5 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import Image from 'next/image'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useScramble, runScramble } from '@/hooks/use-scramble'
@@ -324,7 +323,7 @@ function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
         filter: overlayOpen ? 'blur(8px)' : 'none',
       }}
     >
-      <Image src={project.image} alt="" width={1200} height={800} style={{
+      <img src={project.image} alt="" style={{
         display: 'block', width: '100%', height: 'auto',
         filter: isActive ? 'none' : 'invert(1) hue-rotate(180deg) grayscale(1)',
         transition: 'filter 0.22s ease-out', userSelect: 'none', pointerEvents: 'none',

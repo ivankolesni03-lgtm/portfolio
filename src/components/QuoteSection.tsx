@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import Image from 'next/image'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { startScramble } from '@/lib/scramble'
 
@@ -115,11 +114,9 @@ function YinYang({ visible, scrolledIn, sectionHeight }: {
   return (
     <div style={{ opacity: appearProgress, willChange: 'opacity' }}>
       <div style={{ transform: `rotate(${rotation}deg)`, willChange: 'transform' }}>
-        <Image
+        <img
           src="/images/jing-jang.png"
           alt=""
-          width={size}
-          height={size}
           style={{ width: size, height: size, display: 'block' }}
         />
       </div>

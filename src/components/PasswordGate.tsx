@@ -1,11 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useState, type KeyboardEvent } from 'react'
 import { CustomCursor } from '@/components/CustomCursor'
 import { useMobile } from '@/hooks/use-mobile'
-import { useMouse } from '@/contexts/MouseContext'
-
-interface EyePos { x: number; y: number }
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type GateStatus = 'checking' | 'locked' | 'submitting' | 'unlocked'
 
@@ -13,149 +11,34 @@ interface PasswordGateProps {
   onUnlock: () => void
 }
 
-function SingleEye({ pupil, blinking, size }: { pupil: EyePos; blinking: boolean; size: number }) {
-  const h = size * 0.5
-  const pupilSize = size * 0.42
-  const scale = size / 180
-  return (
-    <div style={{ position: 'relative', width: size, height: h, flexShrink: 0 }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: '55%',
-        backgroundColor: '#000', zIndex: 10,
-        transformOrigin: 'top center',
-        transform: blinking ? 'scaleY(1)' : 'scaleY(0)',
-        transition: 'transform 0.05s ease-in-out',
-        borderBottomLeftRadius: '45%', borderBottomRightRadius: '45%',
-      }} />
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%',
-        backgroundColor: '#000', zIndex: 10,
-        transformOrigin: 'bottom center',
-        transform: blinking ? 'scaleY(1)' : 'scaleY(0)',
-        transition: 'transform 0.05s ease-in-out',
-        borderTopLeftRadius: '45%', borderTopRightRadius: '45%',
-      }} />
-      <div style={{
-        width: size, height: h, backgroundColor: '#fff',
-        borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%',
-          width: pupilSize, height: pupilSize, borderRadius: '50%',
-          backgroundColor: '#000',
-          transform: `translate(calc(-50% + ${pupil.x * scale}px), calc(-50% + ${pupil.y * scale}px))`,
-        }}>
-          <div style={{
-            position: 'absolute', top: '15%', left: '15%',
-            width: '20%', height: '20%', borderRadius: '50%', backgroundColor: '#fff',
-          }} />
-          <div style={{
-            position: 'absolute', bottom: '18%', right: '18%',
-            width: '11%', height: '11%', borderRadius: '50%', backgroundColor: '#fff',
-          }} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export function PasswordGate({ onUnlock }: PasswordGateProps) {
-  const [status, setStatus] = useState<GateStatus>('locked')
+  const [status, setStatus] = useState<GateStatus>('checking')
   const [input, setInput] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const [pupil, setPupil] = useState<EyePos>({ x: 0, y: 0 })
-  const [blinking, setBlinking] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const smooth = useRef<EyePos>({ x: 0, y: 0 })
-  const target = useRef<EyePos>({ x: 0, y: 0 })
-  const rafRef = useRef(0)
-  const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const autoAnimTime = useRef(0)
+
   const { isMobile } = useMobile()
-  const { mouseX, mouseY } = useMouse()
+  const { t } = useLanguage()
 
-  // Desktop: Mouse tracking via context
-  useEffect(() => {
-    if (status !== 'locked' && status !== 'submitting') return
-    if (isMobile) return
-
-    const el = containerRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const cx = rect.left + rect.width / 2
-    const cy = rect.top + rect.height / 2
-    const dx = mouseX - cx
-    const dy = mouseY - cy
-    const dist = Math.sqrt(dx * dx + dy * dy)
-    const max = 28
-    target.current = {
-      x: (dx / Math.max(dist, 1)) * Math.min(dist / 15, max),
-      y: (dy / Math.max(dist, 1)) * Math.min(dist / 15, max),
-    }
-  }, [status, isMobile, mouseX, mouseY])
-
-  // Mobile: Gentle automatic eye movement
-  useEffect(() => {
-    if (status !== 'locked' && status !== 'submitting') return
-    if (!isMobile) return
-
-    const autoAnimate = () => {
-      autoAnimTime.current += 0.03
-      // Subtle circular/figure-8 movement
-      const autoX = Math.sin(autoAnimTime.current) * 12
-      const autoY = Math.sin(autoAnimTime.current * 1.5) * 6
-      target.current = { x: autoX, y: autoY }
-    }
-
-    const interval = setInterval(autoAnimate, 50)
-    return () => clearInterval(interval)
-  }, [status, isMobile])
+  const emptyError = t('PASSWORT FEHLT', 'PASSWORD REQUIRED')
+  const wrongError = t('FALSCHES PASSWORT', 'WRONG PASSWORD')
+  const retryError = t('BITTE ERNEUT VERSUCHEN', 'PLEASE TRY AGAIN')
+  const inputPlaceholder = t('PASSWORT', 'PASSWORD')
+  const enterText = t('EINGEBEN', 'ENTER')
 
   useEffect(() => {
-    if (status !== 'locked' && status !== 'submitting') {
-      setPupil({ x: 0, y: 0 })
-      smooth.current = { x: 0, y: 0 }
-      target.current = { x: 0, y: 0 }
+    const saved = sessionStorage.getItem('unlocked')
+    if (saved === 'true') {
+      setStatus('unlocked')
+      onUnlock()
       return
     }
-
-    const step = () => {
-      smooth.current.x += (target.current.x - smooth.current.x) * 0.08
-      smooth.current.y += (target.current.y - smooth.current.y) * 0.08
-      setPupil({ x: smooth.current.x, y: smooth.current.y })
-      rafRef.current = requestAnimationFrame(step)
-    }
-    rafRef.current = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(rafRef.current)
-  }, [status])
-
-  useEffect(() => {
-    if (status !== 'locked' && status !== 'submitting') {
-      setBlinking(false)
-      return
-    }
-
-    const schedule = () => {
-      blinkRef.current = setTimeout(() => {
-        setBlinking(true)
-        const dur = 100 + Math.random() * 50
-        setTimeout(() => {
-          setBlinking(false)
-          schedule()
-        }, dur)
-      }, 2000 + Math.random() * 4000)
-    }
-    schedule()
-    return () => {
-      if (blinkRef.current) clearTimeout(blinkRef.current)
-    }
-  }, [status])
+    setStatus('locked')
+  }, [onUnlock])
 
   const handleSubmit = async () => {
     if (!input) {
-      setErrorMessage('NO')
+      setErrorMessage(emptyError)
       return
     }
 
@@ -165,15 +48,13 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
     try {
       const response = await fetch('/api/password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: input }),
       })
 
       if (!response.ok) {
         setStatus('locked')
-        setErrorMessage('NO')
+        setErrorMessage(wrongError)
         setInput('')
         return
       }
@@ -184,130 +65,207 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
       onUnlock()
     } catch {
       setStatus('locked')
-      setErrorMessage('TRY AGAIN')
+      setErrorMessage(retryError)
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') handleSubmit()
   }
 
   if (status === 'checking' || status === 'unlocked') return null
 
-  const eyeSize = isMobile ? 120 : 160
+  const left = isMobile ? '5vw' : '8vw'
+  const top = isMobile ? '12vh' : '15vh'
+  const fontSize = isMobile ? '13vw' : '8vw'
+  const rowTop = `calc(${top} + ${isMobile ? '24vw' : '14.8vw'})`
+  const rowLeft = `calc(${left} + ${isMobile ? '0.85vw' : '0.5vw'})`
+  const inputWidth = isMobile ? '50vw' : '24.5vw'
+  const passwordInputFontSize = 'clamp(20px, 2.15vw, 26px)'
+  const enterFontSize = 'clamp(12px, 1.1vw, 15px)'
 
   return (
     <>
       {!inputFocused && <CustomCursor />}
       <div
-        ref={containerRef}
         style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: '#000',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          backgroundColor: '#ffffff',
           zIndex: 9999,
-          fontFamily: 'monospace',
           overflow: 'hidden',
         }}
       >
-      <div style={{ textAlign: 'center', width: '90%', maxWidth: '400px' }}>
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '48px' }}>
-          <SingleEye pupil={pupil} blinking={blinking} size={eyeSize} />
-        </div>
-
-        <div style={{
-          fontSize: 'clamp(20px, 5vw, 28px)',
-          fontWeight: '900',
-          color: '#fff',
-          letterSpacing: '-0.02em',
-          marginBottom: '40px',
-          lineHeight: 0.9,
-        }}>
-          WHO ARE YOU?
-        </div>
-
-        <p style={{
-          color: '#555',
-          fontSize: '11px',
-          letterSpacing: '0.2em',
-          textTransform: 'uppercase',
-          marginBottom: '24px',
-        }}>
-
-        </p>
-
-        <input
-          type="password"
-          value={input}
-          onChange={e => { setInput(e.target.value); setErrorMessage('') }}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setInputFocused(true)}
-          onBlur={() => setInputFocused(false)}
-          autoFocus
-          placeholder="••••••"
-          disabled={status === 'submitting'}
+        <div
           style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: `1px solid ${errorMessage ? '#ff3333' : '#333'}`,
-            color: '#fff',
-            fontSize: '18px',
-            padding: '12px 0',
-            outline: 'none',
-            textAlign: 'center',
-            letterSpacing: '0.3em',
-            marginBottom: '8px',
-            transition: 'border-color 0.2s',
+            position: 'fixed',
+            right: isMobile ? '-12vw' : '1.5vw',
+            top: isMobile ? '30vh' : 'auto',
+            bottom: isMobile ? 'auto' : '10vh',
+            zIndex: 0,
+            pointerEvents: 'none',
+            maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)',
+            WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)',
           }}
-        />
-
-        <p style={{
-          color: '#ff3333',
-          fontSize: '11px',
-          letterSpacing: '0.15em',
-          textTransform: 'uppercase',
-          height: '20px',
-          marginBottom: '32px',
-          opacity: errorMessage ? 1 : 0,
-          transition: 'opacity 0.2s',
-        }}>
-          {errorMessage || ' '}
-        </p>
-
-        <button
-          onClick={handleSubmit}
-          disabled={status === 'submitting'}
-          style={{
-            background: 'transparent',
-            border: '1px solid #333',
-            color: '#fff',
-            fontSize: '11px',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            padding: '14px 40px',
-            cursor: status === 'submitting' ? 'default' : 'pointer',
-            width: '100%',
-            transition: 'border-color 0.2s',
-            opacity: status === 'submitting' ? 0.65 : 1,
-          }}
-          onMouseEnter={e => { (e.target as HTMLButtonElement).style.borderColor = '#fff' }}
-          onMouseLeave={e => { (e.target as HTMLButtonElement).style.borderColor = '#333' }}
         >
-          {status === 'submitting' ? 'CHECKING' : 'ENTER'}
-        </button>
+          <img
+            src="/photos/background.jpg"
+            alt=""
+            style={{
+              width: isMobile ? '100vw' : '660px',
+              height: 'auto',
+              display: 'block',
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            position: 'fixed',
+            left,
+            top,
+            zIndex: 10,
+            mixBlendMode: 'difference',
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
+            <span
+              className="text-white"
+              style={{
+                fontSize,
+                lineHeight: 0.9,
+                letterSpacing: '-0.02em',
+                display: 'block',
+                fontWeight: 700,
+              }}
+            >
+              IVAN
+            </span>
+            <span
+              className="text-white"
+              style={{
+                fontSize,
+                lineHeight: 0.9,
+                letterSpacing: '-0.02em',
+                display: 'block',
+                fontWeight: 700,
+              }}
+            >
+              KOLESNIKOV
+            </span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            position: 'fixed',
+            left: rowLeft,
+            top: rowTop,
+            zIndex: 20,
+            width: isMobile ? '84vw' : '44vw',
+            maxWidth: 640,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: isMobile ? 12 : 18,
+              width: '100%',
+            }}
+          >
+            <input
+              id="portfolio-password"
+              type="password"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value)
+                setErrorMessage('')
+              }}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              autoFocus
+              placeholder={inputPlaceholder}
+              disabled={status === 'submitting'}
+              style={{
+                width: inputWidth,
+                background: 'transparent',
+                border: 'none',
+                borderBottom: `2px solid ${errorMessage ? '#ff2d2d' : '#0a0a0a'}`,
+                color: '#0a0a0a',
+                fontSize: passwordInputFontSize,
+                fontWeight: 700,
+                lineHeight: 1,
+                padding: '8px 0',
+                outline: 'none',
+                letterSpacing: '0.06em',
+                transition: 'border-color 0.2s ease',
+                boxSizing: 'border-box',
+                textTransform: 'uppercase',
+              }}
+            />
+
+            <button
+              onClick={handleSubmit}
+              disabled={status === 'submitting'}
+              style={{
+                background: '#0a0a0a',
+                border: '1px solid #0a0a0a',
+                color: '#ffffff',
+                fontSize: enterFontSize,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                borderRadius: 0,
+                padding: isMobile ? '8px 14px' : '10px 18px',
+                cursor: status === 'submitting' ? 'default' : 'pointer',
+                minWidth: isMobile ? 108 : 136,
+                transition: 'opacity 0.2s ease, transform 0.15s ease',
+                opacity: status === 'submitting' ? 0.65 : 1,
+                flexShrink: 0,
+              }}
+              onMouseDown={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.98)'
+              }}
+              onMouseUp={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
+              }}
+            >
+              {enterText}
+            </button>
+          </div>
+
+          <p
+            style={{
+              color: '#ff2d2d',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              minHeight: 20,
+              marginTop: 10,
+              opacity: errorMessage ? 1 : 0,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            {errorMessage || ' '}
+          </p>
+        </div>
+
+        <style jsx>{`
+          #portfolio-password::placeholder {
+            font-size: ${enterFontSize};
+            line-height: 1;
+          }
+        `}</style>
       </div>
-    </div>
     </>
   )
 }

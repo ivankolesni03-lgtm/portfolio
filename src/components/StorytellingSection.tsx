@@ -170,6 +170,7 @@ export function StorytellingSection() {
           <video
             ref={videoRef}
             src="/videos/storytelling.mp4"
+            preload="auto"
             loop muted playsInline autoPlay
             suppressHydrationWarning
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}

@@ -194,72 +194,77 @@ function preloadBinary(src: string) {
     .catch(() => undefined)
 }
 
-function PixelatedImage({ src, progress, style, imgStyle }: { 
-  src: string
-  progress: number
-  style?: React.CSSProperties
-  imgStyle?: React.CSSProperties
-}) {
+function PixelatedImage({ src, progress, width }: { src: string; progress: number; width: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imgRef = useRef<HTMLImageElement | null>(null)
-  const [loaded, setLoaded] = useState(false)
+  const imageRef = useRef<HTMLImageElement | null>(null)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     const image = new window.Image()
-    image.src = src
     image.onload = () => {
-      imgRef.current = image
-      setLoaded(true)
+      if (cancelled) return
+      imageRef.current = image
+      setIsReady(true)
+    }
+    image.onerror = () => {
+      if (cancelled) return
+      setIsReady(false)
+    }
+    image.src = src
+
+    return () => {
+      cancelled = true
     }
   }, [src])
 
   useEffect(() => {
-    if (!loaded || !imgRef.current) return
+    if (!isReady || !imageRef.current) return
     const canvas = canvasRef.current
     if (!canvas) return
-    
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const img = imgRef.current
-    const width = imgStyle?.width ? parseInt(String(imgStyle.width)) : img.naturalWidth
-    const height = imgStyle?.height ? parseInt(String(imgStyle.height)) : (img.naturalHeight / img.naturalWidth) * width
+    const image = imageRef.current
+    const drawWidth = Math.max(1, Math.round(width))
+    const drawHeight = Math.max(1, Math.round((image.naturalHeight / image.naturalWidth) * drawWidth))
 
-    canvas.width = width
-    canvas.height = height
+    canvas.width = drawWidth
+    canvas.height = drawHeight
+    ctx.clearRect(0, 0, drawWidth, drawHeight)
 
-    const maxPixelSize = 40
+    const maxPixelSize = 44
     const minPixelSize = 1
     const pixelSize = Math.max(minPixelSize, maxPixelSize - (progress / 100) * (maxPixelSize - minPixelSize))
 
-    ctx.clearRect(0, 0, width, height)
-
     if (pixelSize <= 1.5) {
       ctx.imageSmoothingEnabled = true
-      ctx.drawImage(img, 0, 0, width, height)
-    } else {
-      const pw = Math.max(1, Math.floor(width / pixelSize))
-      const ph = Math.max(1, Math.floor(height / pixelSize))
-      const tmp = document.createElement('canvas')
-      tmp.width = pw
-      tmp.height = ph
-      const tCtx = tmp.getContext('2d')
-      if (tCtx) {
-        tCtx.imageSmoothingEnabled = true
-        tCtx.drawImage(img, 0, 0, pw, ph)
-        ctx.imageSmoothingEnabled = false
-        ctx.drawImage(tmp, 0, 0, pw, ph, 0, 0, width, height)
-      }
+      ctx.drawImage(image, 0, 0, drawWidth, drawHeight)
+      return
     }
-  }, [progress, loaded, imgStyle])
 
-  if (!loaded) return null
+    const pixelWidth = Math.max(1, Math.floor(drawWidth / pixelSize))
+    const pixelHeight = Math.max(1, Math.floor(drawHeight / pixelSize))
+    const tmpCanvas = document.createElement('canvas')
+    tmpCanvas.width = pixelWidth
+    tmpCanvas.height = pixelHeight
+    const tmpCtx = tmpCanvas.getContext('2d')
+    if (!tmpCtx) return
+
+    tmpCtx.imageSmoothingEnabled = true
+    tmpCtx.drawImage(image, 0, 0, pixelWidth, pixelHeight)
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(tmpCanvas, 0, 0, pixelWidth, pixelHeight, 0, 0, drawWidth, drawHeight)
+  }, [isReady, progress, width])
+
+  if (!isReady) return null
 
   return (
     <canvas
       ref={canvasRef}
       style={{
-        ...style,
+        width,
+        height: 'auto',
         display: 'block',
       }}
     />
@@ -376,7 +381,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
         <PixelatedImage
           src={backgroundSrc}
           progress={progress}
-          imgStyle={{ width: bgWidth }}
+          width={bgWidth}
         />
       </div>
 
