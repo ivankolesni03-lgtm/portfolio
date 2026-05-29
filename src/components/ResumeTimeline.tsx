@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
@@ -96,7 +97,7 @@ function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: 
         boxShadow: proximity > 0.7 ? `0 12px 48px rgba(0,0,0,${0.25 * ((proximity - 0.7) / 0.3)})` : 'none',
         transition: 'filter 0.15s ease, box-shadow 0.3s ease',
       }}>
-        <img src={entry.img} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+        <Image src={entry.img} alt="" width={600} height={600} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
       </div>
 
       {/* Text positioned below the image */}
@@ -407,13 +408,14 @@ function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }
         borderRadius: 16,
         overflow: 'hidden',
         boxShadow: '0 16px 48px rgba(0,0,0,0.15)',
+        position: 'relative',
       }}>
-        <img
+        <Image
           src={entry.img}
           alt=""
+          fill
+          sizes="(max-width: 768px) 70vw, 280px"
           style={{
-            width: '100%',
-            height: '100%',
             objectFit: 'cover',
             display: 'block',
           }}

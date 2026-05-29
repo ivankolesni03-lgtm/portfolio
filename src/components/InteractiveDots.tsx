@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import Image from 'next/image'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
@@ -564,7 +565,7 @@ export function InteractiveDots({
         <button key={circle.id} onClick={() => openOverlay(circle.iconIndex)}
           style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize, cursor:'pointer', zIndex: isHovered || isTouchRevealed ? 12 : 10, border:'none', background:'none', padding:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
           <div style={{ width: circleSize, height: circleSize, borderRadius:'18%', overflow:'hidden', opacity, transition, transform:`scale(${scale})`, transformOrigin:'center' }}>
-            <img src={program.iconImg} alt={program.name[lang]}
+            <Image src={program.iconImg} alt={program.name[lang]} width={120} height={120}
               style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
               onError={(e) => {
                 const el = e.currentTarget.parentElement!
@@ -663,7 +664,7 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
         <div style={{ display:'flex', flexDirection: isMobile?'column':'row', alignItems: isMobile?'center':'stretch', pointerEvents:'auto', cursor:'default' }}>
           <div style={{ width:imgW, flexShrink:0, alignSelf:'stretch', position:'relative', zIndex:1, transform: isOpening||isClosing?'scale(0.72)':'scale(1)', opacity: isOpening||isClosing?0:1, transition: isClosing?`transform 300ms ${EASE} 200ms, opacity 280ms ease 200ms`:`transform 320ms ${EASE}, opacity 300ms ease`, background:`radial-gradient(ellipse at 140% 140%, ${program.color}60 0%, ${program.color}20 40%, #0a0a0a 70%)`, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <div style={{ width:'62%', aspectRatio:'1/1', borderRadius:'22%', overflow:'hidden', boxShadow:`0 24px 80px ${program.color}50` }}>
-              <img src={program.iconImg} alt={program.name[lang]} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                <Image src={program.iconImg} alt={program.name[lang]} width={500} height={500} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
             </div>
           </div>
           <div onClick={e => e.stopPropagation()} style={{ width:panW, flexShrink:0, position:'relative', zIndex:0, transform:`translateX(${isOpening||isClosing?'-100%':'0%'})`, opacity: isOpening||isClosing?0:1, transition: isClosing?`transform 260ms ${EASE}, opacity 240ms ease`:`transform 300ms ${EASE} 100ms, opacity 280ms ease 100ms`, backgroundColor:'#ffffff', overflow:'hidden' }}>

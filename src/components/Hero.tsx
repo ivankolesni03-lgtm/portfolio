@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import Image from 'next/image'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
 import { startScramble } from '@/lib/scramble'
@@ -194,7 +195,7 @@ function PixelTrailImage({ img }: { img: TrailImage }) {
 
 if (typeof window !== 'undefined') {
   images.forEach((src) => {
-    const img = new Image()
+    const img = new window.Image()
     img.src = src
   })
 }
@@ -449,12 +450,13 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
 }
 
 function BgImage() {
-  const { isMobile } = useMobile()
+  const { isMobile, width } = useMobile()
   const { scrollY, vh } = useScroll()
 
   const progress = vh > 0 ? Math.min(1, scrollY / vh) : 0
   const blur = progress * 20
   const opacity = 1 - progress
+  const bgSize = isMobile ? Math.max(1, Math.round(width)) : 660
 
   return (
     <div
@@ -466,13 +468,18 @@ function BgImage() {
         zIndex: 0,
         opacity,
         filter: `blur(${blur}px)`,
+        maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)',
+        WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)',
         transition: 'none',
         willChange: 'opacity, filter',
       }}
     >
-      <img
+      <Image
         src="/photos/background.jpg"
         alt=""
+        width={bgSize}
+        height={bgSize}
+        priority
         style={{
           width: isMobile ? '100vw' : '660px',
           height: 'auto',

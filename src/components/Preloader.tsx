@@ -368,6 +368,8 @@ export function Preloader({ onComplete }: PreloaderProps) {
           right: bgRight,
           top: bgTop,
           bottom: bgBottom,
+          maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 76%, rgba(0,0,0,0) 100%)',
           pointerEvents: 'none',
         }}
       >

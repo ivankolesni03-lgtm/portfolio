@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
+import Image from 'next/image'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
@@ -168,9 +169,10 @@ function LogoRow() {
         { src: '/images/cc-logo.png',      alt: 'Creative Team' },
       ].map((logo, i) => (
         <div key={logo.alt} style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px,2vw,28px)' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={logo.src} alt={logo.alt}
+            width={260}
+            height={110}
             style={{ height: 'clamp(56px,7.5vw,110px)', width: 'auto', objectFit: 'contain', filter: 'grayscale(1) contrast(1.2)' }}
           />
           {i < 2 && (

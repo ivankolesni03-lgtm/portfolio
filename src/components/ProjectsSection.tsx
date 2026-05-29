@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useScramble, runScramble } from '@/hooks/use-scramble'
@@ -29,12 +30,12 @@ function ScrambleText({ text, style }: { text: string; style?: React.CSSProperti
 
 function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelSize?: number }) {
   const cvs    = useRef<HTMLCanvasElement>(null)
-  const domImg = useRef<HTMLImageElement>(null)
+  const imgRef = useRef<HTMLImageElement | null>(null)
   const natHRef = useRef(0)
   const [natH, setNatH] = useState(0)
 
   const draw = useCallback(() => {
-    const img = domImg.current
+    const img = imgRef.current
     if (!img || !img.naturalWidth || !img.naturalHeight) return
     const h = natHRef.current
     if (!h || !w) return
@@ -57,14 +58,26 @@ function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelS
     }
   }, [w, pixelSize])
 
-  const handleLoad = useCallback(() => {
-    const img = domImg.current
-    if (!img || !img.naturalWidth || !img.naturalHeight) return
-    const h = Math.round(w * img.naturalHeight / img.naturalWidth)
-    natHRef.current = h
-    setNatH(h)
-    draw()
-  }, [w, draw])
+  useEffect(() => {
+    let cancelled = false
+    const img = new window.Image()
+    img.onload = () => {
+      if (cancelled) return
+      imgRef.current = img
+      const h = Math.round(w * img.naturalHeight / img.naturalWidth)
+      natHRef.current = h
+      setNatH(h)
+      draw()
+    }
+    img.onerror = () => {
+      if (cancelled) return
+      imgRef.current = null
+      natHRef.current = Math.round(w * 0.75)
+      setNatH(Math.round(w * 0.75))
+    }
+    img.src = src
+    return () => { cancelled = true }
+  }, [src, w, draw])
 
   useEffect(() => {
     if (natH) draw()
@@ -72,10 +85,6 @@ function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelS
 
   return (
     <div style={{ position: 'relative', lineHeight: 0 }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img ref={domImg} src={src} alt="" onLoad={handleLoad} aria-hidden="true"
-        style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
-      />
       {natH > 0
         ? <canvas ref={cvs} width={w} height={natH} style={{ display: 'block', width: '100%', height: 'auto' }} />
         : <div style={{ width: w, height: Math.round(w * 0.75), background: '#111' }} />
@@ -315,7 +324,7 @@ function ProjectCard({ project, forceHover, overlayOpen, onClick }: {
         filter: overlayOpen ? 'blur(8px)' : 'none',
       }}
     >
-      <img src={project.image} alt="" style={{
+      <Image src={project.image} alt="" width={1200} height={800} style={{
         display: 'block', width: '100%', height: 'auto',
         filter: isActive ? 'none' : 'invert(1) hue-rotate(180deg) grayscale(1)',
         transition: 'filter 0.22s ease-out', userSelect: 'none', pointerEvents: 'none',
