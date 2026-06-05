@@ -38,7 +38,7 @@ function HomeContentInner() {
         <Header isVisible={headerVisible} />
         <Hero />
         <StorytellingSection />
-        <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
+        <div style={{ position: 'relative', zIndex: 2, marginTop: '-120vh' }}>
           <ProjectsSection />
           <StatsSection />
           <AISection />

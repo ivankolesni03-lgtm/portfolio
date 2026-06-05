@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
+import Video from 'next-video'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
@@ -345,14 +346,20 @@ function ScrollLinkedVideo({ lang, exitBlur, exitOpacity }: { lang: 'de' | 'en';
     }
   }, [scrollY, vh, isFixed])
 
-  // Autoplay when visible
+  // Autoplay when visible – Safari/Mac compatible
   useEffect(() => {
     const video = videoRef.current; if (!video) return
     video.muted = true
+    video.setAttribute('muted', '')
+    video.setAttribute('playsinline', '')
+    const tryPlay = () => { video.muted = true; return video.play().catch(() => {}) }
+    tryPlay()
+    video.addEventListener('loadeddata', tryPlay, { once: true })
+    video.addEventListener('canplay', tryPlay, { once: true })
     const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) video.play().catch(() => {})
+      if (e.isIntersecting) tryPlay()
       else video.pause()
-    }, { threshold: 0.1 })
+    }, { threshold: 0.05 })
     obs.observe(video)
     return () => obs.disconnect()
   }, [])
@@ -384,10 +391,12 @@ function ScrollLinkedVideo({ lang, exitBlur, exitOpacity }: { lang: 'de' | 'en';
         pointerEvents: 'auto',
       }}>
         <div style={{ width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0 }}>
-          <video
+          <Video
             ref={videoRef}
-            src="/videos/gwavideo.mp4"
-            loop playsInline preload="auto"
+            src="public/videos/gwavideo.mp4"
+            loop muted playsInline autoPlay preload="auto"
+            suppressHydrationWarning
+            controls={false}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         </div>
@@ -475,7 +484,7 @@ export function GWASection() {
           <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(20px,5vw,32px)' }} />
           <div>
             <div style={{ width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)' }}>
-              <video src="/videos/gwavideo.mp4" autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <Video src="public/videos/gwavideo.mp4" autoPlay loop muted playsInline controls={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             <MobileLivestreamBtn lang={lang} />
           </div>

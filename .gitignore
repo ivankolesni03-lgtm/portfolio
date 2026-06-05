@@ -84,3 +84,10 @@ Thumbs.db
 .idea/
 
 /examples
+
+# next-video
+./*
+!./*.json
+!./*.js
+!./*.ts
+public/_next-video
