@@ -79,7 +79,7 @@ export function NavMaskedText({
       if (topColor === bottomColor) {
         mask.style.color = COLOR_MAP[topColor]
         mask.style.clipPath = 'inset(0 0 100% 0)'
-        mask.style.webkitClipPath = 'inset(0 0 100% 0)'
+        mask.style.setProperty('-webkit-clip-path', 'inset(0 0 100% 0)')
         return
       }
 
@@ -89,7 +89,7 @@ export function NavMaskedText({
 
       mask.style.color = COLOR_MAP[topColor]
       mask.style.clipPath = clip
-      mask.style.webkitClipPath = clip
+      mask.style.setProperty('-webkit-clip-path', clip)
     }
 
     const schedule = () => {
