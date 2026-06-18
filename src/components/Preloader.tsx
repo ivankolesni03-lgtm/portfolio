@@ -106,6 +106,7 @@ const criticalIcons = [
 ]
 
 const criticalVideos = [
+  '/videos/hsh-projekt.mp4',
   '/videos/storytelling.mp4',
   '/videos/gwavideo.mp4',
 ]
@@ -281,7 +282,8 @@ export function Preloader({ onComplete }: PreloaderProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
+    const frame = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   const vw = mounted ? width / 100 : 0
@@ -354,14 +356,23 @@ export function Preloader({ onComplete }: PreloaderProps) {
     }
   }, [onComplete])
 
-  if (!isVisible || !mounted) return null
+  if (!isVisible) return null
+
+  if (!mounted) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 100010,
+        backgroundColor: '#ffffff', pointerEvents: 'all',
+      }} />
+    )
+  }
 
   return (
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 9999,
+        zIndex: 100010,
         backgroundColor: '#ffffff',
         pointerEvents: 'all',
       }}
@@ -463,6 +474,26 @@ export function Preloader({ onComplete }: PreloaderProps) {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Experience Designer - matches Hero animation start position, static */}
+      <div
+        style={{
+          position: 'fixed',
+          left: isMobile ? 5 * vw + 2 : 8 * vw + 4,
+          top: isMobile ? 38 * vh : 48 * vh,
+          zIndex: 30,
+          mixBlendMode: 'difference',
+          pointerEvents: 'none',
+          color: '#ffffff',
+          fontWeight: 900,
+          textTransform: 'uppercase',
+          letterSpacing: '-1px',
+          lineHeight: 1.12,
+          fontSize: isMobile ? Math.min(34, Math.max(20, 6.4 * vw)) : Math.min(46, Math.max(28, 2.7 * vw)),
+        }}
+      >
+        Experience<br />Designer
       </div>
     </div>
   )

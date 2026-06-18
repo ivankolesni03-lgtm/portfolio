@@ -51,7 +51,11 @@ function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: 
   // Scramble on becoming active
   useEffect(() => {
     if (isActive && prevProx.current <= 0.85) runScramble(entry.title[lang], setTitleD, titleRef)
-    else if (!isActive) setTitleD(entry.title[lang])
+    else if (!isActive) {
+      const frame = requestAnimationFrame(() => setTitleD(entry.title[lang]))
+      prevProx.current = proximity
+      return () => cancelAnimationFrame(frame)
+    }
     prevProx.current = proximity
   }, [isActive, entry, lang, proximity])
 
@@ -139,6 +143,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
   const [exitP, setExitP] = useState(0)
   const [swipeOffset, setSwipeOffset] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isTouching, setIsTouching] = useState(false)
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const N = entries.length
 
@@ -171,7 +176,8 @@ function MobileTimeline({ lang }: { lang: Lang }) {
     
     const blurStart = 0.85
     const blurProgress = Math.max(0, (scrollProgress - blurStart) / (1 - blurStart))
-    setExitP(blurProgress)
+    const frame = requestAnimationFrame(() => setExitP(blurProgress))
+    return () => cancelAnimationFrame(frame)
   }, [scrollY, scrollVh, mounted])
 
   const goTo = useCallback((idx: number) => {
@@ -186,6 +192,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
     if (isAnimating) return
     const touch = e.touches[0]
     touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+    setIsTouching(true)
   }, [isAnimating])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -208,6 +215,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
   const handleTouchEnd = useCallback(() => {
     if (!touchStartRef.current || isAnimating) {
       touchStartRef.current = null
+      setIsTouching(false)
       return
     }
     
@@ -226,12 +234,13 @@ function MobileTimeline({ lang }: { lang: Lang }) {
     }
     
     touchStartRef.current = null
+    setIsTouching(false)
   }, [swipeOffset, isAnimating, activeIdx, goTo])
 
   const entry = entries[activeIdx]
 
   return (
-    <div ref={outerRef} style={{ position: 'relative', zIndex: 5, height: '250vh', marginTop: '-160vh' }}>
+    <div ref={outerRef} data-textcolor="black" style={{ position: 'relative', zIndex: 70, height: '250vh', marginTop: '-160vh' }}>
       <section
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -289,7 +298,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
               width: '100%',
               maxWidth: 400,
               transform: `translateX(${swipeOffset}px)`,
-              transition: swipeOffset === 0 && !touchStartRef.current ? 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+              transition: swipeOffset === 0 && !isTouching ? 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
               willChange: 'transform',
             }}>
               <MobileStationCard entry={entry} lang={lang} key={entry.id} />
@@ -451,7 +460,7 @@ function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }
           <div style={{
             fontSize: 13,
             fontWeight: 500,
-            color: '#666',
+            color: '#888',
             letterSpacing: '0.02em',
           }}>
             {orgD}
@@ -529,7 +538,7 @@ function DesktopTimeline({ lang }: { lang: Lang }) {
   const offset = highlightX - (pos * (baseCardW + gap) + baseCardW / 2)
 
   return (
-    <div ref={outerRef} style={{ position: 'relative', zIndex: 5, height: `${(N - 2) * 100}vh`, marginTop: '-160vh' }}>
+    <div ref={outerRef} data-textcolor="black" style={{ position: 'relative', zIndex: 70, height: `${(N - 2) * 100}vh`, marginTop: '-160vh' }}>
       <section style={{
         position: 'sticky', top: 0, width: '100%', height: '100vh',
         backgroundColor: '#ffffff', overflow: 'hidden',

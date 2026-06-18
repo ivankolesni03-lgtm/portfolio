@@ -2,6 +2,8 @@
  * Touch utilities for mobile interactions
  */
 
+import * as React from 'react'
+
 export type SwipeDirection = 'left' | 'right' | 'up' | 'down' | null
 
 export interface TouchPoint {
@@ -173,15 +175,12 @@ export function createSwipeHandlers(config: SwipeConfig = {}) {
  * React hook for swipe detection
  */
 export function useSwipe(config: SwipeConfig = {}) {
-  const handlers = React.useMemo(() => createSwipeHandlers(config), [
-    config.threshold,
-    config.velocityThreshold,
-  ])
+  const threshold = config.threshold
+  const velocityThreshold = config.velocityThreshold
+  const handlers = React.useMemo(() => createSwipeHandlers({ threshold, velocityThreshold }), [threshold, velocityThreshold])
 
   return handlers
 }
-
-import * as React from 'react'
 
 /**
  * Hook for tracking touch position (useful for hover-like effects)

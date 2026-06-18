@@ -113,7 +113,11 @@ function CrazyTerminal({ phase, isActive, lang }: { phase: number; isActive: boo
   useEffect(() => {
     if (!isActive) { shown.current = -1; return }
     const idx = Math.min(Math.floor(phase * CRAZY.length), CRAZY.length - 1)
-    if (idx > shown.current) { shown.current = idx; setLines(p => [...p.slice(-20), CRAZY[idx]]) }
+    if (idx > shown.current) {
+      shown.current = idx
+      const frame = requestAnimationFrame(() => setLines(p => [...p.slice(-20), CRAZY[idx]]))
+      return () => cancelAnimationFrame(frame)
+    }
   }, [isActive, phase])
   useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight }, [lines])
   const col = (t: string) => t==='m' ? 'rgba(57,255,20,0.75)' : t==='r' ? '#ff9900' : 'rgba(100,200,255,0.9)'
@@ -246,7 +250,7 @@ const SEG_N = 7
 function CablesLayer({ ports, phase, isActive, exitP }: { ports: PortMap; phase: number; isActive: boolean; exitP: number }) {
   const cableOpacity = Math.max(0, 1 - exitP * 2)
   return (
-    <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', zIndex:4, pointerEvents:'none', overflow:'visible', opacity:cableOpacity, filter:exitP>0.05?`blur(${exitP*18}px)`:'none', transition:'none', willChange:'opacity' }}>
+    <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', zIndex:4, pointerEvents:'none', overflow:'visible', opacity:cableOpacity, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', transition:'none', willChange:'opacity' }}>
       {TOPO.map(({ from, to, seg }, i) => {
         const a = ports[from], b = ports[to]; if (!a || !b) return null
         const f = a.out, t2 = b.inp
@@ -305,7 +309,7 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
     const t2 = setTimeout(emit, 200)
     const t3 = setTimeout(emit, 500)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, []) // eslint-disable-line
+  }, [])
 
   const onMD = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); onFocus(id)
@@ -388,8 +392,10 @@ export function AISection() {
   const autoGenerateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    setMounted(true)
-    setMobile(window.innerWidth < 768)
+    const initFrame = requestAnimationFrame(() => {
+      setMounted(true)
+      setMobile(window.innerWidth < 768)
+    })
 
     const measure = () => {
       const sec = sectionRef.current
@@ -406,7 +412,10 @@ export function AISection() {
     if (AI_IMAGES.length === 0) {
       AI_SRCS.forEach((src, i) => { const img = new window.Image(); img.src = src; AI_IMAGES[i] = img })
     }
-    return () => window.removeEventListener('resize', measure)
+    return () => {
+      cancelAnimationFrame(initFrame)
+      window.removeEventListener('resize', measure)
+    }
   }, [])
 
   useEffect(() => {
@@ -546,7 +555,7 @@ export function AISection() {
 
   // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:2, height:'240vh', marginTop:'-100vh' }}>
+    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'240vh', marginTop:'-420vh' }}>
       <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'100vh' }}/>
     </div>
   )
@@ -556,7 +565,7 @@ export function AISection() {
 
   // ── Mobile ────────────────────────────────────────────────────────────────
   if (mobile) return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:2, height:'auto', minHeight:'100vh', marginTop:'-100vh' }}>
+    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'auto', minHeight:'100vh', marginTop:'-370vh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -766,7 +775,7 @@ export function AISection() {
   const PREV_TOP   = Math.round(VH * 0.328)  // PREVIEW
 
   return (
-    <div ref={outerRef} style={{ position:'relative', zIndex:2, height:'240vh', marginTop:'-100vh' }}>
+    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'240vh', marginTop:'-420vh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes scanln{0%{top:-2px}100%{top:100%}}
@@ -786,7 +795,7 @@ export function AISection() {
         <GridBg/>
         <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP}/>
 
-        <div style={{ position:'absolute', inset:0, zIndex:5, filter:exitP>0.05?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
+        <div style={{ position:'absolute', inset:0, zIndex:5, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
 
           <div style={{ position:'absolute', top:'9vw', left:'9vw', zIndex:20, pointerEvents:'none' }}>
             <NeonHeading/>

@@ -91,3 +91,5 @@ Thumbs.db
 !./*.js
 !./*.ts
 public/_next-video
+
+/old

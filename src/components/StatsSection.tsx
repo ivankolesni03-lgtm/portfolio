@@ -1,120 +1,51 @@
 'use client'
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useLanguage } from '@/contexts/LanguageContext'
+import { useState, useRef, useEffect } from 'react'
 import { useScroll } from '@/contexts/ScrollContext'
-import { useScramble } from '@/hooks/use-scramble'
-
-type Lang = 'de' | 'en'
-const STATS = [
-  { value: 20,  suffix: '+', labelDe: 'Projekte',  labelEn: 'Projects'  },
-  { value: 100, suffix: '%', labelDe: 'Ambition',  labelEn: 'Ambition'  },
-  { value: 6,   suffix: '',  labelDe: 'Semester',  labelEn: 'Semesters' },
-]
-
-function ScrambleLabel({ text }: { text: string }) {
-  const { disp, scramble } = useScramble(text)
-  
-  return (
-    <span 
-      onMouseEnter={scramble} 
-      onTouchStart={scramble}
-      style={{ cursor:'default' }}
-    >
-      {disp}
-    </span>
-  )
-}
+import { ProjectsMarquee, ViewCursor } from '@/components/ProjectsSection'
 
 export function StatsSection() {
-  const { language } = useLanguage()
-  const lang = language as Lang
   const { scrollY, vh, vw } = useScroll()
   const spacerRef = useRef<HTMLDivElement>(null)
-  const [progress,  setProgress]  = useState(0)
-  const [showFixed, setShowFixed] = useState(false)
-  const [blur,      setBlur]      = useState(0)
-  const [opacity,   setOpacity]   = useState(1)
+  const [progress, setProgress] = useState(0)
+  const [hoverMini, setHoverMini] = useState(false)
   
   const isMobile = vw < 768
 
   useEffect(() => {
     const el = spacerRef.current; if (!el) return
-    const rect   = el.getBoundingClientRect()
-    const totalH = el.offsetHeight
-    
-    // Wie viele Pixel wir in den Spacer hineingescrollt sind
+    const rect = el.getBoundingClientRect()
     const scrolled = -rect.top
 
-    // Phase 1 – COUNT UP
-    const countStart = -vh
-    const countEnd   = -vh * 0.5 
-    const p = Math.max(0, Math.min(1, (scrolled - countStart) / (countEnd - countStart)))
-    setProgress(p)
+    const total = el.offsetHeight - vh
+    const earlyOffset = vh * 0.15
+    const statsT = total > 0 ? Math.max(0, Math.min(1, (scrolled + earlyOffset) / (total + earlyOffset))) : 0
 
-    // Phase 2 – FIXED
-    const fixedActive = scrolled >= 0 && rect.bottom >= vh
-    setShowFixed(fixedActive)
-
-    // Phase 3 – EXIT BLUR
-    const maxScroll = totalH - vh
-    const ep = maxScroll > 0 ? Math.max(0, Math.min(1, scrolled / maxScroll)) : 0
-    
-    setBlur(ep * 24)
-    setOpacity(1 - ep * 0.9)
+    const frame = requestAnimationFrame(() => setProgress(statsT))
+    return () => cancelAnimationFrame(frame)
   }, [scrollY, vh])
 
-  const grid = (
-    <div style={{ width:'100%' }}>
-      <div style={{
-        paddingLeft:  isMobile ? '5vw' : '5vw',
-        paddingRight: isMobile ? '5vw' : '5vw',
-        boxSizing: 'border-box',
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? '8vw' : 'clamp(40px,8vw,120px)',
-          alignItems: isMobile ? 'flex-start' : 'flex-end',
-          justifyContent: isMobile ? 'flex-start' : 'center',
-        }}>
-          {STATS.map((s, i) => {
-            const label = lang === 'de' ? s.labelDe : s.labelEn
-            const val   = Math.round(progress * s.value)
-            return (
-              <div key={i} style={{ textAlign: isMobile ? 'left' : 'center' }}>
-                <div style={{
-                  fontSize: isMobile ? 'clamp(64px,18vw,100px)' : 'clamp(80px,13vw,192px)',
-                  fontWeight: 900, lineHeight: 0.85,
-                  letterSpacing: isMobile ? '-3px' : '-6px',
-                  color: '#0a0a0a', margin: '0 0 clamp(8px,1vw,16px)',
-                  fontVariantNumeric: 'tabular-nums',
-                }}>{val}{s.suffix}</div>
-                <div style={{ color:'#0a0a0a', fontSize: isMobile ? '16px' : 'clamp(14px,2.2vw,24px)', fontWeight:800, letterSpacing:'-0.5px', textTransform:'uppercase', lineHeight:1.1 }}>
-                  <ScrambleLabel text={label} />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
+  const endBlurStart = 0.70
+  const endBlurT = Math.max(0, Math.min(1, (progress - endBlurStart) / (1 - endBlurStart)))
+  const endBlurPx = endBlurT * 18
+  const endDim = endBlurT * 0.35
 
   return (
     <>
-      <div ref={spacerRef} style={{ height: isMobile ? '200vh' : '180vh', backgroundColor:'#ffffff', position:'relative', zIndex:1, marginTop: isMobile ? '30vh' : 0 }}>
-        {/* Sticky: sichtbar nur bevor der fixed-Modus aktiviert wird */}
-        <div style={{ position:'sticky', top:'50%', transform:'translateY(-50%)', width:'100%', pointerEvents:'none', opacity: showFixed ? 0 : 1 }}>
-          {grid}
+      <div ref={spacerRef} onMouseEnter={() => setHoverMini(true)} onMouseLeave={() => setHoverMini(false)} style={{ height: isMobile ? '520vh' : '560vh', backgroundColor:'#ffffff', position:'relative', zIndex:30, marginTop: isMobile ? '-240vh' : '-295vh' }}>
+        <div style={{ position: 'sticky', top: 0, height: '100vh', width: '100%', backgroundColor: '#ffffff', overflowX: 'clip', overflowY: 'visible' }}>
+          <div style={{
+            opacity: 1,
+            transition: 'opacity 0.15s linear',
+            filter: endBlurPx > 0.05 ? `blur(${endBlurPx}px)` : 'none',
+            transform: `scale(${1 - endDim * 0.05})`,
+            transformOrigin: 'center top',
+            willChange: 'filter, transform',
+          }}>
+            <ProjectsMarquee embedded statProgress={progress} />
+          </div>
         </div>
       </div>
-
-      {/* Fixed Overlay */}
-      <div style={{ position:'fixed', inset:0, zIndex: isMobile ? 3 : 2, display:'flex', alignItems:'center', backgroundColor:'#ffffff', pointerEvents:'none', opacity: showFixed ? 1 : 0, filter: blur > 0.1 ? `blur(${blur}px)` : 'none' }}>
-        <div style={{ width:'100%', opacity }}>
-          {grid}
-        </div>
-      </div>
+      <ViewCursor show={hoverMini} />
     </>
   )
 }

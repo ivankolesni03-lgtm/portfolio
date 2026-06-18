@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { startScramble } from '@/lib/scramble'
+import { NavMaskedText } from '@/components/NavMaskedText'
 
 const chars = "!@#$%&*АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ01"
 
@@ -89,7 +91,7 @@ interface TrailImage {
   height: number
 }
 
-function PixelTrailImage({ img }: { img: TrailImage }) {
+function PixelTrailImage({ img, blur = 0 }: { img: TrailImage; blur?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -187,6 +189,7 @@ function PixelTrailImage({ img }: { img: TrailImage }) {
         height: img.height,
         pointerEvents: 'none',
         zIndex: 15,
+        filter: blur > 0.05 ? `blur(${blur}px)` : 'none',
       }}
     />
   )
@@ -248,6 +251,7 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   const [mounted, setMounted] = useState(false)
   const { isMobile, width, height } = useMobile()
   const { scrollY, vh: scrollVh } = useScroll()
+  const { language } = useLanguage()
   const ivanScramble = useScramble('IVAN')
   const kolesnikovScramble = useScramble('KOLESNIKOV')
   const nameRef = useRef<HTMLDivElement>(null)
@@ -257,7 +261,8 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    setMounted(true)
+    const frame = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   // Safety check: reset to English if mouse leaves but state got stuck
@@ -284,7 +289,8 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
     const projekte = document.getElementById('projekte')
     if (projekte) {
       const rect = projekte.getBoundingClientRect()
-      setShowBackdrop(rect.top < scrollVh * 0.5)
+      const frame = requestAnimationFrame(() => setShowBackdrop(rect.top < scrollVh * 0.5))
+      return () => cancelAnimationFrame(frame)
     }
   }, [scrollY, scrollVh])
 
@@ -325,7 +331,20 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   const endLineHeight = 1.2
   const lineHeight = startLineHeight + (endLineHeight - startLineHeight) * progress
 
+  const descriptor = language === 'de'
+    ? 'Der zwischen dem Gewesenen und dem Werdenden Erlebnisse schafft, in denen Code fuehlbar wird und klassische Kommunikation mit KI zu etwas Neuem verschmilzt.'
+    : 'Who creates moments between what was and what is becoming, in which code becomes tangible and classical communication merges with AI into something new.'
+
+  const heroDuration = 1.5
+  const rawHeroProgress = scrollVh > 0 ? scrollY / (scrollVh * heroDuration) : 0
+  const heroProgress = Math.max(0, Math.min(1, rawHeroProgress))
+  const bodyTextOpacity = Math.max(0, Math.min(1, (heroProgress - 0.18) / 0.18))
+  const descriptorVisibility = rawHeroProgress <= 1.02 ? 1 : 0
+  const descriptorBlurProgress = Math.max(0, Math.min(1, (heroProgress - 0.9) / 0.1))
+  const descriptorBlur = descriptorBlurProgress * 18
+
   const handleEnter = useCallback(() => {
+    document.body.classList.add('hide-x-cursor')
     isHoveredRef.current = true
     setIsRussian(true)
     ivanScramble.scrambleTo('ИВАН')
@@ -333,6 +352,7 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   }, [ivanScramble, kolesnikovScramble])
 
   const handleLeave = useCallback(() => {
+    document.body.classList.remove('hide-x-cursor')
     isHoveredRef.current = false
     setIsRussian(false)
     ivanScramble.scrambleTo('IVAN')
@@ -357,6 +377,10 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
       kolesnikovScramble.scrambleTo('КОЛЕСНИКОВ')
     }
   }, [isRussian, progress, ivanScramble, kolesnikovScramble])
+
+  useEffect(() => {
+    return () => document.body.classList.remove('hide-x-cursor')
+  }, [])
 
   const isInNav = progress >= 0.95
 
@@ -385,11 +409,11 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
         />
       )}
       <div
-        className="fixed z-30 fixed-ui"
+        className="fixed fixed-ui"
         style={{
           left,
           top,
-          mixBlendMode: 'difference',
+          zIndex: 1000002,
           pointerEvents: 'none',
         }}
       >
@@ -406,10 +430,13 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
         onMouseLeave={handleLeave}
         onMouseMove={onMouseMove}
         onTouchStart={handleTouchStart}
+        onTouchEnd={handleLeave}
+        onTouchCancel={handleLeave}
         onClick={handleNavClick}
       >
-        <span
-          className="text-white scramble-text"
+        <NavMaskedText
+          className="nav__brand scramble-text"
+          watchKey={`${ivanScramble.display}-${isRussian}`}
           style={{
             fontSize,
             lineHeight,
@@ -424,9 +451,10 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
           <span style={{ fontSize: isRussian ? '0.92em' : '1em' }}>
             {ivanScramble.display}
           </span>
-        </span>
-        <span
-          className="text-white scramble-text"
+        </NavMaskedText>
+        <NavMaskedText
+          className="nav__brand scramble-text"
+          watchKey={`${kolesnikovScramble.display}-${isRussian}`}
           style={{
             fontSize,
             lineHeight,
@@ -441,8 +469,9 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
           <span style={{ fontSize: isRussian ? '0.92em' : '1em' }}>
             {kolesnikovScramble.display}
           </span>
-        </span>
+        </NavMaskedText>
       </div>
+
     </div>
     </>
   )
@@ -452,10 +481,12 @@ function BgImage() {
   const { isMobile, width } = useMobile()
   const { scrollY, vh } = useScroll()
 
-  const progress = vh > 0 ? Math.min(1, scrollY / vh) : 0
-  const blur = progress * 20
-  const opacity = 1 - progress
-  const bgSize = isMobile ? Math.max(1, Math.round(width)) : 660
+  const progress = vh > 0 ? scrollY / (vh * 2.0) : 0
+  const blurStartProgress = 0.66
+  const blurSpan = 0.4
+  const delayedBlurProgress = Math.max(0, Math.min(1, (progress - blurStartProgress) / blurSpan))
+  const blur = delayedBlurProgress * 20
+  const opacity = 1 - delayedBlurProgress
 
   return (
     <div
@@ -488,12 +519,77 @@ function BgImage() {
 }
 
 export function Hero() {
+  const { isMobile } = useMobile()
+  const { language } = useLanguage()
+  const { scrollY, vh } = useScroll()
   const [trailImages, setTrailImages] = useState<TrailImage[]>([])
   const [isScrolled, setIsScrolled] = useState(false)
   const containerRef = useRef<HTMLElement>(null)
   const lastTimeRef = useRef(0)
   const lastPosRef = useRef({ x: 0, y: 0 })
   const imageIdRef = useRef(0)
+  const [descFade, setDescFade] = useState(1)
+  const expScramble = useScramble('Experience')
+  const desScramble = useScramble('Designer')
+  const handleHeaderHover = useCallback(() => {
+    expScramble.scrambleTo('Experience')
+    desScramble.scrambleTo('Designer')
+  }, [expScramble, desScramble])
+  const heroProgress = vh > 0 ? Math.min(1, scrollY / (vh * 2.0)) : 0
+  const rawHeroProgress = vh > 0 ? scrollY / (vh * 2.0) : 0
+  const descriptor = language === 'de'
+    ? 'Der zwischen dem Gewesenen und dem Werdenden Erlebnisse schafft, in denen Code fuehlbar wird und klassische Kommunikation mit KI zu etwas Neuem verschmilzt.'
+    : 'Who creates moments between what was and what is becoming, in which code becomes tangible and classical communication merges with AI into something new.'
+  const descriptorWords = useMemo(() => descriptor.split(/\s+/).filter(Boolean), [descriptor])
+  const [descriptorDisplayWords, setDescriptorDisplayWords] = useState<string[]>(descriptorWords)
+  const prevLangRef = useRef(language)
+  const scrambleCleanupRefs = useRef<((() => void) | null)[]>([])
+
+  useEffect(() => {
+    if (prevLangRef.current === language) {
+      return
+    }
+    prevLangRef.current = language
+    // Scramble each word individually on language change
+    scrambleCleanupRefs.current.forEach(fn => fn?.())
+    scrambleCleanupRefs.current = descriptorWords.map((word, i) => {
+      return startScramble(word, (val) => {
+        setDescriptorDisplayWords(prev => {
+          const copy = [...prev]
+          copy[i] = val
+          return copy
+        })
+      }, { maxIterations: 12 })
+    })
+    return () => { scrambleCleanupRefs.current.forEach(fn => fn?.()) }
+  }, [language, descriptor, descriptorWords])
+
+  const revealProgress = Math.max(0, Math.min(1, heroProgress / 0.62))
+  const blurStart = 0.66
+  const blurSpan = 0.4
+  const blurProgress = Math.max(0, Math.min(1, (rawHeroProgress - blurStart) / blurSpan))
+  const descriptorBlur = blurProgress * 14
+  const descriptorMoveProgress = revealProgress
+  const descriptorMoveEase = 1 - Math.pow(1 - descriptorMoveProgress, 3)
+  const descriptorTargetTopVh = isMobile ? 18 : 20
+  const descriptorStartTopVh = descriptorTargetTopVh + (isMobile ? 20 : 28)
+  const descriptorTopVh = descriptorStartTopVh + (descriptorTargetTopVh - descriptorStartTopVh) * descriptorMoveEase
+  const visibleWords = Math.floor(revealProgress * descriptorWords.length)
+  const descriptorOpacity = descFade
+  const trailBlur = blurProgress * 20
+
+  useEffect(() => {
+    const proj = document.getElementById('projekte')
+    if (!proj || vh <= 0) {
+      const frame = requestAnimationFrame(() => setDescFade(1))
+      return () => cancelAnimationFrame(frame)
+    }
+    const r = proj.getBoundingClientRect()
+    // Fade out as the project section reaches / fills the viewport
+    const next = Math.max(0, Math.min(1, r.top / (vh * 0.6)))
+    const frame = requestAnimationFrame(() => setDescFade(next))
+    return () => cancelAnimationFrame(frame)
+  }, [scrollY, vh])
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 100)
@@ -575,14 +671,93 @@ export function Hero() {
 
       <section
         ref={containerRef}
+        data-textcolor="black"
         onMouseMove={handleMouseMove}
         onTouchMove={handleTouchMove}
-        className="relative h-screen bg-white flex items-center overflow-hidden"
+        className="relative h-[220vh] md:h-[240vh] bg-white flex items-center overflow-hidden"
       >
         {trailImages.map((img) => (
-          <PixelTrailImage key={img.id} img={img} />
+          <PixelTrailImage key={img.id} img={img} blur={trailBlur} />
         ))}
         <BgImage />
+
+        <div
+          style={{
+            position: 'fixed',
+            left: isMobile ? 'calc(5vw + 2px)' : 'calc(8vw + 4px)',
+            top: `${descriptorTopVh}vh`,
+            maxWidth: isMobile ? '86vw' : 'min(40vw, 600px)',
+            color: '#ffffff',
+            textAlign: 'left',
+            pointerEvents: 'none',
+            zIndex: 15,
+            mixBlendMode: 'difference',
+            opacity: descriptorOpacity,
+            filter: `blur(${descriptorBlur}px)`,
+          }}
+        >
+          <div
+            style={{
+              fontSize: isMobile ? 'clamp(20px, 6.4vw, 34px)' : 'clamp(28px, 2.7vw, 46px)',
+              lineHeight: 0.98,
+              letterSpacing: '-0.6px',
+              textShadow: 'none',
+              whiteSpace: 'normal',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
+            <div
+              onMouseEnter={handleHeaderHover}
+              onTouchStart={handleHeaderHover}
+              style={{
+              fontWeight: 900,
+              color: '#ffffff',
+              letterSpacing: '-1px',
+              lineHeight: 1.12,
+              pointerEvents: 'auto',
+              cursor: 'default',
+              display: 'inline-block',
+            }}>
+              {expScramble.display}<br/>{desScramble.display}
+            </div>
+            {(() => {
+              const lineSplits = isMobile ? [5, 3, 3, 3, 3, 3, 3] : [5, 4, 4, 4, 4, 4]
+              const lines: number[][] = []
+              let cursor = 0
+              for (const count of lineSplits) {
+                if (cursor >= descriptorWords.length) break
+                const indices = Array.from({length: Math.min(count, descriptorWords.length - cursor)}, (_, i) => cursor + i)
+                lines.push(indices)
+                cursor += count
+              }
+              if (cursor < descriptorWords.length) {
+                lines.push(Array.from({length: descriptorWords.length - cursor}, (_, i) => cursor + i))
+              }
+              const offsets = isMobile
+                ? [0, 1.6, 0.5, 2.2, 0.2, 1.9, 0.8, 2.4, 0.4, 1.3]
+                : [0, 2.4, 0.8, 3.2, 0.4, 2.0, 1.4, 3.6, 0.7, 2.6]
+              return lines.map((lineIndices, li) => (
+                <div key={li} style={{ marginLeft: `${offsets[li % offsets.length]}em`, lineHeight: 1.12 }}>
+                  {lineIndices.map((gIdx, wi) => (
+                    <span
+                      key={`${gIdx}`}
+                      style={{
+                        fontWeight: 700,
+                        fontStyle: 'normal',
+                        color: '#ffffff',
+                        opacity: gIdx < visibleWords ? 1 : 0,
+                        transition: 'opacity 0.25s linear',
+                      }}
+                    >
+                      {descriptorDisplayWords[gIdx] || descriptorWords[gIdx]}{wi < lineIndices.length - 1 ? ' ' : ''}
+                    </span>
+                  ))}
+                </div>
+              ))
+            })()}
+          </div>
+        </div>
       </section>
     </>
   )

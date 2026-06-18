@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
 import Video from 'next-video'
+import gwaVideo from '../../public/videos/gwa-video.mp4.json'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
@@ -14,7 +15,7 @@ function StaticHeadingGWA() {
   const {disp:d1,scramble:s1}=useScramble('Junior Agency')
   const {disp:d2,scramble:s2}=useScramble('Award 2026')
   const scramble=()=>{s1();s2()}
-  useEffect(()=>{scramble()},[language]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{scramble()},[language])
   return (
     <div onMouseEnter={scramble} onTouchStart={scramble} style={{
       fontSize: isMobile ? '10vw' : '8vw',fontWeight:900,lineHeight:0.9,letterSpacing:'-2px',
@@ -140,7 +141,7 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
     }
     init()
     return () => { cancelled = true; cleanupFn?.() }
-  }, [autoRotate]) // eslint-disable-line
+  }, [autoRotate])
   return <div ref={mountRef} style={{ width:'100%', height:'100%', cursor: autoRotate ? 'default' : 'grab', background:'transparent', display:'block' }} />
 }
 
@@ -164,9 +165,9 @@ function LogoRow() {
       marginBottom: 'clamp(28px,3.5vw,48px)',
     }}>
       {[
-        { src: '/images/hsh-logo.png',     alt: 'HSH' },
-        { src: '/images/hateaid-logo.png', alt: 'HateAid' },
-        { src: '/images/cc-logo.png',      alt: 'Creative Team' },
+        { src: '/icons/hsh-logo.png',     alt: 'HSH' },
+        { src: '/icons/hateaid-logo.png', alt: 'HateAid' },
+        { src: '/icons/cc-logo.png',      alt: 'Creative Team' },
       ].map((logo, i) => (
         <div key={logo.alt} style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px,2vw,28px)' }}>
           <img
@@ -393,8 +394,8 @@ function ScrollLinkedVideo({ lang, exitBlur, exitOpacity }: { lang: 'de' | 'en';
         <div style={{ width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0 }}>
           <Video
             ref={videoRef}
-            src="public/videos/gwavideo.mp4"
-            loop muted playsInline autoPlay preload="auto"
+            src={gwaVideo as any}
+            loop muted playsInline autoPlay
             suppressHydrationWarning
             controls={false}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
@@ -469,7 +470,7 @@ export function GWASection() {
   // ── Mobile ──────────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div ref={secRef} style={{ position: 'relative', zIndex: 3, marginTop: '-5vh' }}>
+      <div ref={secRef} data-textcolor="black" style={{ position: 'relative', zIndex: 50, marginTop: '-5vh' }}>
         <section id="gwa" style={{ backgroundColor: '#ffffff', boxSizing: 'border-box', overflow: 'hidden', padding: '20vw 5vw 18vw', display: 'flex', flexDirection: 'column' }}>
           <div style={{ marginBottom: 'clamp(20px,5vw,32px)' }}><StaticHeadingGWA /></div>
           <div style={{ width: '100%', height: '72vw', maxHeight: 340, marginBottom: 'clamp(24px,6vw,40px)' }}>
@@ -481,10 +482,10 @@ export function GWASection() {
             <AwardBadge label={T.award2[lang]} />
             <AwardBadge label={T.award3[lang]} />
           </div>
-          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(20px,5vw,32px)' }} />
+          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.6)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(20px,5vw,32px)' }} />
           <div>
             <div style={{ width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)' }}>
-              <Video src="public/videos/gwavideo.mp4" autoPlay loop muted playsInline controls={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <Video src={gwaVideo as any} autoPlay loop muted playsInline controls={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             <MobileLivestreamBtn lang={lang} />
           </div>
@@ -495,7 +496,7 @@ export function GWASection() {
 
   // ── Desktop ──────────────────────────────────────────────────────────────────
   return (
-    <div ref={secRef} style={{ position: 'relative', zIndex: 3, marginTop: '-110vh' }}>
+    <div ref={secRef} data-textcolor="black" style={{ position: 'relative', zIndex: 50, marginTop: '-110vh' }}>
       <section id="gwa" style={{ position: 'relative', backgroundColor: '#ffffff', minHeight: '230vh', display: 'flex', alignItems: 'stretch', boxSizing: 'border-box', overflow: 'visible' }}>
         <div style={{ flex: '0 0 55%', paddingTop: '9vw', paddingBottom: '10vw', paddingLeft: '9vw', paddingRight: '4vw', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', boxSizing: 'border-box' }}>
 
@@ -513,7 +514,7 @@ export function GWASection() {
           </div>
 
           {/* Body text */}
-          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.75)', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(40px,5vw,64px)', maxWidth: 560 }} />
+          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.6)', fontSize: 'clamp(14px,1.4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(40px,5vw,64px)', maxWidth: 560 }} />
 
           {/* Scroll-linked 16:9 video + button */}
           <ScrollLinkedVideo lang={lang} exitBlur={figureExit.blur} exitOpacity={figureExit.opacity} />

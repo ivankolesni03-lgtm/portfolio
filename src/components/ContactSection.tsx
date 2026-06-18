@@ -395,13 +395,14 @@ export function ContactSection() {
     return (
       <section
         id="kontakt"
+        data-textcolor="white"
         style={{
           backgroundColor: '#0a0a0a',
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
-          zIndex: 5,
+          zIndex: 80,
           boxSizing: 'border-box',
         }}
       >
@@ -508,13 +509,14 @@ export function ContactSection() {
   return (
     <section
       id="kontakt"
+      data-textcolor="white"
       style={{
         backgroundColor: '#0a0a0a',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        zIndex: 6,
+        zIndex: 80,
         marginTop: '-85vh',
         boxSizing: 'border-box',
       }}

@@ -82,7 +82,10 @@ export const defaultProgramData: Program[] = [
 function SkillBar({ skill, color, active }: { skill: number; color: string; active: boolean }) {
   const [width, setWidth] = useState(0)
   useEffect(() => {
-    if (!active) { setWidth(0); return }
+    if (!active) {
+      const frame = requestAnimationFrame(() => setWidth(0))
+      return () => cancelAnimationFrame(frame)
+    }
     const t = setTimeout(() => setWidth(skill), 80)
     return () => clearTimeout(t)
   }, [active, skill])
@@ -131,6 +134,7 @@ export function InteractiveDots({
   const [phase, setPhase] = useState<'in' | 'open' | 'closing'>('in')
   const [lang] = useState<Lang>('de')
   const circlesRef = useRef<{ id: number; x: number; y: number; iconIndex: number }[]>([])
+  const [circleItems, setCircleItems] = useState<{ id: number; x: number; y: number; iconIndex: number }[]>([])
   const simulationRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const userInteractedRef = useRef(false)
   
@@ -158,10 +162,12 @@ export function InteractiveDots({
     touchRevealedIds.forEach(id => allVisible.add(id))
     
     // Add currently visible to recently visible
-    setRecentlyVisible(prev => {
-      const next = new Set(prev)
-      allVisible.forEach(id => next.add(id))
-      return next
+    const frame = requestAnimationFrame(() => {
+      setRecentlyVisible(prev => {
+        const next = new Set(prev)
+        allVisible.forEach(id => next.add(id))
+        return next
+      })
     })
     
     // Clear old entries after fade-out duration (6s)
@@ -174,7 +180,10 @@ export function InteractiveDots({
       })
     }, 6000)
     
-    return () => clearTimeout(timer)
+    return () => {
+      cancelAnimationFrame(frame)
+      clearTimeout(timer)
+    }
   }, [hoveredId, simulatedHover, neighborIds, simulatedNeighbors, touchRevealedIds])
 
   const generateCircles = useCallback(() => {
@@ -199,6 +208,7 @@ export function InteractiveDots({
       }
     }
     circlesRef.current = circles
+    requestAnimationFrame(() => setCircleItems(circles))
   }, [padding, spacing, programs.length])
 
   useEffect(() => {
@@ -526,7 +536,7 @@ export function InteractiveDots({
   }, [spacing])
 
   const renderedCircles = useMemo(() => {
-    return circlesRef.current.map((circle) => {
+    return circleItems.map((circle) => {
       const program = programs[circle.iconIndex]
       const isHovered = circle.id === hoveredId || circle.id === simulatedHover
       const isNeighbor = neighborIds.has(circle.id) || simulatedNeighbors.has(circle.id)
@@ -580,13 +590,13 @@ export function InteractiveDots({
         </button>
       )
     })
-  }, [hoveredId, neighborIds, simulatedHover, simulatedNeighbors, touchRevealedIds, recentlyVisible, circleSize, openOverlay, programs, lang])
+  }, [circleItems, hoveredId, neighborIds, simulatedHover, simulatedNeighbors, touchRevealedIds, recentlyVisible, circleSize, openOverlay, programs, lang])
 
   const selectedProgram = openIdx !== null ? programs[openIdx] : null
 
   return (
     <>
-      <div ref={outerRef} style={{ position: 'relative', zIndex: 4, height: '300vh', marginTop: '-25vh' }}>
+      <div ref={outerRef} data-textcolor="white" style={{ position: 'relative', zIndex: 60, height: '300vh', marginTop: '-10vh' }}>
         <section 
           ref={containerRef} 
           onMouseMove={handleMouseMove} 

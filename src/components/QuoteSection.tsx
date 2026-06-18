@@ -19,8 +19,11 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-    return () => { cleanupRef.current?.() }
+    const frame = requestAnimationFrame(() => setIsMobile(window.innerWidth < 768))
+    return () => {
+      cancelAnimationFrame(frame)
+      cleanupRef.current?.()
+    }
   }, [])
 
   useEffect(() => {
@@ -29,7 +32,8 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
     const windowHeight = window.innerHeight
     const elementCenter = rect.top + rect.height / 2
     const p = Math.max(0, Math.min(1, (windowHeight * 0.75 - elementCenter) / (windowHeight * 0.25) + 1))
-    setScrollProgress(Math.max(0, Math.min(1, p)))
+    const frame = requestAnimationFrame(() => setScrollProgress(Math.max(0, Math.min(1, p))))
+    return () => cancelAnimationFrame(frame)
   }, [scrollY])
 
   const scramble = useCallback((text: string) => {
@@ -40,11 +44,12 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
   useEffect(() => {
     if (!mountedRef.current) { mountedRef.current = true; return }
     scramble(targetText)
-  }, [language]) // eslint-disable-line
+  }, [language, scramble, targetText])
 
   useEffect(() => {
     if (!mountedRef.current) return
-    setDisplayLetters(targetText.split(''))
+    const frame = requestAnimationFrame(() => setDisplayLetters(targetText.split('')))
+    return () => cancelAnimationFrame(frame)
   }, [targetText])
 
   return (
@@ -95,9 +100,16 @@ function YinYang({ visible, scrolledIn, sectionHeight }: {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
+    const frame = requestAnimationFrame(() => setIsMobile(window.innerWidth < 768))
     const el = document.querySelector('.quote-text-block') as HTMLElement
-    if (el) setTextHeight(el.offsetHeight)
+    if (el) {
+      const measureFrame = requestAnimationFrame(() => setTextHeight(el.offsetHeight))
+      return () => {
+        cancelAnimationFrame(frame)
+        cancelAnimationFrame(measureFrame)
+      }
+    }
+    return () => cancelAnimationFrame(frame)
   }, [visible])
 
   const rotation = sectionHeight > 0 ? (scrolledIn / sectionHeight) * 360 : 0
@@ -135,7 +147,8 @@ export function QuoteSection() {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
+    const frame = requestAnimationFrame(() => setIsMobile(window.innerWidth < 768))
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   useEffect(() => {

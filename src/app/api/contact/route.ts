@@ -32,7 +32,19 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-const contactMailConfig = (() => {
+type ContactMailConfig = {
+  resendApiKey: string
+  from: string
+  to: string
+  subjectPrefix: string
+}
+
+let cachedContactMailConfig: ContactMailConfig | null = null
+let cachedResend: Resend | null = null
+
+function getContactMailConfig() {
+  if (cachedContactMailConfig) return cachedContactMailConfig
+
   const resendApiKey = readRequiredEnv('RESEND_API_KEY')
   const from = readRequiredEnv('CONTACT_EMAIL_FROM')
   const to = readRequiredEnv('CONTACT_EMAIL_TO')
@@ -46,15 +58,21 @@ const contactMailConfig = (() => {
     throw new Error('CONTACT_EMAIL_TO must be a valid recipient email address.')
   }
 
-  return {
+  cachedContactMailConfig = {
     resendApiKey,
     from,
     to,
     subjectPrefix,
   }
-})()
 
-const resend = new Resend(contactMailConfig.resendApiKey)
+  return cachedContactMailConfig
+}
+
+function getResendClient() {
+  if (cachedResend) return cachedResend
+  cachedResend = new Resend(getContactMailConfig().resendApiKey)
+  return cachedResend
+}
 
 type RateLimitEntry = {
   count: number
@@ -150,6 +168,9 @@ export async function POST(req: NextRequest) {
     if (elapsed < CONTACT_MIN_SUBMISSION_TIME_MS || elapsed > CONTACT_MAX_SUBMISSION_AGE_MS) {
       return jsonError(400, 'bot_detected')
     }
+
+    const contactMailConfig = getContactMailConfig()
+    const resend = getResendClient()
 
     const { error } = await resend.emails.send({
       from: contactMailConfig.from,

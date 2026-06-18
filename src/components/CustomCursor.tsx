@@ -1,20 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useMouse } from '@/contexts/MouseContext'
 import { useScroll } from '@/contexts/ScrollContext'
 
-export function CustomCursor() {
+export function CustomCursor({ hidden = false }: { hidden?: boolean }) {
   const { mouseX, mouseY } = useMouse()
   const { vw } = useScroll()
   
   const isMobile = vw < 768
 
-  if (isMobile) return null
+  if (isMobile || hidden) return null
 
   return (
     <div
-      className="pointer-events-none z-[200000] mix-blend-difference"
+      className="custom-cursor pointer-events-none z-[200000] mix-blend-difference"
       style={{
         position: 'fixed',
         left: mouseX,

@@ -4,6 +4,7 @@ import { useRef, useCallback, useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useScroll } from '@/contexts/ScrollContext'
 import { startScramble } from '@/lib/scramble'
+import { NavMaskedText } from '@/components/NavMaskedText'
 
 export function Header({ isVisible }: { isVisible: boolean }) {
   const context = useLanguage()
@@ -22,7 +23,8 @@ export function Header({ isVisible }: { isVisible: boolean }) {
 
   useEffect(() => {
     languageRef.current = language
-    setDisplayText(language === 'de' ? 'DE' : 'ENG')
+    const frame = requestAnimationFrame(() => setDisplayText(language === 'de' ? 'DE' : 'ENG'))
+    return () => cancelAnimationFrame(frame)
   }, [language])
 
   const scrambleTo = useCallback((target: string) => {
@@ -43,9 +45,18 @@ export function Header({ isVisible }: { isVisible: boolean }) {
   }, [toggleLanguage, scrambleTo])
 
   const handleMouseEnter = useCallback(() => {
+    document.body.classList.add('hide-x-cursor')
     const cur = languageRef.current === 'de' ? 'DE' : 'ENG'
     scrambleTo(cur)
   }, [scrambleTo])
+
+  const handleMouseLeave = useCallback(() => {
+    document.body.classList.remove('hide-x-cursor')
+  }, [])
+
+  useEffect(() => {
+    return () => document.body.classList.remove('hide-x-cursor')
+  }, [])
 
   if (isMobile === null) return null
 
@@ -55,19 +66,18 @@ export function Header({ isVisible }: { isVisible: boolean }) {
         position: 'fixed',
         top: '1.5rem',
         right: '2rem',
-        zIndex: 30,
+        zIndex: 1000002,
         opacity: isVisible ? opacity : 0,
         transition: 'opacity 0.2s ease',
         pointerEvents: opacity > 0.5 ? 'auto' : 'none',
-        mixBlendMode: 'difference',
       }}>
-        <button onClick={handleToggle} onMouseEnter={handleMouseEnter} style={{
+        <button onClick={handleToggle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="nav__link" style={{
           background: 'none', border: 'none', cursor: 'pointer',
           fontSize: '14px', fontWeight: '700', fontFamily: 'inherit',
-          color: '#ffffff', letterSpacing: '1px', lineHeight: '1.2',
+          letterSpacing: '1px', lineHeight: '1.2',
           whiteSpace: 'nowrap', padding: 0,
         }}>
-          {displayText}
+          <NavMaskedText className="nav__link" watchKey={displayText}>{displayText}</NavMaskedText>
         </button>
       </header>
     )
@@ -79,19 +89,18 @@ export function Header({ isVisible }: { isVisible: boolean }) {
       position: 'fixed',
       top: '12px',
       right: '16px',
-      zIndex: 30,
+      zIndex: 1000002,
       opacity: isVisible ? opacity : 0,
       transition: 'opacity 0.2s ease',
       pointerEvents: opacity > 0.5 ? 'auto' : 'none',
-      mixBlendMode: 'difference',
     }}>
-      <button onClick={handleToggle} onMouseEnter={handleMouseEnter} onTouchStart={handleMouseEnter} style={{
+      <button onClick={handleToggle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onTouchStart={handleMouseEnter} onTouchEnd={handleMouseLeave} onTouchCancel={handleMouseLeave} className="nav__link" style={{
         background: 'none', border: 'none', cursor: 'pointer',
         fontSize: '11px', fontWeight: '700', fontFamily: 'inherit',
-        color: '#ffffff', letterSpacing: '-0.02em', lineHeight: '1.2',
+        letterSpacing: '-0.02em', lineHeight: '1.2',
         whiteSpace: 'nowrap', padding: 0,
       }}>
-        {displayText}
+        <NavMaskedText className="nav__link" watchKey={displayText}>{displayText}</NavMaskedText>
       </button>
     </header>
   )

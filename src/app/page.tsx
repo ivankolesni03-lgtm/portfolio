@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Hero } from '@/components/Hero'
-import { StorytellingSection } from '@/components/StorytellingSection'
 import { ProjectsSection } from '@/components/ProjectsSection'
 import { CustomCursor } from '@/components/CustomCursor'
 import { Header } from '@/components/Header'
@@ -13,7 +12,7 @@ import { ContactSection } from '@/components/ContactSection'
 import { AISection } from '@/components/AISection'
 import { GWASection } from '@/components/GWASection'
 import { PasswordGate } from '@/components/PasswordGate'
-import { StatsSection } from '@/components/StatsSection'
+import { MiniProjekteSection } from '@/components/MiniProjekteSection'
 import { InteractiveDots } from '@/components/InteractiveDots'
 import { ResumeTimeline } from '@/components/ResumeTimeline'
 import { Preloader } from '@/components/Preloader'
@@ -23,30 +22,21 @@ type HomePhase = 'locked' | 'preloading' | 'ready'
 function HomeContentInner() {
   const { scrollY, vh } = useScroll()
   const headerVisible = scrollY > vh * 0.8
+  const [overlayOpen, setOverlayOpen] = useState(false)
 
   return (
     <>
       <main>
-        <style>{`
-          body.overlay-open .fixed-ui {
-            filter: blur(8px) !important;
-            transition: filter 0.35s ease !important;
-            pointer-events: none !important;
-          }
-        `}</style>
-        <CustomCursor />
+        <CustomCursor hidden={overlayOpen} />
         <Header isVisible={headerVisible} />
         <Hero />
-        <StorytellingSection />
-        <div style={{ position: 'relative', zIndex: 2, marginTop: '-120vh' }}>
-          <ProjectsSection />
-          <StatsSection />
-          <AISection />
-          <GWASection />
-          <InteractiveDots />
-          <ResumeTimeline />
-          <ContactSection />
-        </div>
+        <ProjectsSection onOverlayChange={setOverlayOpen} />
+        <MiniProjekteSection />
+        <AISection />
+        <GWASection />
+        <InteractiveDots />
+        <ResumeTimeline />
+        <ContactSection />
       </main>
     </>
   )
@@ -64,8 +54,9 @@ export default function Home() {
   const [phase, setPhase] = useState<HomePhase>('locked')
 
   useEffect(() => {
-    const isUnlocked = sessionStorage.getItem('unlocked') === 'true'
-    setPhase(isUnlocked ? 'preloading' : 'locked')
+    if (sessionStorage.getItem('unlocked') === 'true') {
+      requestAnimationFrame(() => setPhase('preloading'))
+    }
   }, [])
 
   return (
@@ -73,7 +64,19 @@ export default function Home() {
       <LanguageProvider>
         {phase === 'locked' && <PasswordGate onUnlock={() => setPhase('preloading')} />}
         {phase === 'preloading' && <Preloader onComplete={() => setPhase('ready')} />}
-        {phase !== 'locked' && <HomeContent />}
+        {phase !== 'locked' && (
+          <div
+            aria-hidden={phase !== 'ready'}
+            style={{
+              opacity: phase === 'ready' ? 1 : 0,
+              visibility: phase === 'ready' ? 'visible' : 'hidden',
+              pointerEvents: phase === 'ready' ? 'auto' : 'none',
+              transition: 'opacity 220ms ease',
+            }}
+          >
+            <HomeContent />
+          </div>
+        )}
       </LanguageProvider>
     </MouseProvider>
   )

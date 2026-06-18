@@ -28,12 +28,16 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
 
   useEffect(() => {
     const saved = sessionStorage.getItem('unlocked')
+    let frame: number | null = null
     if (saved === 'true') {
-      setStatus('unlocked')
-      onUnlock()
-      return
+      frame = requestAnimationFrame(() => {
+        setStatus('unlocked')
+        onUnlock()
+      })
+      return () => { if (frame !== null) cancelAnimationFrame(frame) }
     }
-    setStatus('locked')
+    frame = requestAnimationFrame(() => setStatus('locked'))
+    return () => { if (frame !== null) cancelAnimationFrame(frame) }
   }, [onUnlock])
 
   const handleSubmit = async () => {
@@ -257,6 +261,26 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
           >
             {errorMessage || ' '}
           </p>
+        </div>
+
+        {/* Experience Designer label - matches Hero animation start position, static */}
+        <div
+          style={{
+            position: 'fixed',
+            left: isMobile ? 'calc(5vw + 2px)' : 'calc(8vw + 4px)',
+            top: isMobile ? '38vh' : '48vh',
+            zIndex: 10,
+            mixBlendMode: 'difference',
+            pointerEvents: 'none',
+            color: '#ffffff',
+            fontWeight: 900,
+            textTransform: 'uppercase',
+            letterSpacing: '-1px',
+            lineHeight: 1.12,
+            fontSize: isMobile ? 'clamp(20px, 6.4vw, 34px)' : 'clamp(28px, 2.7vw, 46px)',
+          }}
+        >
+          Experience<br />Designer
         </div>
 
         <style jsx>{`
