@@ -47,34 +47,20 @@ const criticalImages = [
 const backgroundSrc = '/photos/background.jpg'
 
 const criticalStaticImages = [
-  '/images/hochschule.jpg',
-  '/images/hochschule0.jpg',
-  '/images/hochschule1.jpg',
-  '/images/hochschule3.jpg',
-  '/images/hochschule4.jpg',
-  '/images/continental.jpg',
-  '/images/continental1.jpg',
-  '/images/continental2.jpg',
-  '/images/hateaid.jpg',
-  '/images/hateaid1.jpg',
-  '/images/hateaid2.jpg',
-  '/images/hateaid3.jpg',
-  '/images/hateaid4.jpg',
-  '/images/lebara.jpg',
+  '/images/hochschule-projekt.jpg',
+  '/images/continental-projekt.jpg',
+  '/images/hateaid-projekt.jpg',
+  '/images/bmw-projekt.jpg',
+  '/images/tennisheine-projekt.jpg',
+  '/images/lebara.png',
   '/images/ganbatte.jpg',
   '/images/cavallo.jpg',
   '/images/bold.jpg',
   '/images/pocoloco.jpg',
-  '/images/pocoloco1.jpg',
-  '/images/glownation.jpg',
-  '/images/tennisheine.jpg',
-  '/images/gwa.jpg',
   '/images/weros.jpg',
-  '/images/weros1.jpg',
-  '/images/jing-jang.png',
-  '/images/hsh-logo.png',
-  '/images/hateaid-logo.png',
-  '/images/cc-logo.png',
+  '/icons/hsh-logo.png',
+  '/icons/hateaid-logo.png',
+  '/icons/cc-logo.png',
 ]
 
 const criticalIcons = [
@@ -107,8 +93,7 @@ const criticalIcons = [
 
 const criticalVideos = [
   '/videos/hsh-projekt.mp4',
-  '/videos/storytelling.mp4',
-  '/videos/gwavideo.mp4',
+  '/videos/gwa-video.mp4',
 ]
 
 const criticalModels = [

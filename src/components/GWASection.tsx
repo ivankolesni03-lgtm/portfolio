@@ -391,7 +391,7 @@ function ScrollLinkedVideo({ lang, exitBlur, exitOpacity }: { lang: 'de' | 'en';
         opacity: exitOpacity,
         pointerEvents: 'auto',
       }}>
-        <div style={{ width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ position: 'relative', width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0 }}>
           <Video
             ref={videoRef}
             src={gwaVideo as any}
@@ -484,7 +484,7 @@ export function GWASection() {
           </div>
           <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.6)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(20px,5vw,32px)' }} />
           <div>
-            <div style={{ width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)' }}>
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)' }}>
               <Video src={gwaVideo as any} autoPlay loop muted playsInline controls={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             <MobileLivestreamBtn lang={lang} />

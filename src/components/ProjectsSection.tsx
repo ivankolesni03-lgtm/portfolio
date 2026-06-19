@@ -1,16 +1,20 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import Video from 'next-video'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useMouse } from '@/contexts/MouseContext'
 import { useScramble, runScramble } from '@/hooks/use-scramble'
+import hateAidVideo from '../../public/videos/hateaid-video.mp4.json'
+import bmwVideo from '../../public/videos/bmw-projekt.mp4.json'
+import tennisheineVideo from '../../public/videos/tennisheine-video.mp4.json'
 
 const ALL_PROJECTS = [
   { id:1, title:{de:'Hochschule\nHannover',en:'Hannover\nUASA'}, field:{de:'Image\nKampagne',en:'Image\nCampaign'}, description:{de:'Mangelnde Brand-Sichtbarkeit und eine zu sachliche Web-Präsenz verhindern den emotionalen Zugang. „Home of Community" positioniert die Hochschule als ein Ort für Kreative.',en:'Lack of brand visibility and an overly factual web presence prevent emotional engagement. "Home of Community" positions the university as a place for creatives.'}, image:'/images/hochschule-projekt.jpg', images:['/images/hochschule-projekt.jpg'], tags:{de:['Social Media','OOH','Brand Strategie'],en:['Social Media','OOH','Brand Strategy']}, seamlessVideoSrc: '/videos/hsh-projekt.mp4', youtube: null, logo: '/icons/hsh-projekt.png' },
-  { id:2, title:{de:'Continental',en:'Continental'}, field:{de:'Produkt\nKampagne',en:'Product\nCampaign'}, description:{de:'Einblicke in die globale Kommunikationslogik bei Continental. Begleitung des Product Drops Ice Contact 8 von der Agentur-Ideation bis zum Launch.',en:'Insights into global communication logic at Continental. Accompanying the Ice Contact 8 product drop from agency ideation to launch.'}, image:'/images/continental-projekt.jpg', images:['/images/continental-projekt.jpg','https://s7g10.scene7.com/is/image/conti/Continental_IceContact-8_-_Product_Video_en-AVS?fmt=jpg&wid=1600','/images/continental1.jpg','/images/continental2.jpg'], videoSrc:'https://s7g10.scene7.com/is/content/conti/Continental_IceContact-8_-_Product_Video_en-AVS.m3u8', tags:{de:['Strategie','Kampagne','Copywriting'],en:['Strategy','Campaign','Copywriting']}, youtube: null, logo: '/icons/continental-projekt.png' },
-  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Awareness-Kampagne für die NGO HateAid gemeinsam mit Partneragentur Creative Team. Unser Claim „Einer für alle, alle gegen Hass." stellt Solidarität ins Zentrum und macht Hass im Netz sichtbar.',en:'Awareness campaign for the NGO HateAid together with partner agency Creative Team. Our claim "One for all, all against hate." puts solidarity at the centre and makes online hate visible.'}, image:'/images/hateaid-projekt.jpg', images:['/images/hateaid-projekt.jpg','/images/hateaid1.jpg','/images/hateaid2.jpg','/images/hateaid3.jpg','/images/hateaid4.jpg'], tags:{de:['NGO','Awareness','Storytelling','GWA'],en:['NGO','Awareness','Storytelling','GWA']}, seamlessVideoSrc: '/videos/hateaid-video.mp4', youtube: null, logo: '/icons/hateaid-projekt.png' },
-  { id:9, title:{de:'BMW',en:'BMW'}, field:{de:'Generative\nIntelligence',en:'Generative\nIntelligence'}, description:{de:'Experimentelles Generative-Intelligence-Projekt für BMW mit Fokus auf AI-gestützte Bildwelt, Look-Transitions und visuellem Prompt-Design für starke Markenmomente.',en:'Experimental generative intelligence project for BMW focused on AI-driven visual worlds, look transitions and visual prompt design for strong brand moments.'}, image:'/images/bmw-projekt.jpg', images:['/images/bmw-projekt.jpg','/images/bmw-projekt.jpg'], tags:{de:['Generative Intelligence','AI Visuals','Transition'],en:['Generative Intelligence','AI Visuals','Transition']}, seamlessVideoSrc: '/videos/bmw-projekt.mp4', youtube: null, logo: '/icons/bmw-projekt.png' },
-  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt. Authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut. Authentic storytelling in sport.'}, image:'/images/tennisheine-projekt.jpg', images:['/images/tennisheine-projekt.jpg','/images/tennisheine-projekt.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, seamlessVideoSrc: '/videos/tennisheine-video.mp4', youtube: null, logo: '/icons/tennisheine-projekt.png' },
+  { id:2, title:{de:'Continental',en:'Continental'}, field:{de:'Produkt\nKampagne',en:'Product\nCampaign'}, description:{de:'Einblicke in die globale Kommunikationslogik bei Continental. Begleitung des Product Drops Ice Contact 8 von der Agentur-Ideation bis zum Launch.',en:'Insights into global communication logic at Continental. Accompanying the Ice Contact 8 product drop from agency ideation to launch.'}, image:'/images/continental-projekt.jpg', images:['/images/continental-projekt.jpg','https://s7g10.scene7.com/is/image/conti/Continental_IceContact-8_-_Product_Video_en-AVS?fmt=jpg&wid=1600'], videoSrc:'https://s7g10.scene7.com/is/content/conti/Continental_IceContact-8_-_Product_Video_en-AVS.m3u8', tags:{de:['Strategie','Kampagne','Copywriting'],en:['Strategy','Campaign','Copywriting']}, youtube: null, logo: '/icons/continental-projekt.png' },
+  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Awareness-Kampagne für die NGO HateAid gemeinsam mit Partneragentur Creative Team. Unser Claim „Einer für alle, alle gegen Hass." stellt Solidarität ins Zentrum und macht Hass im Netz sichtbar.',en:'Awareness campaign for the NGO HateAid together with partner agency Creative Team. Our claim "One for all, all against hate." puts solidarity at the centre and makes online hate visible.'}, image:'/images/hateaid-projekt.jpg', images:['/images/hateaid-projekt.jpg'], tags:{de:['NGO','Awareness','Storytelling','GWA'],en:['NGO','Awareness','Storytelling','GWA']}, seamlessVideoSrc: hateAidVideo, youtube: null, logo: '/icons/hateaid-projekt.png' },
+  { id:9, title:{de:'BMW',en:'BMW'}, field:{de:'Generative\nIntelligence',en:'Generative\nIntelligence'}, description:{de:'Experimentelles Generative-Intelligence-Projekt für BMW mit Fokus auf AI-gestützte Bildwelt, Look-Transitions und visuellem Prompt-Design für starke Markenmomente.',en:'Experimental generative intelligence project for BMW focused on AI-driven visual worlds, look transitions and visual prompt design for strong brand moments.'}, image:'/images/bmw-projekt.jpg', images:['/images/bmw-projekt.jpg','/images/bmw-projekt.jpg'], tags:{de:['Generative Intelligence','AI Visuals','Transition'],en:['Generative Intelligence','AI Visuals','Transition']}, seamlessVideoSrc: bmwVideo, youtube: null, logo: '/icons/bmw-projekt.png' },
+  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt. Authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut. Authentic storytelling in sport.'}, image:'/images/tennisheine-projekt.jpg', images:['/images/tennisheine-projekt.jpg','/images/tennisheine-projekt.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, seamlessVideoSrc: tennisheineVideo, youtube: null, logo: '/icons/tennisheine-projekt.png' },
 ]
 
 // Archive – nicht in der Fullscreen-Vorschau, aber Daten bleiben erhalten
@@ -177,15 +181,24 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
   const imageRef = useRef<HTMLImageElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const seamlessVideoRef = useRef<HTMLVideoElement>(null)
+  const nextVideoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<any>(null)
   const hlsDurationRef = useRef<number>(0)
   const [inViewport, setInViewport] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
   const [seamlessVideoReady, setSeamlessVideoReady] = useState(false)
+  const [nextVideoReady, setNextVideoReady] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const hasVideo = project.id === 2 && typeof project.videoSrc === 'string'
-  const hasSeamlessVideo = 'seamlessVideoSrc' in project && Boolean(project.seamlessVideoSrc)
+  const hasSeamlessVideo = project.id === 1 && 'seamlessVideoSrc' in project && typeof project.seamlessVideoSrc === 'string'
+  const nextVideoSrc = project.id !== 1 && 'seamlessVideoSrc' in project && project.seamlessVideoSrc
+    ? project.seamlessVideoSrc
+    : null
+  const hasNextVideo = Boolean(nextVideoSrc)
   const shouldMountSeamlessVideo = hasSeamlessVideo && inViewport
+  const shouldMountNextVideo = hasNextVideo && inViewport
+  const nextVideoBleed = isMobile ? 32 : 8
+  const nextVideoScale = isMobile ? 1.2 : 1.03
 
   const p = Math.max(0, Math.min(1, enterProgress))
   const snapStart = 0.92
@@ -234,7 +247,6 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
     }
     v.addEventListener('loadeddata', onReady)
     v.addEventListener('canplay', onReady)
-    v.addEventListener('loadedmetadata', onReady)
     v.addEventListener('playing', onReady)
     v.addEventListener('timeupdate', onReady)
 
@@ -264,7 +276,6 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
             }
             hlsRef.current?.destroy()
             hlsRef.current = null
-            // Fallback attempt in case the browser can still open the HLS URL natively.
             v.src = src
           })
           hlsRef.current.on(Hls.Events.LEVEL_LOADED, (_event: unknown, data: any) => {
@@ -291,7 +302,6 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
       cancelled = true
       v.removeEventListener('loadeddata', onReady)
       v.removeEventListener('canplay', onReady)
-      v.removeEventListener('loadedmetadata', onReady)
       v.removeEventListener('playing', onReady)
       v.removeEventListener('timeupdate', onReady)
       if (hlsRef.current) {
@@ -315,7 +325,20 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
     }
   }, [hasVideo, overlayOpen, inViewport])
 
-  // Trim last 2 seconds of Continental video – poll every frame.
+  useEffect(() => {
+    if (!hasNextVideo) return
+    const v = nextVideoRef.current
+    if (!v) return
+    if (!overlayOpen && inViewport) {
+      v.muted = true
+      v.setAttribute('muted', '')
+      v.setAttribute('playsinline', '')
+      v.play().catch(() => {})
+    } else {
+      v.pause()
+    }
+  }, [hasNextVideo, overlayOpen, inViewport])
+
   useEffect(() => {
     if (!hasVideo) return
     const v = videoRef.current
@@ -441,13 +464,43 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
           }}
         />
       )}
-      <img ref={imageRef} src={project.image} alt="" style={{
+      {shouldMountNextVideo && (
+        <div style={{ position: 'absolute', inset: -nextVideoBleed, overflow: 'hidden', pointerEvents: 'none' }}>
+          <Video
+            ref={nextVideoRef}
+            src={nextVideoSrc as any}
+            muted
+            playsInline
+            autoPlay
+            loop
+            preload="auto"
+            suppressHydrationWarning
+            controls={false}
+            poster={project.image}
+            onPlaying={() => setNextVideoReady(true)}
+            onTimeUpdate={() => setNextVideoReady(true)}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center center',
+              transform: `scale(${nextVideoScale})`,
+              transformOrigin: 'center center',
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
+      )}
+      <img ref={imageRef} src={project.image} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
         position: 'absolute',
         inset: 0,
         display: 'block', width: '100%', height: '100%', objectFit: 'cover',
         transition: 'opacity 0.4s ease', userSelect: 'none', pointerEvents: 'none',
         zIndex: 1,
-        opacity: (hasVideo && videoReady) || (hasSeamlessVideo && seamlessVideoReady) ? 0 : 1,
+        opacity: (hasVideo && videoReady) || (hasSeamlessVideo && seamlessVideoReady) || (hasNextVideo && nextVideoReady) ? 0 : 1,
       }} />
       <div style={{
         position: 'absolute', inset: 0,
@@ -547,7 +600,7 @@ export function ViewCursor({ show, mode = 'view' }: { show: boolean; mode?: 'vie
       zIndex: isClose ? 1000003 : 200001, pointerEvents: 'none',
       opacity: visible ? 1 : 0,
       visibility: visible ? 'visible' : 'hidden',
-      transition: visible ? 'opacity 0.15s ease' : 'opacity 0.05s ease, visibility 0s linear 0.05s',
+      transition: visible ? 'opacity 0.12s ease' : 'none',
     }}>
       {isClose ? (
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" style={{
@@ -580,6 +633,7 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
   const sectionRef = useRef<HTMLElement>(null)
   const [sectionProgress, setSectionProgress] = useState(0)
   const [openIdx, setOpenIdx] = useState<number|null>(null)
+  const [overlayCursorVisible, setOverlayCursorVisible] = useState(false)
   
   const isMobile = vw < 768
 
@@ -587,9 +641,10 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
     if (aiSectionVisible) return
     const infoIdx = INFO_PROJECTS.findIndex(p => p.id === PROJECTS[i].id)
     setOpenIdx(infoIdx >= 0 ? infoIdx : i)
+    setOverlayCursorVisible(true)
     onOverlayChange?.(true)
   }
-  const close = () => { setOpenIdx(null); onOverlayChange?.(false) }
+  const close = () => { setOpenIdx(null); setOverlayCursorVisible(false); onOverlayChange?.(false) }
   const nav   = (i: number) => {
     setOpenIdx(i)
   }
@@ -684,8 +739,8 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
         </div>
       </section>
       <ViewCursor show={viewHover && !overlayOpen && !miniSectionVisible} mode="view" />
-      <ViewCursor show={overlayOpen} mode="close" />
-      {openIdx !== null && <Overlay idx={openIdx} projects={INFO_PROJECTS} onClose={close} onNav={nav} />}
+      <ViewCursor show={overlayCursorVisible} mode="close" />
+      {openIdx !== null && <Overlay idx={openIdx} projects={INFO_PROJECTS} onClose={close} onCloseStart={() => { setOverlayCursorVisible(false); onOverlayChange?.(false) }} onNav={nav} />}
     </>
   )
 }
@@ -814,8 +869,8 @@ function MagnetArrow({ side, mob, onClick, label, visible }: {
 
 type Phase = 'in'|'open'|'closing'
 
-function Overlay({ idx, projects, onClose, onNav }: {
-  idx: number; projects: InfoProject[]; onClose: () => void; onNav: (i: number) => void
+function Overlay({ idx, projects, onClose, onCloseStart, onNav }: {
+  idx: number; projects: InfoProject[]; onClose: () => void; onCloseStart: () => void; onNav: (i: number) => void
 }) {
   const { language } = useLanguage()
   const lang = language as Lang
@@ -851,15 +906,17 @@ function Overlay({ idx, projects, onClose, onNav }: {
 
   const resetNavColor = useCallback(() => {
     document.body.classList.remove('overlay-open')
+    document.body.classList.remove('hide-x-cursor')
     window.dispatchEvent(new Event('nav-mask-refresh'))
   }, [])
 
   const close = useCallback(() => {
     if (phase === 'closing') return
+    onCloseStart()
     resetNavColor()
     setPhase('closing')
-    setTimeout(() => onClose(), 520)
-  }, [phase, onClose, resetNavColor])
+    setTimeout(() => onClose(), 280)
+  }, [phase, onClose, onCloseStart, resetNavColor])
 
   const navigate = useCallback((dir: 'l'|'r') => {
     if (lockRef.current) return
@@ -892,12 +949,12 @@ function Overlay({ idx, projects, onClose, onNav }: {
   const imgScale   = imgOut ? 'scale(0.72)' : imgClosing ? 'scale(0.72)' : 'scale(1)'
   const imgOpacity = imgOut ? 0 : imgClosing ? 0 : 1
   const imgTransition = imgClosing
-    ? `transform 300ms ${EASE} 200ms, opacity 280ms ease 200ms`
+    ? `transform 180ms ${EASE}, opacity 160ms ease`
     : `transform 320ms ${EASE}, opacity 300ms ease`
   const panX       = (phase === 'in' || phase === 'closing') ? '-100%' : '0%'
   const panOpacity = (phase === 'in' || phase === 'closing') ? 0 : 1
   const panTransition = phase === 'closing'
-    ? `transform 260ms ${EASE}, opacity 240ms ease`
+    ? `transform 160ms ${EASE}, opacity 140ms ease`
     : `transform 300ms ${EASE} 100ms, opacity 280ms ease 100ms`
 
   const iconBtn: React.CSSProperties = {
@@ -1179,14 +1236,14 @@ export function ProjectsMarquee({ embedded = false, statProgress = 0, onHoverCar
   }, [onHoverCards, setOpenIdx, setOpenRect])
 
   const renderRow = (projects: MiniProject[], direction: 'left' | 'right', startOffset: number, autoSpeed: number) => {
-    const cardW = isMobile ? Math.min(300, Math.max(220, Math.round(vw * 0.72))) : 384
+    const cardW = isMobile ? Math.min(280, Math.max(200, Math.round(vw * 0.65))) : 384
     const cardH = Math.round(cardW * 9 / 16) // 16:9
-    const gap = isMobile ? 18 : 32
+    const gap = isMobile ? 12 : 32
     const loop = [...projects, ...projects]
     const autoDir = direction === 'left' ? 'mpScrollL' : 'mpScrollR'
     const duration = isMobile ? Math.round(autoSpeed * 1.2) : autoSpeed
     return (
-      <div style={{ overflow: 'visible', width: '100%', padding: isMobile ? '10px 0' : '18px 0' }}>
+      <div style={{ overflow: 'visible', width: '100%', padding: isMobile ? '6px 0' : '18px 0' }}>
         <div style={{
           transform: `translateX(${startOffset}%)`,
           willChange: 'transform',

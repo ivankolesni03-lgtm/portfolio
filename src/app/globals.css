@@ -45,6 +45,7 @@
 
 :root {
   --radius: 0.625rem;
+  --font-montserrat: Arial, Helvetica, sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -336,7 +337,7 @@ body.hide-x-cursor .x-cursor-label {
 }
 body.overlay-open .fixed-ui {
   filter: blur(8px) !important;
-  transition: filter 0.35s ease !important;
+  transition: filter 0.25s ease !important;
 }
 body.overlay-open .fixed-ui .nav__brand,
 body.overlay-open .fixed-ui .nav__link,

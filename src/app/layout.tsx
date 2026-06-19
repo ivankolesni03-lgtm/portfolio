@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react";
-
-const montserrat = Montserrat({
-  subsets: ["cyrillic", "latin"],
-  weight: ["700", "800", "900"],
-  variable: "--font-montserrat",
-});
 
 const borna = localFont({
   src: [
@@ -78,7 +71,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${borna.variable} ${montserrat.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${borna.variable} antialiased`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />

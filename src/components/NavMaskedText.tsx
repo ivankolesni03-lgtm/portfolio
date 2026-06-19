@@ -47,11 +47,13 @@ export function NavMaskedText({
   className,
   style,
   watchKey,
+  forceDifference = false,
 }: {
   children: ReactNode
   className?: string
   style?: CSSProperties
   watchKey?: string | number
+  forceDifference?: boolean
 }) {
   const rootRef = useRef<HTMLSpanElement>(null)
   const maskRef = useRef<HTMLSpanElement>(null)
@@ -60,6 +62,17 @@ export function NavMaskedText({
     const root = rootRef.current
     const mask = maskRef.current
     if (!root || !mask) return
+
+    if (forceDifference) {
+      root.style.color = '#ffffff'
+      root.style.mixBlendMode = ''
+      mask.style.display = 'none'
+      return
+    }
+
+    root.style.mixBlendMode = ''
+    mask.style.display = ''
+    mask.style.mixBlendMode = ''
 
     let frame = 0
 
@@ -109,10 +122,14 @@ export function NavMaskedText({
       window.removeEventListener('resize', schedule)
       window.removeEventListener('nav-mask-refresh', schedule)
     }
-  }, [watchKey])
+  }, [watchKey, forceDifference])
 
   return (
-    <span ref={rootRef} className={className} style={style}>
+    <span
+      ref={rootRef}
+      className={className}
+      style={forceDifference ? { ...style, color: '#ffffff' } : style}
+    >
       <span className="nav__text-content">{children}</span>
       <span ref={maskRef} className="nav__mask" aria-hidden="true">{children}</span>
     </span>

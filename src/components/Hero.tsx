@@ -188,7 +188,7 @@ function PixelTrailImage({ img, blur = 0 }: { img: TrailImage; blur?: number }) 
         width: img.width,
         height: img.height,
         pointerEvents: 'none',
-        zIndex: 15,
+        zIndex: 5,
         filter: blur > 0.05 ? `blur(${blur}px)` : 'none',
       }}
     />
@@ -413,8 +413,9 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
         style={{
           left,
           top,
-          zIndex: 1000002,
+          zIndex: isInNav ? 1000002 : 15,
           pointerEvents: 'none',
+          mixBlendMode: isInNav ? undefined : 'difference',
         }}
       >
       <div
@@ -437,6 +438,7 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
         <NavMaskedText
           className="nav__brand scramble-text"
           watchKey={`${ivanScramble.display}-${isRussian}`}
+          forceDifference={!isInNav}
           style={{
             fontSize,
             lineHeight,
@@ -455,6 +457,7 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
         <NavMaskedText
           className="nav__brand scramble-text"
           watchKey={`${kolesnikovScramble.display}-${isRussian}`}
+          forceDifference={!isInNav}
           style={{
             fontSize,
             lineHeight,
@@ -531,10 +534,14 @@ export function Hero() {
   const [descFade, setDescFade] = useState(1)
   const expScramble = useScramble('Experience')
   const desScramble = useScramble('Designer')
+  const expScrambleRef = useRef(expScramble.scrambleTo)
+  const desScrambleRef = useRef(desScramble.scrambleTo)
+  expScrambleRef.current = expScramble.scrambleTo
+  desScrambleRef.current = desScramble.scrambleTo
   const handleHeaderHover = useCallback(() => {
-    expScramble.scrambleTo('Experience')
-    desScramble.scrambleTo('Designer')
-  }, [expScramble, desScramble])
+    expScrambleRef.current('Experience')
+    desScrambleRef.current('Designer')
+  }, [])
   const heroProgress = vh > 0 ? Math.min(1, scrollY / (vh * 2.0)) : 0
   const rawHeroProgress = vh > 0 ? scrollY / (vh * 2.0) : 0
   const descriptor = language === 'de'
