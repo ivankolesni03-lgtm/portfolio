@@ -1,20 +1,16 @@
 'use client'
-import { useState, useRef, useEffect, useCallback } from 'react'
-import Video from 'next-video'
+import { useState, useRef, useEffect, useCallback, useId } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useMouse } from '@/contexts/MouseContext'
 import { useScramble, runScramble } from '@/hooks/use-scramble'
-import hateAidVideo from '../../public/videos/hateaid-video.mp4.json'
-import bmwVideo from '../../public/videos/bmw-projekt.mp4.json'
-import tennisheineVideo from '../../public/videos/tennisheine-video.mp4.json'
 
 const ALL_PROJECTS = [
   { id:1, title:{de:'Hochschule\nHannover',en:'Hannover\nUASA'}, field:{de:'Image\nKampagne',en:'Image\nCampaign'}, description:{de:'Mangelnde Brand-Sichtbarkeit und eine zu sachliche Web-Präsenz verhindern den emotionalen Zugang. „Home of Community" positioniert die Hochschule als ein Ort für Kreative.',en:'Lack of brand visibility and an overly factual web presence prevent emotional engagement. "Home of Community" positions the university as a place for creatives.'}, image:'/images/hochschule-projekt.jpg', images:['/images/hochschule-projekt.jpg'], tags:{de:['Social Media','OOH','Brand Strategie'],en:['Social Media','OOH','Brand Strategy']}, seamlessVideoSrc: '/videos/hsh-projekt.mp4', youtube: null, logo: '/icons/hsh-projekt.png' },
   { id:2, title:{de:'Continental',en:'Continental'}, field:{de:'Produkt\nKampagne',en:'Product\nCampaign'}, description:{de:'Einblicke in die globale Kommunikationslogik bei Continental. Begleitung des Product Drops Ice Contact 8 von der Agentur-Ideation bis zum Launch.',en:'Insights into global communication logic at Continental. Accompanying the Ice Contact 8 product drop from agency ideation to launch.'}, image:'/images/continental-projekt.jpg', images:['/images/continental-projekt.jpg','https://s7g10.scene7.com/is/image/conti/Continental_IceContact-8_-_Product_Video_en-AVS?fmt=jpg&wid=1600'], videoSrc:'https://s7g10.scene7.com/is/content/conti/Continental_IceContact-8_-_Product_Video_en-AVS.m3u8', tags:{de:['Strategie','Kampagne','Copywriting'],en:['Strategy','Campaign','Copywriting']}, youtube: null, logo: '/icons/continental-projekt.png' },
-  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Awareness-Kampagne für die NGO HateAid gemeinsam mit Partneragentur Creative Team. Unser Claim „Einer für alle, alle gegen Hass." stellt Solidarität ins Zentrum und macht Hass im Netz sichtbar.',en:'Awareness campaign for the NGO HateAid together with partner agency Creative Team. Our claim "One for all, all against hate." puts solidarity at the centre and makes online hate visible.'}, image:'/images/hateaid-projekt.jpg', images:['/images/hateaid-projekt.jpg'], tags:{de:['NGO','Awareness','Storytelling','GWA'],en:['NGO','Awareness','Storytelling','GWA']}, seamlessVideoSrc: hateAidVideo, youtube: null, logo: '/icons/hateaid-projekt.png' },
-  { id:9, title:{de:'BMW',en:'BMW'}, field:{de:'Generative\nIntelligence',en:'Generative\nIntelligence'}, description:{de:'Experimentelles Generative-Intelligence-Projekt für BMW mit Fokus auf AI-gestützte Bildwelt, Look-Transitions und visuellem Prompt-Design für starke Markenmomente.',en:'Experimental generative intelligence project for BMW focused on AI-driven visual worlds, look transitions and visual prompt design for strong brand moments.'}, image:'/images/bmw-projekt.jpg', images:['/images/bmw-projekt.jpg','/images/bmw-projekt.jpg'], tags:{de:['Generative Intelligence','AI Visuals','Transition'],en:['Generative Intelligence','AI Visuals','Transition']}, seamlessVideoSrc: bmwVideo, youtube: null, logo: '/icons/bmw-projekt.png' },
-  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt. Authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut. Authentic storytelling in sport.'}, image:'/images/tennisheine-projekt.jpg', images:['/images/tennisheine-projekt.jpg','/images/tennisheine-projekt.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, seamlessVideoSrc: tennisheineVideo, youtube: null, logo: '/icons/tennisheine-projekt.png' },
+  { id:3, title:{de:'HateAid',en:'HateAid'}, field:{de:'Awareness\nKampagne',en:'Awareness\nCampaign'}, description:{de:'Awareness-Kampagne für die NGO HateAid gemeinsam mit Partneragentur Creative Team. Unser Claim „Einer für alle, alle gegen Hass." stellt Solidarität ins Zentrum und macht Hass im Netz sichtbar.',en:'Awareness campaign for the NGO HateAid together with partner agency Creative Team. Our claim "One for all, all against hate." puts solidarity at the centre and makes online hate visible.'}, image:'/images/hateaid-projekt.jpg', images:['/images/hateaid-projekt.jpg'], tags:{de:['NGO','Awareness','Storytelling','GWA'],en:['NGO','Awareness','Storytelling','GWA']}, seamlessVideoSrc: '/videos/hateaid-video.mp4', youtube: null, logo: '/icons/hateaid-projekt.png' },
+  { id:9, title:{de:'BMW',en:'BMW'}, field:{de:'Generative\nIntelligence',en:'Generative\nIntelligence'}, description:{de:'Generative-Intelligence-Projekt für BMW mit Fokus auf Prompt-Strategien, Systemprompts für Content-Pipelines und Prototypen wie Outpainting. Ziel: AI-Use-Cases qualitativ bewerten, automatisierbar machen und markentauglich übersetzen.',en:'Generative intelligence project for BMW focused on prompt strategies, system prompts for content pipelines and prototypes like outpainting. The goal: evaluate AI use cases, automation potential and brand-ready output quality.'}, image:'/images/bmw-projekt.jpg', images:['/images/bmw-projekt.jpg','/images/bmw-projekt.jpg'], tags:{de:['Prompt Engineering','Content Pipeline','Generative Intelligence'],en:['Prompt Engineering','Content Pipeline','Generative Intelligence']}, seamlessVideoSrc: '/videos/bmw-projekt.mp4', youtube: null, logo: '/icons/bmw-projekt.png' },
+  { id:10, title:{de:'Tennisheine',en:'Tennisheine'}, field:{de:'Bewegtbild',en:'Motion\nPicture'}, description:{de:'Bewegtbild-Produktion für den Tennisclub Tennisheine. Von der Konzeption über den Dreh bis zum fertigen Schnitt. Authentisches Storytelling im Sport.',en:'Moving image production for tennis club Tennisheine. From concept to shoot to final cut. Authentic storytelling in sport.'}, image:'/images/tennisheine-projekt.jpg', images:['/images/tennisheine-projekt.jpg','/images/tennisheine-projekt.jpg'], tags:{de:['Video','Schnitt','Sport','Storytelling'],en:['Video','Editing','Sport','Storytelling']}, seamlessVideoSrc: '/videos/tennisheine-video.mp4', youtube: null, logo: '/icons/tennisheine-projekt.png' },
 ]
 
 // Archive – nicht in der Fullscreen-Vorschau, aber Daten bleiben erhalten
@@ -23,8 +19,8 @@ const ARCHIVED_PROJECTS = [
   { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'Konzeption und Gestaltung einer Broschüre als Abgabe in Kommunikationsdesign. Von der Fotografie über das Texten bis zum Layout stammt alles aus meiner Hand. Als visuelle Inspiration diente meine Reise nach Thailand.',en:'Concept and design of a brochure as a submission in communication design. From photography to copywriting to layout, everything came from my own hand. My journey to Thailand served as visual inspiration.'}, image:'/images/ganbatte.jpg', images:['/images/ganbatte.jpg','/images/ganbatte.jpg'], tags:{de:['Broschüre','Fotografie','Layout','Thailand'],en:['Brochure','Photography','Layout','Thailand']}, youtube: null },
   { id:6, title:{de:'Cavallo',en:'Cavallo'}, field:{de:'UX & Web\nDesign',en:'UX & Web\nDesign'}, description:{de:'Entwicklung einer interaktiven Kommunikationskampagne für eine Eventlocation, inklusive Flowchart, Website-Layout und Mockups.',en:'Development of an interactive communication campaign for an event location, including flowchart, website layout and mockups.'}, image:'/images/cavallo.jpg', images:['/images/cavallo.jpg','/images/cavallo.jpg'], tags:{de:['UX','UI','Web Design','Mockup'],en:['UX','UI','Web Design','Mockup']}, youtube: null },
   { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Corporate Branding für die Agentur Bold. Entwicklung einer konsistenten Markenidentität mit Logogestaltung, Typografie und Farbwelt. Motion Design und Postproduktion bringen die Benefits der Marke visuell auf den Punkt.',en:'Corporate branding for the agency Bold. Development of a consistent brand identity including logo design, typography and colour world. Motion design and post-production bring the brand benefits to the point visually.'}, image:'/images/bold.jpg', images:['/images/bold.jpg','/images/bold.jpg'], tags:{de:['Corporate Branding','Logo','Motion Design','Agentur'],en:['Corporate Branding','Logo','Motion Design','Agency']}, youtube: null },
-  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Corporate Brand Communication für die kreative Agentur Pocoloco. Von der Markenstimme über das visuelle System bis zur digitalen Umsetzung mit Next.js und prozeduralen Scroll-Animationen.',en:'Corporate brand communication for the creative agency Pocoloco. From brand voice and visual system through to digital implementation with Next.js and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg','/images/pocoloco1.jpg'], tags:{de:['Corporate Brand','Next.js','Animation','Agentur'],en:['Corporate Brand','Next.js','Animation','Agency']}, youtube: null },
-  { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Fotografie mit Technik sowie Pre- und Post-Production einer Arztpraxis im Auftrag für die Agentur Webdynamics. Professionelle Bildsprache, die Vertrauen und moderne Ästhetik verbindet.',en:'Photography with technique as well as pre- and post-production of a medical practice commissioned for the agency Webdynamics. Professional visual language combining trust and modern aesthetics.'}, image:'/images/weros.jpg', images:['/images/weros.jpg','/images/weros1.jpg'], tags:{de:['Fotografie','Pre-Production','Post-Production','Arztpraxis'],en:['Photography','Pre-Production','Post-Production','Medical']}, youtube: null },
+  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Corporate Brand Communication für die kreative Agentur Pocoloco. Von der Markenstimme über das visuelle System bis zur digitalen Umsetzung mit Next.js und prozeduralen Scroll-Animationen.',en:'Corporate brand communication for the creative agency Pocoloco. From brand voice and visual system through to digital implementation with Next.js and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg'], tags:{de:['Corporate Brand','Next.js','Animation','Agentur'],en:['Corporate Brand','Next.js','Animation','Agency']}, youtube: null },
+  { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Fotografie mit Technik sowie Pre- und Post-Production einer Arztpraxis im Auftrag für die Agentur Webdynamics. Professionelle Bildsprache, die Vertrauen und moderne Ästhetik verbindet.',en:'Photography with technique as well as pre- and post-production of a medical practice commissioned for the agency Webdynamics. Professional visual language combining trust and modern aesthetics.'}, image:'/images/weros.jpg', images:['/images/weros.jpg'], tags:{de:['Fotografie','Pre-Production','Post-Production','Arztpraxis'],en:['Photography','Pre-Production','Post-Production','Medical']}, youtube: null },
 ]
 
 const PROJECTS = ALL_PROJECTS
@@ -32,6 +28,39 @@ type Project = (typeof PROJECTS)[number]
 type InfoProject = (typeof ALL_PROJECTS)[number] | (typeof ARCHIVED_PROJECTS)[number]
 const INFO_PROJECTS: InfoProject[] = [...ALL_PROJECTS, ...ARCHIVED_PROJECTS]
 type Lang = 'de'|'en'
+
+const activeViewCursorIds = new Set<string>()
+
+function updateViewCursorBodyClass() {
+  if (typeof document === 'undefined') return
+  document.body.classList.toggle('view-cursor-open', activeViewCursorIds.size > 0)
+}
+
+const PROJECT_IMAGE_PRELOADS = Array.from(new Set(
+  INFO_PROJECTS.flatMap((project) => [project.image, ...project.images]).filter(Boolean)
+))
+
+const PROJECT_VIDEO_PRELOADS = Array.from(new Set(
+  ALL_PROJECTS.flatMap((project) => 'seamlessVideoSrc' in project && typeof project.seamlessVideoSrc === 'string'
+    ? [project.seamlessVideoSrc]
+    : [])
+))
+
+function preloadProjectMedia() {
+  PROJECT_IMAGE_PRELOADS.forEach((src) => {
+    const image = new window.Image()
+    image.decoding = 'async'
+    image.src = src
+  })
+
+  PROJECT_VIDEO_PRELOADS.forEach((src) => {
+    const link = document.createElement('link')
+    link.rel = 'preload'
+    link.as = 'video'
+    link.href = src
+    document.head.appendChild(link)
+  })
+}
 
 function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelSize?: number }) {
   const cvs    = useRef<HTMLCanvasElement>(null)
@@ -89,11 +118,9 @@ function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelS
   }, [pixelSize, draw, natH])
 
   return (
-    <div style={{ position: 'relative', lineHeight: 0 }}>
-      {natH > 0
-        ? <canvas ref={cvs} width={w} height={natH} style={{ display: 'block', width: '100%', height: 'auto' }} />
-        : <div style={{ width: w, height: Math.round(w * 0.75), background: '#111' }} />
-      }
+    <div style={{ position: 'relative', lineHeight: 0, minHeight: natH || Math.round(w * 0.75), backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <img src={src} alt="" loading="eager" decoding="async" fetchPriority="high" style={{ display: 'block', width: '100%', height: 'auto', opacity: natH > 0 ? 0 : 1 }} />
+      {natH > 0 && <canvas ref={cvs} width={w} height={natH} style={{ position: 'absolute', inset: 0, display: 'block', width: '100%', height: '100%' }} />}
     </div>
   )
 }
@@ -181,24 +208,15 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
   const imageRef = useRef<HTMLImageElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const seamlessVideoRef = useRef<HTMLVideoElement>(null)
-  const nextVideoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<any>(null)
   const hlsDurationRef = useRef<number>(0)
   const [inViewport, setInViewport] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
   const [seamlessVideoReady, setSeamlessVideoReady] = useState(false)
-  const [nextVideoReady, setNextVideoReady] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const hasVideo = project.id === 2 && typeof project.videoSrc === 'string'
-  const hasSeamlessVideo = project.id === 1 && 'seamlessVideoSrc' in project && typeof project.seamlessVideoSrc === 'string'
-  const nextVideoSrc = project.id !== 1 && 'seamlessVideoSrc' in project && project.seamlessVideoSrc
-    ? project.seamlessVideoSrc
-    : null
-  const hasNextVideo = Boolean(nextVideoSrc)
+  const hasSeamlessVideo = 'seamlessVideoSrc' in project && typeof project.seamlessVideoSrc === 'string'
   const shouldMountSeamlessVideo = hasSeamlessVideo && inViewport
-  const shouldMountNextVideo = hasNextVideo && inViewport
-  const nextVideoBleed = isMobile ? 32 : 8
-  const nextVideoScale = isMobile ? 1.2 : 1.03
 
   const p = Math.max(0, Math.min(1, enterProgress))
   const snapStart = 0.92
@@ -326,20 +344,6 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
   }, [hasVideo, overlayOpen, inViewport])
 
   useEffect(() => {
-    if (!hasNextVideo) return
-    const v = nextVideoRef.current
-    if (!v) return
-    if (!overlayOpen && inViewport) {
-      v.muted = true
-      v.setAttribute('muted', '')
-      v.setAttribute('playsinline', '')
-      v.play().catch(() => {})
-    } else {
-      v.pause()
-    }
-  }, [hasNextVideo, overlayOpen, inViewport])
-
-  useEffect(() => {
     if (!hasVideo) return
     const v = videoRef.current
     if (!v) return
@@ -412,7 +416,10 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
         pointerEvents: canInteract ? 'auto' : 'none',
         overflow: 'hidden',
         borderRadius: 0,
-        background: '#0a0a0a',
+        backgroundColor: '#0a0a0a',
+        backgroundImage: `url(${project.image})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         filter: cardFilter || 'none',
         willChange: 'transform',
         zIndex: cardZ,
@@ -452,6 +459,9 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
           preload="auto"
           onLoadedData={() => setSeamlessVideoReady(true)}
           onCanPlay={() => setSeamlessVideoReady(true)}
+          onPlaying={() => setSeamlessVideoReady(true)}
+          onTimeUpdate={() => setSeamlessVideoReady(true)}
+          onError={() => setSeamlessVideoReady(false)}
           style={{
             position: 'absolute',
             inset: 0,
@@ -464,43 +474,13 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
           }}
         />
       )}
-      {shouldMountNextVideo && (
-        <div style={{ position: 'absolute', inset: -nextVideoBleed, overflow: 'hidden', pointerEvents: 'none' }}>
-          <Video
-            ref={nextVideoRef}
-            src={nextVideoSrc as any}
-            muted
-            playsInline
-            autoPlay
-            loop
-            preload="auto"
-            suppressHydrationWarning
-            controls={false}
-            poster={project.image}
-            onPlaying={() => setNextVideoReady(true)}
-            onTimeUpdate={() => setNextVideoReady(true)}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'block',
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center center',
-              transform: `scale(${nextVideoScale})`,
-              transformOrigin: 'center center',
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
-      )}
       <img ref={imageRef} src={project.image} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
         position: 'absolute',
         inset: 0,
         display: 'block', width: '100%', height: '100%', objectFit: 'cover',
         transition: 'opacity 0.4s ease', userSelect: 'none', pointerEvents: 'none',
         zIndex: 1,
-        opacity: (hasVideo && videoReady) || (hasSeamlessVideo && seamlessVideoReady) || (hasNextVideo && nextVideoReady) ? 0 : 1,
+        opacity: (hasVideo && videoReady) || (hasSeamlessVideo && seamlessVideoReady) ? 0 : 1,
       }} />
       <div style={{
         position: 'absolute', inset: 0,
@@ -589,6 +569,19 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
 export function ViewCursor({ show, mode = 'view' }: { show: boolean; mode?: 'view' | 'close' }) {
   const { mouseX, mouseY } = useMouse()
   const { vw } = useScroll()
+  const cursorId = useId()
+
+  useEffect(() => {
+    const active = vw >= 768 && show
+    if (active) activeViewCursorIds.add(cursorId)
+    else activeViewCursorIds.delete(cursorId)
+    updateViewCursorBodyClass()
+
+    return () => {
+      activeViewCursorIds.delete(cursorId)
+      updateViewCursorBodyClass()
+    }
+  }, [cursorId, show, vw])
 
   if (vw < 768) return null
   const isClose = mode === 'close'
@@ -657,6 +650,10 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
   const [viewHover, setViewHover] = useState(false)
   const [miniSectionVisible, setMiniSectionVisible] = useState(false)
   const [aiSectionVisible, setAiSectionVisible] = useState(false)
+
+  useEffect(() => {
+    preloadProjectMedia()
+  }, [])
 
   useEffect(() => {
     if (!mounted) return
@@ -1010,7 +1007,7 @@ function Overlay({ idx, projects, onClose, onCloseStart, onNav }: {
               flexDirection: mob ? 'column' : 'row',
               alignItems: mob ? 'center' : 'stretch',
             }}>
-              <div style={{ width: imgW, flexShrink: 0, overflow: 'hidden' }}>
+              <div style={{ width: imgW, flexShrink: 0, overflow: 'hidden', backgroundImage: `url(${prev.images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
                 <PixelCarouselOneShot images={prev.images} w={imgW} animateIn={false} />
               </div>
               <div style={{ width: panW, flexShrink: 0, backgroundColor: '#ffffff', overflow: 'hidden' }}>
@@ -1042,6 +1039,9 @@ function Overlay({ idx, projects, onClose, onCloseStart, onNav }: {
               opacity: phase === 'in' ? 0 : phase === 'closing' ? 0 : 1,
               transition: slideDir !== 'none' ? 'none' : imgTransition,
               overflow: 'hidden',
+              backgroundImage: `url(${cur.images[0]})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
             }}>
               <PixelCarouselOneShot key={navKey} images={cur.images} w={imgW} animateIn={false} />
             </div>
@@ -1407,6 +1407,9 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
       <div className="mini-fs-overlay" data-textcolor="white" onPointerDown={resetNavColor} onClick={close} style={{
         position: 'fixed', inset: 0, zIndex: 999999,
         backgroundColor: '#0a0a0a',
+        backgroundImage: `url(${displayProject.images[0]})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         transform: phase === 'in' ? originTransform : phase === 'closing' ? 'scale(0.92)' : 'scale(1)',
         opacity: phase === 'closing' ? 0 : 1,
         transition: phase === 'in'
@@ -1425,7 +1428,7 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
             transition: 'filter 1.05s cubic-bezier(0.76,0,0.24,1)',
             willChange: 'filter',
           }}>
-            <img src={prevProject.images[0]} alt="" style={{
+            <img src={prevProject.images[0]} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
               position: 'absolute', inset: 0,
               width: '100%', height: '100%', objectFit: 'cover',
             }} />
@@ -1492,7 +1495,7 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
           willChange: 'transform',
           zIndex: 2,
         }}>
-          <img src={displayProject.images[0]} alt="" style={{
+          <img src={displayProject.images[0]} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
             position: 'absolute', inset: 0,
             width: '100%', height: '100%', objectFit: 'cover',
             transform: isOpen ? 'scale(1)' : 'scale(1.02)',
@@ -1669,6 +1672,9 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
         padding: 0,
         border: 'none',
         background: '#0a0a0a',
+        backgroundImage: `url(${project.image})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         cursor: 'pointer',
         display: 'block',
         transform: isMobile ? 'none' : visual.transform,
@@ -1681,7 +1687,7 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
         willChange: 'transform',
       }}
     >
-      <img src={project.image} alt="" className="mini-card-img" style={{
+      <img src={project.image} alt="" className="mini-card-img" loading="eager" decoding="async" fetchPriority="high" style={{
         width: '100%', height: '100%', objectFit: 'cover', display: 'block',
         transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1)',
       }} />

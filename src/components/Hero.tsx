@@ -5,6 +5,7 @@ import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { startScramble } from '@/lib/scramble'
+import { getIntroLayout } from '@/lib/intro-layout'
 import { NavMaskedText } from '@/components/NavMaskedText'
 
 const chars = "!@#$%&*АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ01"
@@ -294,32 +295,31 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
     }
   }, [scrollY, scrollVh])
 
-  const vw = mounted ? width / 100 : 0
-  const vh = mounted ? height / 100 : 0
+  const introLayout = getIntroLayout({ isMobile, width, height })
 
   // Desktop (unverändert)
-  const desktopStartLeft = 8 * vw
+  const desktopStartLeft = introLayout.nameLeft
   const desktopEndLeft = 32
   const desktopLeft = desktopStartLeft + (desktopEndLeft - desktopStartLeft) * progress
 
-  const desktopStartTop = 15 * vh
+  const desktopStartTop = introLayout.nameTop
   const desktopEndTop = 24
   const desktopTop = desktopStartTop + (desktopEndTop - desktopStartTop) * progress
 
-  const desktopStartSize = 8 * vw
+  const desktopStartSize = introLayout.nameFontSize
   const desktopEndSize = 14
   const desktopFontSize = desktopStartSize + (desktopEndSize - desktopStartSize) * progress
 
   // Mobile
-  const mobileStartLeft = 5 * vw
+  const mobileStartLeft = introLayout.nameLeft
   const mobileEndLeft = 16
   const mobileLeft = mobileStartLeft + (mobileEndLeft - mobileStartLeft) * progress
 
-  const mobileStartTop = 12 * vh
+  const mobileStartTop = introLayout.nameTop
   const mobileEndTop = 20
   const mobileTop = mobileStartTop + (mobileEndTop - mobileStartTop) * progress
 
-  const mobileStartSize = 13 * vw
+  const mobileStartSize = introLayout.nameFontSize
   const mobileEndSize = 11
   const mobileFontSize = mobileStartSize + (mobileEndSize - mobileStartSize) * progress
 
@@ -485,7 +485,7 @@ function BgImage() {
   const { scrollY, vh } = useScroll()
 
   const progress = vh > 0 ? scrollY / (vh * 2.0) : 0
-  const blurStartProgress = 0.66
+  const blurStartProgress = 0.76
   const blurSpan = 0.4
   const delayedBlurProgress = Math.max(0, Math.min(1, (progress - blurStartProgress) / blurSpan))
   const blur = delayedBlurProgress * 20
@@ -522,7 +522,7 @@ function BgImage() {
 }
 
 export function Hero() {
-  const { isMobile } = useMobile()
+  const { isMobile, width, height } = useMobile()
   const { language } = useLanguage()
   const { scrollY, vh } = useScroll()
   const [trailImages, setTrailImages] = useState<TrailImage[]>([])
@@ -536,8 +536,10 @@ export function Hero() {
   const desScramble = useScramble('Designer')
   const expScrambleRef = useRef(expScramble.scrambleTo)
   const desScrambleRef = useRef(desScramble.scrambleTo)
-  expScrambleRef.current = expScramble.scrambleTo
-  desScrambleRef.current = desScramble.scrambleTo
+  useEffect(() => {
+    expScrambleRef.current = expScramble.scrambleTo
+    desScrambleRef.current = desScramble.scrambleTo
+  }, [desScramble.scrambleTo, expScramble.scrambleTo])
   const handleHeaderHover = useCallback(() => {
     expScrambleRef.current('Experience')
     desScrambleRef.current('Designer')
@@ -545,9 +547,9 @@ export function Hero() {
   const heroProgress = vh > 0 ? Math.min(1, scrollY / (vh * 2.0)) : 0
   const rawHeroProgress = vh > 0 ? scrollY / (vh * 2.0) : 0
   const descriptor = language === 'de'
-    ? 'Der zwischen dem Gewesenen und dem Werdenden Erlebnisse schafft, in denen Code fuehlbar wird und klassische Kommunikation mit KI zu etwas Neuem verschmilzt.'
-    : 'Who creates moments between what was and what is becoming, in which code becomes tangible and classical communication merges with AI into something new.'
-  const descriptorWords = useMemo(() => descriptor.split(/\s+/).filter(Boolean), [descriptor])
+    ? 'Der zwischen dem Gewesenen und dem Werdenden Erlebnisse schafft, in denen Code fuehlbar wird und klassische Kommunikation mit KI zu etwas Besonderem verschmilzt'
+    : 'Who creates moments between what was and what is becoming, in which code becomes tangible and classical communication merges with AI into something special'
+  const descriptorWords = useMemo(() => [...descriptor.split(/\s+/).filter(Boolean), '.', '.', '.'], [descriptor])
   const [descriptorDisplayWords, setDescriptorDisplayWords] = useState<string[]>(descriptorWords)
   const prevLangRef = useRef(language)
   const scrambleCleanupRefs = useRef<((() => void) | null)[]>([])
@@ -562,7 +564,7 @@ export function Hero() {
     scrambleCleanupRefs.current = descriptorWords.map((word, i) => {
       return startScramble(word, (val) => {
         setDescriptorDisplayWords(prev => {
-          const copy = [...prev]
+          const copy = descriptorWords.map((targetWord, wordIndex) => prev[wordIndex] || targetWord)
           copy[i] = val
           return copy
         })
@@ -571,17 +573,19 @@ export function Hero() {
     return () => { scrambleCleanupRefs.current.forEach(fn => fn?.()) }
   }, [language, descriptor, descriptorWords])
 
-  const revealProgress = Math.max(0, Math.min(1, heroProgress / 0.62))
-  const blurStart = 0.66
+  const revealEnd = 0.72
+  const revealProgress = Math.max(0, Math.min(1, heroProgress / revealEnd))
+  const blurStart = 0.76
   const blurSpan = 0.4
   const blurProgress = Math.max(0, Math.min(1, (rawHeroProgress - blurStart) / blurSpan))
   const descriptorBlur = blurProgress * 14
   const descriptorMoveProgress = revealProgress
   const descriptorMoveEase = 1 - Math.pow(1 - descriptorMoveProgress, 3)
-  const descriptorTargetTopVh = isMobile ? 18 : 20
-  const descriptorStartTopVh = descriptorTargetTopVh + (isMobile ? 20 : 28)
-  const descriptorTopVh = descriptorStartTopVh + (descriptorTargetTopVh - descriptorStartTopVh) * descriptorMoveEase
-  const visibleWords = Math.floor(revealProgress * descriptorWords.length)
+  const introLayout = getIntroLayout({ isMobile, width, height })
+  const descriptorStartTop = introLayout.experienceTop
+  const descriptorTargetTop = height * (isMobile ? 0.18 : 0.2)
+  const descriptorTop = descriptorStartTop + (descriptorTargetTop - descriptorStartTop) * descriptorMoveEase
+  const visibleWords = Math.min(descriptorWords.length, Math.floor(revealProgress * (descriptorWords.length + 1)))
   const descriptorOpacity = descFade
   const trailBlur = blurProgress * 20
 
@@ -691,8 +695,8 @@ export function Hero() {
         <div
           style={{
             position: 'fixed',
-            left: isMobile ? 'calc(5vw + 2px)' : 'calc(8vw + 4px)',
-            top: `${descriptorTopVh}vh`,
+            left: introLayout.experienceLeft,
+            top: descriptorTop,
             maxWidth: isMobile ? '86vw' : 'min(40vw, 600px)',
             color: '#ffffff',
             textAlign: 'left',
@@ -729,7 +733,9 @@ export function Hero() {
               {expScramble.display}<br/>{desScramble.display}
             </div>
             {(() => {
-              const lineSplits = isMobile ? [5, 3, 3, 3, 3, 3, 3] : [5, 4, 4, 4, 4, 4]
+              const lineSplits = language === 'en'
+                ? [3, 2, 4, 3, 2, 2, 2, 2, 3, 4]
+                : (isMobile ? [3, 3, 3, 3, 2, 2, 2, 3, 3, 4] : [3, 3, 3, 3, 2, 2, 2, 3, 3, 4])
               const lines: number[][] = []
               let cursor = 0
               for (const count of lineSplits) {
@@ -741,11 +747,8 @@ export function Hero() {
               if (cursor < descriptorWords.length) {
                 lines.push(Array.from({length: descriptorWords.length - cursor}, (_, i) => cursor + i))
               }
-              const offsets = isMobile
-                ? [0, 1.6, 0.5, 2.2, 0.2, 1.9, 0.8, 2.4, 0.4, 1.3]
-                : [0, 2.4, 0.8, 3.2, 0.4, 2.0, 1.4, 3.6, 0.7, 2.6]
               return lines.map((lineIndices, li) => (
-                <div key={li} style={{ marginLeft: `${offsets[li % offsets.length]}em`, lineHeight: 1.12 }}>
+                <div key={li} style={{ marginLeft: 0, lineHeight: 1.12 }}>
                   {lineIndices.map((gIdx, wi) => (
                     <span
                       key={`${gIdx}`}
@@ -757,7 +760,7 @@ export function Hero() {
                         transition: 'opacity 0.25s linear',
                       }}
                     >
-                      {descriptorDisplayWords[gIdx] || descriptorWords[gIdx]}{wi < lineIndices.length - 1 ? ' ' : ''}
+                      {descriptorDisplayWords[gIdx] || descriptorWords[gIdx]}{wi < lineIndices.length - 1 && descriptorWords[lineIndices[wi + 1]] !== '.' ? ' ' : wi < lineIndices.length - 1 && descriptorWords[gIdx] !== '.' ? ' ' : ''}
                     </span>
                   ))}
                 </div>

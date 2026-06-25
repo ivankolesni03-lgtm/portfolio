@@ -13,7 +13,7 @@ export function CustomCursor({ hidden = false }: { hidden?: boolean }) {
 
   return (
     <div
-      className="custom-cursor pointer-events-none z-[200000] mix-blend-difference"
+      className="custom-cursor pointer-events-none z-[2000001] mix-blend-difference"
       style={{
         position: 'fixed',
         left: mouseX,

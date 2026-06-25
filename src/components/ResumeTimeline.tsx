@@ -75,10 +75,6 @@ function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: 
   const containerWidth = 220 + proximity * 80
   // Text scale factor - smaller when inactive, full size when active
   const textScale = 0.7 + proximity * 0.3
-  // Grayscale: 1 when far, 0 when centered
-  const gs = Math.round((1 - proximity) * 100)
-  const brightness = 0.4 + proximity * 0.6
-
   return (
     <div style={{
       flexShrink: 0,
@@ -96,9 +92,8 @@ function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: 
         overflow: 'hidden',
         flexShrink: 0,
         borderRadius: 12,
-        filter: `grayscale(${gs}%) brightness(${brightness})`,
-        boxShadow: proximity > 0.7 ? `0 12px 48px rgba(0,0,0,${0.25 * ((proximity - 0.7) / 0.3)})` : 'none',
-        transition: 'filter 0.15s ease, box-shadow 0.3s ease',
+        boxShadow: `0 10px 34px rgba(0,0,0,0.10), 0 2px 10px rgba(0,0,0,0.06)${proximity > 0.7 ? `, 0 18px 58px rgba(0,0,0,${0.10 * ((proximity - 0.7) / 0.3)})` : ''}`,
+        transition: 'box-shadow 0.3s ease',
       }}>
         <img src={entry.img} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
       </div>
@@ -415,7 +410,7 @@ function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }
         height: 'min(70vw, 280px)',
         borderRadius: 16,
         overflow: 'hidden',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.15)',
+        boxShadow: '0 12px 38px rgba(0,0,0,0.11), 0 2px 12px rgba(0,0,0,0.07)',
         position: 'relative',
       }}>
         <img

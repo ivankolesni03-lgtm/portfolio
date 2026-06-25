@@ -4,6 +4,7 @@ import { useEffect, useState, type KeyboardEvent } from 'react'
 import { CustomCursor } from '@/components/CustomCursor'
 import { useMobile } from '@/hooks/use-mobile'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { getIntroLayout } from '@/lib/intro-layout'
 
 type GateStatus = 'checking' | 'locked' | 'submitting' | 'unlocked'
 
@@ -17,7 +18,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
   const [errorMessage, setErrorMessage] = useState('')
   const [inputFocused, setInputFocused] = useState(false)
 
-  const { isMobile } = useMobile()
+  const { isMobile, width, height } = useMobile()
   const { t } = useLanguage()
 
   const emptyError = t('PASSWORT FEHLT', 'PASSWORD REQUIRED')
@@ -79,11 +80,12 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
 
   if (status === 'checking' || status === 'unlocked') return null
 
-  const left = isMobile ? '5vw' : '8vw'
-  const top = isMobile ? '12vh' : '15vh'
-  const fontSize = isMobile ? '13vw' : '8vw'
-  const rowTop = `calc(${top} + ${isMobile ? '24vw' : '14.8vw'})`
-  const rowLeft = `calc(${left} + ${isMobile ? '0.85vw' : '0.5vw'})`
+  const introLayout = getIntroLayout({ isMobile, width, height })
+  const left = introLayout.nameLeft
+  const top = introLayout.nameTop
+  const fontSize = introLayout.nameFontSize
+  const rowTop = top + fontSize * 1.85
+  const rowLeft = left + fontSize * (isMobile ? 0.065 : 0.062)
   const inputWidth = isMobile ? '50vw' : '24.5vw'
   const passwordInputFontSize = 'clamp(20px, 2.15vw, 26px)'
   const enterFontSize = 'clamp(12px, 1.1vw, 15px)'
@@ -267,8 +269,8 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
         <div
           style={{
             position: 'fixed',
-            left: isMobile ? 'calc(5vw + 2px)' : 'calc(8vw + 4px)',
-            top: isMobile ? '38vh' : '48vh',
+            left: introLayout.experienceLeft,
+            top: introLayout.experienceTop,
             zIndex: 10,
             mixBlendMode: 'difference',
             pointerEvents: 'none',

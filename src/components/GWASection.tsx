@@ -1,12 +1,68 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
-import Video from 'next-video'
-import gwaVideo from '../../public/videos/gwa-video.mp4.json'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useMouse } from '@/contexts/MouseContext'
 import { useScramble, runScramble } from '@/hooks/use-scramble'
+
+const GWA_VIDEO_SRC = '/videos/gwa-video.mp4'
+const GWA_FALLBACK_IMAGE = '/images/gwa-foto.jpg'
+
+function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoElement | null> }) {
+  const localRef = useRef<HTMLVideoElement>(null)
+  const [videoReady, setVideoReady] = useState(false)
+  const ref = videoRef ?? localRef
+
+  return (
+    <>
+      <img
+        src={GWA_FALLBACK_IMAGE}
+        alt=""
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          display: 'block',
+          opacity: videoReady ? 0 : 1,
+          transition: 'opacity 0.35s ease',
+          pointerEvents: 'none',
+        }}
+      />
+      <video
+        ref={ref}
+        src={GWA_VIDEO_SRC}
+        loop
+        muted
+        playsInline
+        autoPlay
+        preload="auto"
+        poster={GWA_FALLBACK_IMAGE}
+        onLoadedData={() => setVideoReady(true)}
+        onCanPlay={() => setVideoReady(true)}
+        onPlaying={() => setVideoReady(true)}
+        onTimeUpdate={() => setVideoReady(true)}
+        onError={() => setVideoReady(false)}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          display: 'block',
+          opacity: videoReady ? 1 : 0,
+          transition: 'opacity 0.35s ease',
+          pointerEvents: 'none',
+        }}
+      />
+    </>
+  )
+}
 
 // ─── StaticHeadingGWA ────────────────────────────────────────────────────────
 function StaticHeadingGWA() {
@@ -391,15 +447,8 @@ function ScrollLinkedVideo({ lang, exitBlur, exitOpacity }: { lang: 'de' | 'en';
         opacity: exitOpacity,
         pointerEvents: 'auto',
       }}>
-        <div style={{ position: 'relative', width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0 }}>
-          <Video
-            ref={videoRef}
-            src={gwaVideo as any}
-            loop muted playsInline autoPlay
-            suppressHydrationWarning
-            controls={false}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
+        <div style={{ position: 'relative', width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0, backgroundImage: `url(${GWA_FALLBACK_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+          <GWAVideoFrame videoRef={videoRef} />
         </div>
 
         <a
@@ -484,8 +533,8 @@ export function GWASection() {
           </div>
           <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.6)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(20px,5vw,32px)' }} />
           <div>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)' }}>
-              <Video src={gwaVideo as any} autoPlay loop muted playsInline controls={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)', backgroundImage: `url(${GWA_FALLBACK_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <GWAVideoFrame />
             </div>
             <MobileLivestreamBtn lang={lang} />
           </div>

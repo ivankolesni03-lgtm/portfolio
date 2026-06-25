@@ -325,6 +325,7 @@ body > * {
 
 /* Overlay cursor rules – always loaded */
 body.overlay-open .custom-cursor,
+body.view-cursor-open .custom-cursor,
 body.x-cursor-open .custom-cursor {
   display: none !important;
   opacity: 0 !important;

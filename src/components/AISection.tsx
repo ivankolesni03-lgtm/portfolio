@@ -571,9 +571,9 @@ export function AISection() {
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes spinReverse{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}
         @keyframes terminalScroll{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
-        @font-face{font-family:'Borna';src:url('/fonts/Borna-Medium.woff2') format('woff2');font-weight:500;font-display:swap}
-        @font-face{font-family:'Borna';src:url('/fonts/Borna-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
-        @font-face{font-family:'Borna';src:url('/fonts/Borna-SemiBold.woff2') format('woff2');font-weight:600;font-display:swap}
+        @font-face{font-family:'Borna';src:url('/fonts/Borna-Medium.otf') format('opentype');font-weight:500;font-display:swap}
+        @font-face{font-family:'Borna';src:url('/fonts/Borna-Bold.otf') format('opentype');font-weight:700;font-display:swap}
+        @font-face{font-family:'Borna';src:url('/fonts/Borna-SemiBold.otf') format('opentype');font-weight:600;font-display:swap}
       `}</style>
       <section id="ki" style={{ backgroundColor:'#000', minHeight:'100vh', boxSizing:'border-box', padding:'0 0 40px' }}>
         <GridBg/>
@@ -781,9 +781,9 @@ export function AISection() {
         @keyframes scanln{0%{top:-2px}100%{top:100%}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes spinReverse{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}
-        @font-face{font-family:'Borna';src:url('/fonts/Borna-Medium.woff2') format('woff2'),url('/fonts/Borna-Medium.woff') format('woff');font-weight:500;font-display:swap}
-        @font-face{font-family:'Borna';src:url('/fonts/Borna-Bold.woff2') format('woff2'),url('/fonts/Borna-Bold.woff') format('woff');font-weight:700;font-display:swap}
-        @font-face{font-family:'Borna';src:url('/fonts/Borna-SemiBold.woff2') format('woff2'),url('/fonts/Borna-SemiBold.woff') format('woff');font-weight:600;font-display:swap}
+        @font-face{font-family:'Borna';src:url('/fonts/Borna-Medium.otf') format('opentype');font-weight:500;font-display:swap}
+        @font-face{font-family:'Borna';src:url('/fonts/Borna-Bold.otf') format('opentype');font-weight:700;font-display:swap}
+        @font-face{font-family:'Borna';src:url('/fonts/Borna-SemiBold.otf') format('opentype');font-weight:600;font-display:swap}
         .ai-gen-btn:active{transform:scale(0.91)!important;transition:transform 0.07s}
         .ai-gen-btn:hover{transform:scale(0.96);transition:transform 0.12s}
         .ai-gen-btn-active{transform:none}

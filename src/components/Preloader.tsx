@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useMobile } from '@/hooks/use-mobile'
+import { getIntroLayout } from '@/lib/intro-layout'
 
 const criticalImages = [
   "/photos/IMG_0142.JPG",
@@ -52,6 +53,7 @@ const criticalStaticImages = [
   '/images/hateaid-projekt.jpg',
   '/images/bmw-projekt.jpg',
   '/images/tennisheine-projekt.jpg',
+  '/images/gwa-foto.jpg',
   '/images/lebara.png',
   '/images/ganbatte.jpg',
   '/images/cavallo.jpg',
@@ -93,6 +95,9 @@ const criticalIcons = [
 
 const criticalVideos = [
   '/videos/hsh-projekt.mp4',
+  '/videos/hateaid-video.mp4',
+  '/videos/bmw-projekt.mp4',
+  '/videos/tennisheine-video.mp4',
   '/videos/gwa-video.mp4',
 ]
 
@@ -273,10 +278,11 @@ export function Preloader({ onComplete }: PreloaderProps) {
 
   const vw = mounted ? width / 100 : 0
   const vh = mounted ? height / 100 : 0
+  const introLayout = getIntroLayout({ isMobile, width, height })
 
-  const left = isMobile ? 5 * vw : 8 * vw
-  const top = isMobile ? 12 * vh : 15 * vh
-  const fontSize = isMobile ? 13 * vw : 8 * vw
+  const left = introLayout.nameLeft
+  const top = introLayout.nameTop
+  const fontSize = introLayout.nameFontSize
 
   const bgRight = isMobile ? -12 * vw : 1.5 * vw
   const bgTop = isMobile ? 30 * vh : undefined
@@ -465,8 +471,8 @@ export function Preloader({ onComplete }: PreloaderProps) {
       <div
         style={{
           position: 'fixed',
-          left: isMobile ? 5 * vw + 2 : 8 * vw + 4,
-          top: isMobile ? 38 * vh : 48 * vh,
+          left: introLayout.experienceLeft,
+          top: introLayout.experienceTop,
           zIndex: 30,
           mixBlendMode: 'difference',
           pointerEvents: 'none',

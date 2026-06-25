@@ -76,6 +76,7 @@ export const defaultProgramData: Program[] = [
   { id:15, name:{de:'FL Studio',en:'FL Studio'},             icon:'FL', iconImg:'/icons/fl-studio.png',            color:'#FF8C00', skill:50, description:{de:'Musikproduktion & Beats',en:'Music production & beats'}, works:[{title:{de:'Soundtrack GWA',en:'Soundtrack GWA'},year:'2024',type:{de:'Sound',en:'Sound'}},{title:{de:'Background Music',en:'Background Music'},year:'2023',type:{de:'Musik',en:'Music'}},{title:{de:'Sound Effects',en:'Sound Effects'},year:'2023',type:{de:'Audio',en:'Audio'}}]},
   { id:16, name:{de:'Higgsfield',en:'Higgsfield'},           icon:'HF', iconImg:'/icons/higgsfield.png',           color:'#a855f7', skill:72, description:{de:'KI Videogenerierung',en:'AI video generation'}, works:[{title:{de:'KI Videoclips',en:'AI Video Clips'},year:'2024',type:{de:'KI Video',en:'AI Video'}},{title:{de:'Motion Concepts',en:'Motion Concepts'},year:'2024',type:{de:'Konzept',en:'Concept'}},{title:{de:'Social Media KI',en:'Social Media AI'},year:'2023',type:{de:'KI',en:'AI'}}]},
   { id:17, name:{de:'PowerPoint',en:'PowerPoint'},           icon:'PP', iconImg:'/icons/powerpoint.png',           color:'#D24726', skill:88, description:{de:'Präsentationen & Pitch Decks',en:'Presentations & pitch decks'}, works:[{title:{de:'Pitch Decks',en:'Pitch Decks'},year:'2024',type:{de:'Präsentation',en:'Presentation'}},{title:{de:'Kampagnen Decks',en:'Campaign Decks'},year:'2024',type:{de:'Corporate',en:'Corporate'}},{title:{de:'Brand Präsentationen',en:'Brand Presentations'},year:'2023',type:{de:'Branding',en:'Branding'}}]},
+  { id:18, name:{de:'Figma Weave',en:'Figma Weave'},         icon:'FW', iconImg:'/icons/weave.png',                 color:'#9747FF', skill:74, description:{de:'KI-gestütztes UI/UX Design mit Figma Weave',en:'AI-powered UI/UX design with Figma Weave'}, works:[{title:{de:'UI Exploration',en:'UI Exploration'},year:'2025',type:{de:'UI Design',en:'UI Design'}},{title:{de:'AI Layouts',en:'AI Layouts'},year:'2025',type:{de:'Generative UI',en:'Generative UI'}},{title:{de:'Prototyping',en:'Prototyping'},year:'2025',type:{de:'Design',en:'Design'}}]},
 ]
 
 // ── Skill Bar ────────────────────────────────────────────────────────────────
@@ -118,7 +119,7 @@ export function InteractiveDots({
 }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const { isMobile, isTouch } = useMobile()
+  const { isMobile } = useMobile()
   
   // More icons on mobile with tighter spacing
   const circleSize = isMobile ? 44 : defaultCircleSize
@@ -370,7 +371,7 @@ export function InteractiveDots({
   const openOverlay = useCallback((idx: number) => {
     setOpenIdx(idx)
     document.body.style.overflow = 'hidden'
-    document.body.classList.add('overlay-open')
+    document.body.classList.add('toolkit-overlay-open')
     requestAnimationFrame(() => requestAnimationFrame(() => setPhase('open')))
   }, [])
 
@@ -381,9 +382,15 @@ export function InteractiveDots({
       setOpenIdx(null)
       setPhase('in')
       document.body.style.overflow = ''
-      document.body.classList.remove('overlay-open')
+      document.body.classList.remove('toolkit-overlay-open')
     }, 520)
   }, [phase])
+
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('toolkit-overlay-open')
+    }
+  }, [])
 
   const navigate = useCallback((dir: 'l' | 'r') => {
     if (phase !== 'open') return
@@ -604,7 +611,7 @@ export function InteractiveDots({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden', userSelect: 'none', cursor: isTouch ? 'default' : 'crosshair', backgroundColor, touchAction: 'pan-y' }}
+          style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden', userSelect: 'none', cursor: 'default', backgroundColor, touchAction: 'pan-y' }}
         >
           <div style={{
             position: 'absolute',
@@ -663,13 +670,13 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
   return (
     <>
       <style>{`
-        body.overlay-open .mobile-nav-blur {
+        body.toolkit-overlay-open .mobile-nav-blur {
           opacity: 0 !important;
           pointer-events: none !important;
         }
       `}</style>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:999999, backgroundColor: phase==='open'?'rgba(0,0,0,0.22)':'rgba(0,0,0,0)', backdropFilter: phase==='open'?'blur(12px)':'blur(0px)', WebkitBackdropFilter: phase==='open'?'blur(12px)':'blur(0px)', transition:'background-color 0.35s ease, backdrop-filter 0.35s ease', cursor:'pointer' }} />
-      <div style={{ position:'fixed', inset:0, zIndex:1000000, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1000003, backgroundColor: phase==='open'?'rgba(0,0,0,0.22)':'rgba(0,0,0,0)', backdropFilter: phase==='open'?'blur(12px)':'blur(0px)', WebkitBackdropFilter: phase==='open'?'blur(12px)':'blur(0px)', transition:'background-color 0.35s ease, backdrop-filter 0.35s ease', cursor:'pointer' }} />
+      <div style={{ position:'fixed', inset:0, zIndex:1000004, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
         <div style={{ display:'flex', flexDirection: isMobile?'column':'row', alignItems: isMobile?'center':'stretch', pointerEvents:'auto', cursor:'default' }}>
           <div style={{ width:imgW, flexShrink:0, alignSelf:'stretch', position:'relative', zIndex:1, transform: isOpening||isClosing?'scale(0.72)':'scale(1)', opacity: isOpening||isClosing?0:1, transition: isClosing?`transform 300ms ${EASE} 200ms, opacity 280ms ease 200ms`:`transform 320ms ${EASE}, opacity 300ms ease`, background:`radial-gradient(ellipse at 140% 140%, ${program.color}60 0%, ${program.color}20 40%, #0a0a0a 70%)`, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <div style={{ width:'62%', aspectRatio:'1/1', borderRadius:'22%', overflow:'hidden', boxShadow:`0 24px 80px ${program.color}50` }}>
