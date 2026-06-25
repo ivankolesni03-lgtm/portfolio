@@ -747,22 +747,67 @@ export function Hero() {
               if (cursor < descriptorWords.length) {
                 lines.push(Array.from({length: descriptorWords.length - cursor}, (_, i) => cursor + i))
               }
+              const lastWordBeforeDots = Math.max(0, descriptorWords.length - 4)
+              const dotIndices = [descriptorWords.length - 3, descriptorWords.length - 2, descriptorWords.length - 1]
               return lines.map((lineIndices, li) => (
                 <div key={li} style={{ marginLeft: 0, lineHeight: 1.12 }}>
-                  {lineIndices.map((gIdx, wi) => (
-                    <span
-                      key={`${gIdx}`}
-                      style={{
-                        fontWeight: 700,
-                        fontStyle: 'normal',
-                        color: '#ffffff',
-                        opacity: gIdx < visibleWords ? 1 : 0,
-                        transition: 'opacity 0.25s linear',
-                      }}
-                    >
-                      {descriptorDisplayWords[gIdx] || descriptorWords[gIdx]}{wi < lineIndices.length - 1 && descriptorWords[lineIndices[wi + 1]] !== '.' ? ' ' : wi < lineIndices.length - 1 && descriptorWords[gIdx] !== '.' ? ' ' : ''}
-                    </span>
-                  ))}
+                  {lineIndices.map((gIdx, wi) => {
+                    const isDot = descriptorWords[gIdx] === '.'
+                    const hasDotClusterInLine = lineIndices.includes(lastWordBeforeDots) && dotIndices.every((idx) => lineIndices.includes(idx))
+                    const shouldRenderDotCluster = hasDotClusterInLine && gIdx === lastWordBeforeDots
+
+                    if (hasDotClusterInLine && dotIndices.includes(gIdx)) {
+                      return null
+                    }
+
+                    if (shouldRenderDotCluster) {
+                      return (
+                        <span key={`cluster-${gIdx}`} style={{ whiteSpace: 'nowrap' }}>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              fontStyle: 'normal',
+                              color: '#ffffff',
+                              opacity: gIdx < visibleWords ? 1 : 0,
+                              transition: 'opacity 0.25s linear',
+                            }}
+                          >
+                            {descriptorDisplayWords[gIdx] || descriptorWords[gIdx]}
+                          </span>{' '}
+                          {dotIndices.map((dotIdx) => (
+                            <span
+                              key={`dot-${dotIdx}`}
+                              style={{
+                                fontWeight: 700,
+                                fontStyle: 'normal',
+                                color: '#ffffff',
+                                opacity: dotIdx < visibleWords ? 1 : 0,
+                                transition: 'opacity 0.25s linear',
+                              }}
+                            >
+                              {descriptorDisplayWords[dotIdx] || descriptorWords[dotIdx]}
+                            </span>
+                          ))}
+                        </span>
+                      )
+                    }
+
+                    return (
+                      <span
+                        key={`${gIdx}`}
+                        style={{
+                          fontWeight: 700,
+                          fontStyle: 'normal',
+                          color: '#ffffff',
+                          opacity: gIdx < visibleWords ? 1 : 0,
+                          transition: 'opacity 0.25s linear',
+                        }}
+                      >
+                        {descriptorDisplayWords[gIdx] || descriptorWords[gIdx]}
+                        {wi < lineIndices.length - 1 && descriptorWords[lineIndices[wi + 1]] !== '.' ? ' ' : wi < lineIndices.length - 1 && !isDot ? ' ' : ''}
+                      </span>
+                    )
+                  })}
                 </div>
               ))
             })()}

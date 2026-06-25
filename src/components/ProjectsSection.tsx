@@ -694,7 +694,7 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
         backgroundColor: 'transparent',
         height: `${Math.max(420, steps * 90 + trailingHoldVh)}vh`,
         position: 'relative', zIndex: isMobile ? 20 : 20,
-        marginTop: '0vh',
+        marginTop: '15vh',
       }}>
         <div style={{
           position: 'sticky', top: 0, height: '100vh', width: '100%', overflow: 'hidden',
