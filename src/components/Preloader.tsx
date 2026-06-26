@@ -91,6 +91,7 @@ const criticalIcons = [
   '/icons/fl-studio.png',
   '/icons/higgsfield.png',
   '/icons/powerpoint.png',
+  '/icons/github.png',
 ]
 
 const criticalVideos = [
@@ -98,7 +99,6 @@ const criticalVideos = [
   '/videos/hateaid-video.mp4',
   '/videos/bmw-projekt.mp4',
   '/videos/tennisheine-video.mp4',
-  '/videos/gwa-video.mp4',
 ]
 
 const criticalModels = [

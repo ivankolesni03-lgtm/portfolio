@@ -332,7 +332,7 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   const lineHeight = startLineHeight + (endLineHeight - startLineHeight) * progress
 
   const descriptor = language === 'de'
-    ? 'Der zwischen dem Gewesenen und dem Werdenden Erlebnisse schafft, in denen Code fuehlbar wird und klassische Kommunikation mit KI zu etwas Neuem verschmilzt.'
+    ? 'Der zwischen dem Gewesenen und dem Werdenden Erlebnisse schafft, in denen Code fühlbar wird und klassische Kommunikation mit KI zu etwas Neuem verschmilzt.'
     : 'Who creates moments between what was and what is becoming, in which code becomes tangible and classical communication merges with AI into something new.'
 
   const heroDuration = 1.5

@@ -635,6 +635,7 @@ function DesktopFooter() {
       }}>
         © {new Date().getFullYear()} Ivan Kolesnikov
       </span>
+      <LegalLinks />
       <SocialIcons />
     </div>
   )
@@ -645,17 +646,48 @@ function MobileFooter() {
   return (
     <div style={{
       padding: '20px 6vw 32px',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+      display: 'flex', flexDirection: 'column', gap: 18,
       borderTop: '1px solid rgba(255,255,255,0.08)',
     }}>
-      <span style={{
-        color: 'rgba(255,255,255,0.4)', fontSize: 12,
-        fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-      }}>
-        © {new Date().getFullYear()} Ivan Kolesnikov
-      </span>
-      <SocialIcons />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
+        <span style={{
+          color: 'rgba(255,255,255,0.4)', fontSize: 12,
+          fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>
+          © {new Date().getFullYear()} Ivan Kolesnikov
+        </span>
+        <SocialIcons />
+      </div>
+      <LegalLinks compact />
     </div>
+  )
+}
+
+// ─── LegalLinks ──────────────────────────────────────────────────────────────
+function LegalLinks({ compact = false }: { compact?: boolean }) {
+  return (
+    <nav aria-label="Rechtliches" style={{ display: 'flex', gap: compact ? 18 : 22, flexWrap: 'wrap' }}>
+      {[
+        { href: '/impressum', label: 'Impressum' },
+        { href: '/datenschutz', label: 'Datenschutz' },
+      ].map((link) => (
+        <a
+          key={link.href}
+          href={link.href}
+          style={{
+            color: compact ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.72)',
+            fontSize: compact ? 11 : 'clamp(11px,0.95vw,13px)',
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
   )
 }
 

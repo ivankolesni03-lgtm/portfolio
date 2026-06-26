@@ -1,12 +1,12 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
+import Video from 'next-video'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useMouse } from '@/contexts/MouseContext'
 import { useScramble, runScramble } from '@/hooks/use-scramble'
 
-const GWA_VIDEO_SRC = '/videos/gwa-video.mp4'
 const GWA_FALLBACK_IMAGE = '/images/gwa-foto.jpg'
 
 function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoElement | null> }) {
@@ -15,7 +15,7 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
   const ref = videoRef ?? localRef
 
   return (
-    <>
+    <div className="gwa-video-frame" style={{ position: 'absolute', inset: 0, overflow: 'hidden', backgroundColor: '#0a0a0a' }}>
       <img
         src={GWA_FALLBACK_IMAGE}
         alt=""
@@ -34,15 +34,17 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
           pointerEvents: 'none',
         }}
       />
-      <video
+      <Video
         ref={ref}
-        src={GWA_VIDEO_SRC}
+        src="public/videos/gwa-video.mp4"
         loop
         muted
         playsInline
         autoPlay
         preload="auto"
         poster={GWA_FALLBACK_IMAGE}
+        controls={false}
+        suppressHydrationWarning
         onLoadedData={() => setVideoReady(true)}
         onCanPlay={() => setVideoReady(true)}
         onPlaying={() => setVideoReady(true)}
@@ -50,9 +52,9 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
         onError={() => setVideoReady(false)}
         style={{
           position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
+          inset: '-2px',
+          width: 'calc(100% + 4px)',
+          height: 'calc(100% + 4px)',
           objectFit: 'cover',
           display: 'block',
           opacity: videoReady ? 1 : 0,
@@ -60,7 +62,7 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
           pointerEvents: 'none',
         }}
       />
-    </>
+    </div>
   )
 }
 
@@ -447,7 +449,7 @@ function ScrollLinkedVideo({ lang, exitBlur, exitOpacity }: { lang: 'de' | 'en';
         opacity: exitOpacity,
         pointerEvents: 'auto',
       }}>
-        <div style={{ position: 'relative', width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0, backgroundImage: `url(${GWA_FALLBACK_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div style={{ position: 'relative', width: VIDEO_W * scale, height: VIDEO_H * scale, overflow: 'hidden', flexShrink: 0, backgroundColor: '#0a0a0a' }}>
           <GWAVideoFrame videoRef={videoRef} />
         </div>
 
@@ -533,7 +535,7 @@ export function GWASection() {
           </div>
           <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.6)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(20px,5vw,32px)' }} />
           <div>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)', backgroundImage: `url(${GWA_FALLBACK_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)', backgroundColor: '#0a0a0a' }}>
               <GWAVideoFrame />
             </div>
             <MobileLivestreamBtn lang={lang} />

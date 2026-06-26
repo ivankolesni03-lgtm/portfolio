@@ -139,6 +139,11 @@ body > * {
   cursor: none !important;
 }
 
+.legal-page,
+.legal-page * {
+  cursor: auto !important;
+}
+
 ::-webkit-scrollbar {
   width: 2px;
 }
@@ -321,6 +326,21 @@ body > * {
 [data-next-video] video {
   object-fit: cover !important;
   background: transparent !important;
+}
+
+.gwa-video-frame [data-next-video],
+.gwa-video-frame [data-next-video] > *,
+.gwa-video-frame [data-next-video] media-theme,
+.gwa-video-frame [data-next-video] media-controller,
+.gwa-video-frame [data-next-video] mux-player,
+.gwa-video-frame [data-next-video] video {
+  inset: -2px !important;
+  width: calc(100% + 4px) !important;
+  height: calc(100% + 4px) !important;
+}
+
+.gwa-video-frame [data-next-video] video {
+  object-fit: cover !important;
 }
 
 /* Overlay cursor rules – always loaded */
