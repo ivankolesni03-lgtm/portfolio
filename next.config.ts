@@ -1,4 +1,3 @@
-import { withNextVideo } from "next-video/process";
 import type { NextConfig } from "next";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,4 +12,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextVideo(nextConfig, { folder: 'public/videos' });
+export default nextConfig;

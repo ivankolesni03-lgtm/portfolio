@@ -1,6 +1,5 @@
 'use client'
 import { useRef, useEffect, useState, useCallback } from 'react'
-import Video from 'next-video'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
@@ -8,11 +7,50 @@ import { useMouse } from '@/contexts/MouseContext'
 import { useScramble, runScramble } from '@/hooks/use-scramble'
 
 const GWA_FALLBACK_IMAGE = '/images/gwa-foto.jpg'
+const GWA_VIDEO_SRC = '/videos/gwa-video.mp4'
 
 function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoElement | null> }) {
   const localRef = useRef<HTMLVideoElement>(null)
   const [videoReady, setVideoReady] = useState(false)
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
   const ref = videoRef ?? localRef
+
+  useEffect(() => {
+    const video = ref.current
+    if (!video) return
+
+    const tryPlay = () => {
+      if (!shouldLoadVideo) return
+      video.muted = true
+      video.setAttribute('muted', '')
+      video.setAttribute('playsinline', '')
+      video.play().catch(() => {})
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoadVideo(true)
+          requestAnimationFrame(tryPlay)
+        } else {
+          video.pause()
+        }
+      },
+      { rootMargin: '320px 0px', threshold: 0.02 }
+    )
+
+    observer.observe(video)
+    return () => observer.disconnect()
+  }, [ref, shouldLoadVideo])
+
+  useEffect(() => {
+    const video = ref.current
+    if (!video || !shouldLoadVideo) return
+    video.muted = true
+    video.setAttribute('muted', '')
+    video.setAttribute('playsinline', '')
+    video.play().catch(() => {})
+  }, [ref, shouldLoadVideo])
 
   return (
     <div className="gwa-video-frame" style={{ position: 'absolute', inset: 0, overflow: 'hidden', backgroundColor: '#0a0a0a' }}>
@@ -34,9 +72,9 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
           pointerEvents: 'none',
         }}
       />
-      <Video
+      <video
         ref={ref}
-        src="public/videos/gwa-video.mp4"
+        src={shouldLoadVideo ? GWA_VIDEO_SRC : undefined}
         loop
         muted
         playsInline

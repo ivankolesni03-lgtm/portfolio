@@ -294,55 +294,6 @@ body > * {
   overflow-wrap: normal !important;
 }
 
-/* Force next-video container to fill parent completely */
-[data-next-video] {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  aspect-ratio: unset !important;
-  overflow: hidden !important;
-}
-[data-next-video] > *,
-[data-next-video] media-theme,
-[data-next-video] media-controller,
-[data-next-video] mux-player,
-[data-next-video] video {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  display: block !important;
-}
-
-[data-next-video] media-controller,
-[data-next-video] mux-player {
-  background: transparent !important;
-  --media-object-fit: cover;
-}
-
-[data-next-video] video {
-  object-fit: cover !important;
-  background: transparent !important;
-}
-
-.gwa-video-frame [data-next-video],
-.gwa-video-frame [data-next-video] > *,
-.gwa-video-frame [data-next-video] media-theme,
-.gwa-video-frame [data-next-video] media-controller,
-.gwa-video-frame [data-next-video] mux-player,
-.gwa-video-frame [data-next-video] video {
-  inset: -2px !important;
-  width: calc(100% + 4px) !important;
-  height: calc(100% + 4px) !important;
-}
-
-.gwa-video-frame [data-next-video] video {
-  object-fit: cover !important;
-}
-
 /* Overlay cursor rules – always loaded */
 body.overlay-open .custom-cursor,
 body.view-cursor-open .custom-cursor,
