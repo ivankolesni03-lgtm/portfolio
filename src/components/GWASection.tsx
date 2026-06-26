@@ -19,9 +19,9 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
       <img
         src={GWA_FALLBACK_IMAGE}
         alt=""
-        loading="eager"
+        loading="lazy"
         decoding="async"
-        fetchPriority="high"
+        fetchPriority="auto"
         style={{
           position: 'absolute',
           inset: 0,
@@ -41,7 +41,7 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
         muted
         playsInline
         autoPlay
-        preload="auto"
+        preload="metadata"
         poster={GWA_FALLBACK_IMAGE}
         controls={false}
         suppressHydrationWarning

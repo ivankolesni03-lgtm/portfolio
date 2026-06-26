@@ -196,9 +196,17 @@ const AI_SRCS = [
   '/ai-images/random-04.jpg',
 ]
 
-const AI_IMAGES: HTMLImageElement[] = typeof window !== 'undefined'
-  ? AI_SRCS.map(src => { const img = new window.Image(); img.src = src; return img })
-  : []
+const AI_IMAGES: Array<HTMLImageElement | undefined> = []
+
+function getAiImage(index: number) {
+  const existing = AI_IMAGES[index]
+  if (existing) return existing
+  const img = new window.Image()
+  img.decoding = 'async'
+  img.src = AI_SRCS[index]
+  AI_IMAGES[index] = img
+  return img
+}
 
 function ensureLoaded(img: HTMLImageElement, src: string): Promise<HTMLImageElement> {
   if (img.complete && img.naturalWidth > 0) return Promise.resolve(img)
@@ -380,6 +388,7 @@ export function AISection() {
   const [exitP,    setExitP]    = useState(0)
   const [mobile,   setMobile]   = useState(false)
   const [isActive, setIsActive] = useState(false)
+  const [nearViewport, setNearViewport] = useState(false)
   const [phase,    setPhase]    = useState(0)
   const [ports,    setPorts]    = useState<PortMap>({})
   // VW/VH measured from the actual section element – consistent across environments
@@ -409,9 +418,6 @@ export function AISection() {
     requestAnimationFrame(() => { requestAnimationFrame(measure) })
     window.addEventListener('resize', measure)
 
-    if (AI_IMAGES.length === 0) {
-      AI_SRCS.forEach((src, i) => { const img = new window.Image(); img.src = src; AI_IMAGES[i] = img })
-    }
     return () => {
       cancelAnimationFrame(initFrame)
       window.removeEventListener('resize', measure)
@@ -419,12 +425,31 @@ export function AISection() {
   }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    const el = outerRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setNearViewport(entry.isIntersecting),
+      { rootMargin: '900px 0px', threshold: 0 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [mounted])
+
+  useEffect(() => {
+    if (!nearViewport) return
+    const timers = AI_SRCS.map((_, index) => window.setTimeout(() => {
+      getAiImage(index)
+    }, index < 2 ? 0 : 1000 + index * 220))
+    return () => timers.forEach(window.clearTimeout)
+  }, [nearViewport])
+
+  useEffect(() => {
+    if (!mounted || !nearViewport) return
     const tryDraw = () => {
       const cv = canvasRef.current, pv = previewRef.current
       if (!cv || !pv || !pv.offsetWidth) return
       cv.width = pv.offsetWidth; cv.height = pv.offsetHeight
-      const img = AI_IMAGES[0]
+      const img = getAiImage(0)
       if (img.complete && img.naturalWidth > 0) {
         drawToCanvas(cv, img, 1, 1)
       } else {
@@ -437,7 +462,7 @@ export function AISection() {
     const t1 = setTimeout(tryDraw, 80)
     const t2 = setTimeout(tryDraw, 500)
     return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [mounted])
+  }, [mounted, nearViewport])
 
   const { scrollY, vh: scrollVh } = useScroll()
   
@@ -485,7 +510,8 @@ export function AISection() {
       if (ctx) { ctx.fillStyle='#000'; ctx.fillRect(0,0,cv.width,cv.height) }
     }
 
-    const img = AI_IMAGES[nextIdx]
+    const img = getAiImage(nextIdx)
+    void ensureLoaded(img, AI_SRCS[nextIdx])
     cancelAnimationFrame(rafRef.current)
 
     const tick = (now: number) => {
@@ -526,7 +552,7 @@ export function AISection() {
 
   // Auto-generate after 10 seconds of inactivity
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !nearViewport) return
 
     const startAutoTimer = () => {
       if (autoGenerateTimerRef.current) {
@@ -549,7 +575,7 @@ export function AISection() {
         clearTimeout(autoGenerateTimerRef.current)
       }
     }
-  }, [mounted, isActive, generate])
+  }, [mounted, nearViewport, isActive, generate])
 
   const wLit = (seg: number) => isActive && phase >= seg / SEG_N
 

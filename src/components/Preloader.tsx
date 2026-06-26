@@ -4,114 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useMobile } from '@/hooks/use-mobile'
 import { getIntroLayout } from '@/lib/intro-layout'
 
-const criticalImages = [
-  "/photos/IMG_0142.JPG",
-  "/photos/IMG_0205.JPG",
-  "/photos/IMG_0323_3.JPG",
-  "/photos/IMG_0397_2.JPG",
-  "/photos/IMG_0446.JPG",
-  "/photos/IMG_0689.JPG",
-  "/photos/IMG_1743.JPG",
-  "/photos/IMG_2127.JPG",
-  "/photos/IMG_3028.JPG",
-  "/photos/IMG_4818_2.JPG",
-  "/photos/IMG_5141.JPG",
-  "/photos/IMG_5434.JPG",
-  "/photos/IMG_6074.JPG",
-  "/photos/IMG_6228.JPG",
-  "/photos/IMG_6342.JPG",
-  "/photos/IMG_6518.JPG",
-  "/photos/IMG_6548.JPG",
-  "/photos/IMG_6575.JPG",
-  "/photos/IMG_6627.JPG",
-  "/photos/IMG_6857.JPG",
-  "/photos/IMG_6866.JPG",
-  "/photos/IMG_7386.JPG",
-  "/photos/IMG_7486.JPG",
-  "/photos/IMG_7616_2.JPG",
-  "/photos/IMG_7994.JPG",
-  "/photos/IMG_8185.JPG",
-  "/photos/IMG_8218.JPG",
-  "/photos/IMG_8286.JPG",
-  "/photos/IMG_8665_2.JPG",
-  "/photos/IMG_8705.JPG",
-  "/photos/IMG_8721.JPG",
-  "/photos/IMG_8922.JPG",
-  "/photos/IMG_8969.JPG",
-  "/photos/IMG_8994.JPG",
-  "/photos/IMG_9077_2.JPG",
-  "/photos/IMG_9189_2.JPG",
-  "/photos/IMG_9313.JPG",
-  "/photos/IMG_9680_2.JPG",
-]
-
 const backgroundSrc = '/photos/background.jpg'
 
-const criticalStaticImages = [
-  '/images/hochschule-projekt.jpg',
-  '/images/continental-projekt.jpg',
-  '/images/hateaid-projekt.jpg',
-  '/images/bmw-projekt.jpg',
-  '/images/tennisheine-projekt.jpg',
-  '/images/gwa-foto.jpg',
-  '/images/lebara.png',
-  '/images/ganbatte.jpg',
-  '/images/cavallo.jpg',
-  '/images/bold.jpg',
-  '/images/pocoloco.jpg',
-  '/images/weros.jpg',
-  '/icons/hsh-logo.png',
-  '/icons/hateaid-logo.png',
-  '/icons/cc-logo.png',
-]
-
-const criticalIcons = [
-  '/icons/mmbbs.jpg',
-  '/icons/hsh.jpg',
-  '/icons/graco.jpg',
-  '/icons/cc.jpg',
-  '/icons/conti.jpg',
-  '/icons/creatom.jpg',
-  '/icons/freelancer.jpg',
-  '/icons/bmw.jpg',
-  '/icons/premiere-pro.png',
-  '/icons/illustrator.png',
-  '/icons/photoshop.png',
-  '/icons/after-effects.png',
-  '/icons/photoshop-lightroom.png',
-  '/icons/xd.png',
-  '/icons/indesign.png',
-  '/icons/acrobat.png',
-  '/icons/vs-code.png',
-  '/icons/comfy-ui.png',
-  '/icons/adobe-audition.png',
-  '/icons/claude.png',
-  '/icons/blender.png',
-  '/icons/capcut.png',
-  '/icons/fl-studio.png',
-  '/icons/higgsfield.png',
-  '/icons/powerpoint.png',
-  '/icons/github.png',
-]
-
-const criticalVideos = [
-  '/videos/hsh-projekt.mp4',
-  '/videos/hateaid-video.mp4',
-  '/videos/bmw-projekt.mp4',
-  '/videos/tennisheine-video.mp4',
-]
-
-const criticalModels = [
-  '/models/figur01.glb',
-]
-
-const criticalMedia = Array.from(new Set([
-  ...criticalImages,
-  ...criticalStaticImages,
-  ...criticalIcons,
-  ...criticalVideos,
-  ...criticalModels,
-]))
+const criticalMedia: string[] = []
 
 interface PreloaderProps {
   onComplete: () => void
@@ -133,56 +28,6 @@ function preloadImage(src: string) {
     image.onerror = () => resolve()
     image.src = src
   })
-}
-
-function preloadVideo(src: string) {
-  return new Promise<void>((resolve) => {
-    const video = document.createElement('video')
-    let done = false
-    let timeout = 0
-
-    const finishWithTimeoutClear = () => {
-      window.clearTimeout(timeout)
-      finish()
-    }
-
-    const cleanup = () => {
-      video.removeEventListener('loadeddata', finishWithTimeoutClear)
-      video.removeEventListener('canplaythrough', finishWithTimeoutClear)
-      video.removeEventListener('error', finishWithTimeoutClear)
-      video.removeAttribute('src')
-      video.load()
-    }
-
-    const finish = () => {
-      if (done) return
-      done = true
-      cleanup()
-      resolve()
-    }
-
-    // Safety timeout so one problematic video cannot block 100% forever.
-    timeout = window.setTimeout(finish, 15000)
-
-    video.addEventListener('loadeddata', finishWithTimeoutClear, { once: true })
-    video.addEventListener('canplaythrough', finishWithTimeoutClear, { once: true })
-    video.addEventListener('error', finishWithTimeoutClear, { once: true })
-    video.preload = 'auto'
-    video.muted = true
-    video.playsInline = true
-    video.src = src
-    video.load()
-  })
-}
-
-function preloadBinary(src: string) {
-  return fetch(src, { cache: 'force-cache' })
-    .then((res) => {
-      if (!res.ok) return null
-      return res.arrayBuffer()
-    })
-    .then(() => undefined)
-    .catch(() => undefined)
 }
 
 function PixelatedImage({ src, progress, width }: { src: string; progress: number; width: number }) {
@@ -322,15 +167,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
       await bgTask
       if (cancelled) return
 
-      const preloadTasks = criticalMedia.map((src) => {
-        if (criticalVideos.includes(src)) {
-          return preloadVideo(src)
-        }
-        if (criticalModels.includes(src)) {
-          return preloadBinary(src)
-        }
-        return preloadImage(src)
-      })
+      const preloadTasks = criticalMedia.map((src) => preloadImage(src))
 
       preloadTasks.forEach((task) => {
         task.finally(() => {

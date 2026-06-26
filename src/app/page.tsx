@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
 import { Hero } from '@/components/Hero'
 import { ProjectsSection } from '@/components/ProjectsSection'
@@ -8,14 +9,15 @@ import { Header } from '@/components/Header'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ScrollProvider, useScroll } from '@/contexts/ScrollContext'
 import { MouseProvider } from '@/contexts/MouseContext'
-import { ContactSection } from '@/components/ContactSection'
-import { AISection } from '@/components/AISection'
-import { GWASection } from '@/components/GWASection'
 import { PasswordGate } from '@/components/PasswordGate'
-import { MiniProjekteSection } from '@/components/MiniProjekteSection'
-import { InteractiveDots } from '@/components/InteractiveDots'
-import { ResumeTimeline } from '@/components/ResumeTimeline'
 import { Preloader } from '@/components/Preloader'
+
+const MiniProjekteSection = dynamic(() => import('@/components/MiniProjekteSection').then((mod) => mod.MiniProjekteSection), { ssr: false })
+const AISection = dynamic(() => import('@/components/AISection').then((mod) => mod.AISection), { ssr: false })
+const GWASection = dynamic(() => import('@/components/GWASection').then((mod) => mod.GWASection), { ssr: false })
+const InteractiveDots = dynamic(() => import('@/components/InteractiveDots').then((mod) => mod.InteractiveDots), { ssr: false })
+const ResumeTimeline = dynamic(() => import('@/components/ResumeTimeline').then((mod) => mod.ResumeTimeline), { ssr: false })
+const ContactSection = dynamic(() => import('@/components/ContactSection').then((mod) => mod.ContactSection), { ssr: false })
 
 type HomePhase = 'locked' | 'preloading' | 'ready'
 

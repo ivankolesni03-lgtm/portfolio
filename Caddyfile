@@ -12,6 +12,12 @@
 		}
 	}
 
+	@immutable_static {
+		path /_next/static/* /images/* /photos/* /ai-images/* /icons/* /logos/* /models/* /videos/* /fonts/*
+	}
+
+	header @immutable_static Cache-Control "public, max-age=31536000, immutable"
+
 	handle {
 		reverse_proxy localhost:3000 {
 			header_up Host {host}

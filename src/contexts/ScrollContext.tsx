@@ -21,15 +21,21 @@ export function ScrollProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<ScrollState>(defaultState)
   const rafRef = useRef<number>(0)
   const ticking = useRef(false)
+  const lastStateRef = useRef(defaultState)
 
   useEffect(() => {
     const updateState = () => {
-      setState({
+      const next = {
         scrollY: window.scrollY,
         vh: window.innerHeight,
         vw: window.innerWidth,
         mounted: true,
-      })
+      }
+      const prev = lastStateRef.current
+      if (prev.scrollY !== next.scrollY || prev.vh !== next.vh || prev.vw !== next.vw || prev.mounted !== next.mounted) {
+        lastStateRef.current = next
+        setState(next)
+      }
       ticking.current = false
     }
 
@@ -41,11 +47,22 @@ export function ScrollProvider({ children }: { children: React.ReactNode }) {
     }
 
     const onResize = () => {
-      setState(prev => ({
-        ...prev,
+      setState(prev => {
+        const next = {
+          ...prev,
         vh: window.innerHeight,
         vw: window.innerWidth,
-      }))
+        }
+        lastStateRef.current = next
+        return next
+      })
+    }
+
+    const onVisibilityChange = () => {
+      if (document.hidden && rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+        ticking.current = false
+      }
     }
 
     // Initial state
@@ -53,10 +70,12 @@ export function ScrollProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onResize, { passive: true })
+    document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onResize)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [])

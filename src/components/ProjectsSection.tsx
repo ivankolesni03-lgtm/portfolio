@@ -36,30 +36,44 @@ function updateViewCursorBodyClass() {
   document.body.classList.toggle('view-cursor-open', activeViewCursorIds.size > 0)
 }
 
-const PROJECT_IMAGE_PRELOADS = Array.from(new Set(
-  INFO_PROJECTS.flatMap((project) => [project.image, ...project.images]).filter(Boolean)
-))
+const warmedMediaSrcs = new Set<string>()
 
-const PROJECT_VIDEO_PRELOADS = Array.from(new Set(
-  ALL_PROJECTS.flatMap((project) => 'seamlessVideoSrc' in project && typeof project.seamlessVideoSrc === 'string'
-    ? [project.seamlessVideoSrc]
-    : [])
-))
+function warmImage(src?: string | null) {
+  if (!src || warmedMediaSrcs.has(src) || typeof window === 'undefined') return
+  warmedMediaSrcs.add(src)
+  const image = new window.Image()
+  image.decoding = 'async'
+  image.src = src
+}
 
-function preloadProjectMedia() {
-  PROJECT_IMAGE_PRELOADS.forEach((src) => {
-    const image = new window.Image()
-    image.decoding = 'async'
-    image.src = src
-  })
+function warmVideoMetadata(src?: string | null) {
+  if (!src || warmedMediaSrcs.has(src) || typeof document === 'undefined') return
+  warmedMediaSrcs.add(src)
+  const video = document.createElement('video')
+  const cleanup = () => {
+    video.removeAttribute('src')
+    video.load()
+  }
+  video.addEventListener('loadedmetadata', cleanup, { once: true })
+  video.addEventListener('error', cleanup, { once: true })
+  video.preload = 'metadata'
+  video.muted = true
+  video.playsInline = true
+  video.src = src
+  video.load()
+}
 
-  PROJECT_VIDEO_PRELOADS.forEach((src) => {
-    const link = document.createElement('link')
-    link.rel = 'preload'
-    link.as = 'video'
-    link.href = src
-    document.head.appendChild(link)
-  })
+function warmProjectMedia(project: InfoProject, includeVideo = false) {
+  warmImage(project.image)
+  project.images.forEach(warmImage)
+  if ('logo' in project) warmImage(project.logo)
+  if (!includeVideo) return
+  if ('seamlessVideoSrc' in project && typeof project.seamlessVideoSrc === 'string') {
+    warmVideoMetadata(project.seamlessVideoSrc)
+  }
+  if ('videoSrc' in project && typeof project.videoSrc === 'string') {
+    warmVideoMetadata(project.videoSrc)
+  }
 }
 
 function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelSize?: number }) {
@@ -119,7 +133,7 @@ function PixelCanvas({ src, w, pixelSize = 1 }: { src: string; w: number; pixelS
 
   return (
     <div style={{ position: 'relative', lineHeight: 0, minHeight: natH || Math.round(w * 0.75), backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <img src={src} alt="" loading="eager" decoding="async" fetchPriority="high" style={{ display: 'block', width: '100%', height: 'auto', opacity: natH > 0 ? 0 : 1 }} />
+      <img src={src} alt="" loading="lazy" decoding="async" fetchPriority="auto" style={{ display: 'block', width: '100%', height: 'auto', opacity: natH > 0 ? 0 : 1 }} />
       {natH > 0 && <canvas ref={cvs} width={w} height={natH} style={{ position: 'absolute', inset: 0, display: 'block', width: '100%', height: '100%' }} />}
     </div>
   )
@@ -252,6 +266,10 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
+
+  useEffect(() => {
+    if (inViewport) warmProjectMedia(project, isActiveFullscreen)
+  }, [inViewport, isActiveFullscreen, project])
 
   useEffect(() => {
     if (!hasVideo) return
@@ -432,17 +450,17 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
           playsInline
           autoPlay
           loop
-          preload="auto"
+          preload="metadata"
           poster={project.image}
           onLoadedMetadata={() => setVideoReady(true)}
           onPlaying={() => setVideoReady(true)}
           onTimeUpdate={() => setVideoReady(true)}
           style={{
             position: 'absolute',
-            inset: 0,
+            inset: '-2px',
             display: 'block',
-            width: '100%',
-            height: '100%',
+            width: 'calc(100% + 4px)',
+            height: 'calc(100% + 4px)',
             objectFit: 'cover',
             pointerEvents: 'none',
           }}
@@ -456,7 +474,7 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
           loop
           playsInline
           autoPlay
-          preload="auto"
+          preload="metadata"
           onLoadedData={() => setSeamlessVideoReady(true)}
           onCanPlay={() => setSeamlessVideoReady(true)}
           onPlaying={() => setSeamlessVideoReady(true)}
@@ -464,17 +482,17 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
           onError={() => setSeamlessVideoReady(false)}
           style={{
             position: 'absolute',
-            inset: 0,
+            inset: '-2px',
             display: 'block',
-            width: '100%',
-            height: '100%',
+            width: 'calc(100% + 4px)',
+            height: 'calc(100% + 4px)',
             objectFit: 'cover',
             objectPosition: 'center center',
             pointerEvents: 'none',
           }}
         />
       )}
-      <img ref={imageRef} src={project.image} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
+      <img ref={imageRef} src={project.image} alt="" loading={inViewport || isActiveFullscreen ? 'eager' : 'lazy'} decoding="async" fetchPriority={isActiveFullscreen ? 'high' : 'auto'} style={{
         position: 'absolute',
         inset: 0,
         display: 'block', width: '100%', height: '100%', objectFit: 'cover',
@@ -633,12 +651,14 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
   const open  = (i: number) => {
     if (aiSectionVisible) return
     const infoIdx = INFO_PROJECTS.findIndex(p => p.id === PROJECTS[i].id)
+    warmProjectMedia(PROJECTS[i], true)
     setOpenIdx(infoIdx >= 0 ? infoIdx : i)
     setOverlayCursorVisible(true)
     onOverlayChange?.(true)
   }
   const close = () => { setOpenIdx(null); setOverlayCursorVisible(false); onOverlayChange?.(false) }
   const nav   = (i: number) => {
+    warmProjectMedia(INFO_PROJECTS[i], true)
     setOpenIdx(i)
   }
 
@@ -650,10 +670,6 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
   const [viewHover, setViewHover] = useState(false)
   const [miniSectionVisible, setMiniSectionVisible] = useState(false)
   const [aiSectionVisible, setAiSectionVisible] = useState(false)
-
-  useEffect(() => {
-    preloadProjectMedia()
-  }, [])
 
   useEffect(() => {
     if (!mounted) return
@@ -1428,7 +1444,7 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
             transition: 'filter 1.05s cubic-bezier(0.76,0,0.24,1)',
             willChange: 'filter',
           }}>
-            <img src={prevProject.images[0]} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
+            <img src={prevProject.images[0]} alt="" loading="lazy" decoding="async" fetchPriority="auto" style={{
               position: 'absolute', inset: 0,
               width: '100%', height: '100%', objectFit: 'cover',
             }} />
@@ -1495,7 +1511,7 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
           willChange: 'transform',
           zIndex: 2,
         }}>
-          <img src={displayProject.images[0]} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
+          <img src={displayProject.images[0]} alt="" loading="eager" decoding="async" fetchPriority="auto" style={{
             position: 'absolute', inset: 0,
             width: '100%', height: '100%', objectFit: 'cover',
             transform: isOpen ? 'scale(1)' : 'scale(1.02)',
@@ -1672,7 +1688,6 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
         padding: 0,
         border: 'none',
         background: '#0a0a0a',
-        backgroundImage: `url(${project.image})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         cursor: 'pointer',
@@ -1687,7 +1702,7 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
         willChange: 'transform',
       }}
     >
-      <img src={project.image} alt="" className="mini-card-img" loading="eager" decoding="async" fetchPriority="high" style={{
+      <img src={project.image} alt="" className="mini-card-img" loading="lazy" decoding="async" fetchPriority="auto" style={{
         width: '100%', height: '100%', objectFit: 'cover', display: 'block',
         transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1)',
       }} />
