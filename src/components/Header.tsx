@@ -10,7 +10,7 @@ export function Header({ isVisible }: { isVisible: boolean }) {
   const context = useLanguage()
   const language = context?.language ?? 'de'
   const toggleLanguage = context?.toggleLanguage
-  const { scrollY, vh, vw } = useScroll()
+  const { scrollY, vh, isMobile } = useScroll()
 
   const languageRef = useRef(language)
   const cleanupRef = useRef<(() => void) | null>(null)
@@ -18,7 +18,6 @@ export function Header({ isVisible }: { isVisible: boolean }) {
 
   const [displayText, setDisplayText] = useState(language === 'de' ? 'DE' : 'ENG')
   
-  const isMobile = vw < 768
   const opacity = Math.max(0, Math.min(1, (scrollY - vh * 0.6) / (vh * 0.4)))
 
   useEffect(() => {
@@ -57,8 +56,6 @@ export function Header({ isVisible }: { isVisible: boolean }) {
   useEffect(() => {
     return () => document.body.classList.remove('hide-x-cursor')
   }, [])
-
-  if (isMobile === null) return null
 
   if (!isMobile) {
     return (

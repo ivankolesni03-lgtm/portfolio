@@ -117,6 +117,7 @@ export function InteractiveDots({
   const outerRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { isMobile } = useMobile()
+  const { vh, vw } = useScroll()
   
   // More icons on mobile with tighter spacing
   const circleSize = isMobile ? 44 : defaultCircleSize
@@ -462,8 +463,8 @@ export function InteractiveDots({
       
       if (fromId === null) {
         // Start with a circle in the visible area (center-ish)
-        const centerX = window.innerWidth / 2
-        const centerY = window.innerHeight / 2
+        const centerX = vw / 2
+        const centerY = vh / 2
         const sorted = [...circles].sort((a, b) => {
           const distA = Math.sqrt((a.x - centerX) ** 2 + (a.y - centerY) ** 2)
           const distB = Math.sqrt((b.x - centerX) ** 2 + (b.y - centerY) ** 2)
@@ -624,7 +625,7 @@ export function InteractiveDots({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          style={{ position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden', userSelect: 'none', cursor: 'default', backgroundColor, touchAction: 'pan-y' }}
+          style={{ position: 'sticky', top: 0, width: '100%', height: 'var(--app-visual-height, 100svh)', overflow: 'hidden', userSelect: 'none', cursor: 'default', backgroundColor, touchAction: 'pan-y' }}
         >
           <div style={{
             position: 'absolute',
@@ -671,8 +672,7 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
   }, [lang, program])
 
   const EASE = 'cubic-bezier(0.76,0,0.24,1)'
-  const vw = typeof window !== 'undefined' ? window.innerWidth : 1440
-  const isMobile = vw < 768
+  const { vw, isMobile } = useScroll()
   const imgW = isMobile ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.38), 440)
   const panW = isMobile ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.46), 560)
   const isOpening = phase === 'in'

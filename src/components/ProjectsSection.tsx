@@ -517,7 +517,7 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
       {/* Logo: centered at original resting position */}
       {'logo' in project && project.logo && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: 'var(--app-visual-height, 100svh)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           paddingRight: isMobile ? '0.5vw' : '1vw',
           paddingBottom: isMobile ? '0.5vh' : '1vh',
@@ -586,11 +586,11 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
 // ─── Cursor label (View on mini-cards, X on overlays) ─────────────────────────
 export function ViewCursor({ show, mode = 'view' }: { show: boolean; mode?: 'view' | 'close' }) {
   const { mouseX, mouseY } = useMouse()
-  const { vw } = useScroll()
+  const { isMobile } = useScroll()
   const cursorId = useId()
 
   useEffect(() => {
-    const active = vw >= 768 && show
+    const active = !isMobile && show
     if (active) activeViewCursorIds.add(cursorId)
     else activeViewCursorIds.delete(cursorId)
     updateViewCursorBodyClass()
@@ -599,9 +599,9 @@ export function ViewCursor({ show, mode = 'view' }: { show: boolean; mode?: 'vie
       activeViewCursorIds.delete(cursorId)
       updateViewCursorBodyClass()
     }
-  }, [cursorId, show, vw])
+  }, [cursorId, show, isMobile])
 
-  if (vw < 768) return null
+  if (isMobile) return null
   const isClose = mode === 'close'
   const visible = show
   return (
@@ -640,14 +640,12 @@ export function ViewCursor({ show, mode = 'view' }: { show: boolean; mode?: 'vie
 export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: boolean) => void }) {
   const { language } = useLanguage()
   const lang = language as Lang
-  const { vw, vh, scrollY, mounted } = useScroll()
+  const { vh, scrollY, mounted, isMobile } = useScroll()
   const sectionRef = useRef<HTMLElement>(null)
   const [sectionProgress, setSectionProgress] = useState(0)
   const [openIdx, setOpenIdx] = useState<number|null>(null)
   const [overlayCursorVisible, setOverlayCursorVisible] = useState(false)
   
-  const isMobile = vw < 768
-
   const open  = (i: number) => {
     if (aiSectionVisible) return
     const infoIdx = INFO_PROJECTS.findIndex(p => p.id === PROJECTS[i].id)
@@ -713,7 +711,7 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
         marginTop: '15vh',
       }}>
         <div style={{
-          position: 'sticky', top: 0, height: '100vh', width: '100%', overflow: 'hidden',
+          position: 'sticky', top: 0, height: 'var(--app-visual-height, 100svh)', width: '100%', overflow: 'hidden',
           backgroundColor: 'transparent',
           filter: overlayOpen ? 'blur(8px)' : 'none',
           transition: 'filter 0.35s ease',
@@ -887,6 +885,7 @@ function Overlay({ idx, projects, onClose, onCloseStart, onNav }: {
 }) {
   const { language } = useLanguage()
   const lang = language as Lang
+  const { vw, isMobile } = useScroll()
   const [phase, setPhase]   = useState<Phase>('in')
   const [curIdx, setCurIdx] = useState(idx)
   const [prevIdx, setPrevIdx] = useState<number | null>(null)
@@ -896,8 +895,7 @@ function Overlay({ idx, projects, onClose, onCloseStart, onNav }: {
   const cur = projects[curIdx]
   const prev = prevIdx !== null ? projects[prevIdx] : null
 
-  const vw  = typeof window !== 'undefined' ? window.innerWidth : 1440
-  const mob = vw < 768
+  const mob = isMobile
   const imgW = mob ? Math.round(vw * 0.88) : Math.min(Math.round(vw * 0.42), 520)
   const panW = mob ? Math.round(vw * 0.88) : Math.min(Math.round(vw * 0.46), 580)
 
@@ -1222,9 +1220,8 @@ type MiniPointer = { x: number; y: number; active: boolean }
 
 export function ProjectsMarquee({ embedded = false, statProgress = 0, onHoverCards }: { embedded?: boolean; statProgress?: number; onHoverCards?: (hover: boolean) => void }) {
   const { language } = useLanguage()
-  const { vw } = useScroll()
+  const { vw, isMobile } = useScroll()
   const lang = language as Lang
-  const isMobile = vw < 768
   const items: MiniProject[] = [...ARCHIVED_PROJECTS, ...ALL_PROJECTS]
   const [openIdx, setOpenIdx] = useState<number | null>(null)
   const [openRect, setOpenRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
@@ -1252,14 +1249,14 @@ export function ProjectsMarquee({ embedded = false, statProgress = 0, onHoverCar
   }, [onHoverCards, setOpenIdx, setOpenRect])
 
   const renderRow = (projects: MiniProject[], direction: 'left' | 'right', startOffset: number, autoSpeed: number) => {
-    const cardW = isMobile ? Math.min(280, Math.max(200, Math.round(vw * 0.65))) : 384
+    const cardW = isMobile ? Math.min(460, Math.max(300, Math.round(vw * 0.9))) : 384
     const cardH = Math.round(cardW * 9 / 16) // 16:9
-    const gap = isMobile ? 12 : 32
+    const gap = isMobile ? 18 : 32
     const loop = [...projects, ...projects]
     const autoDir = direction === 'left' ? 'mpScrollL' : 'mpScrollR'
     const duration = isMobile ? Math.round(autoSpeed * 1.2) : autoSpeed
     return (
-      <div style={{ overflow: 'visible', width: '100%', padding: isMobile ? '6px 0' : '18px 0' }}>
+      <div style={{ overflow: 'visible', width: '100%', padding: isMobile ? '10px 0' : '18px 0' }}>
         <div style={{
           transform: `translateX(${startOffset}%)`,
           willChange: 'transform',
@@ -1297,13 +1294,13 @@ export function ProjectsMarquee({ embedded = false, statProgress = 0, onHoverCar
       onMouseLeave={() => { setPointer(p => ({ ...p, active: false })); onHoverCards?.(false) }}
       style={{
       background: embedded ? 'transparent' : '#0a0a0a',
-      padding: embedded ? (isMobile ? '4vh 0' : '8vh 0') : (isMobile ? '36px 0' : '60px 0'),
+      padding: embedded ? (isMobile ? 'max(18px, 2.4svh) 0' : '8vh 0') : (isMobile ? '36px 0' : '60px 0'),
       overflow: 'visible',
-      height: embedded ? '100vh' : 'auto',
+      height: embedded ? 'var(--app-visual-height, 100svh)' : 'auto',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      gap: embedded ? (isMobile ? '4px' : '10px') : '6px',
+      gap: embedded ? (isMobile ? '6px' : '10px') : '6px',
       boxSizing: 'border-box',
       perspective: '800px',
       cursor: embedded ? 'none' : 'default',
@@ -1312,6 +1309,10 @@ export function ProjectsMarquee({ embedded = false, statProgress = 0, onHoverCar
         .mini-card:hover .mini-card-img { transform: scale(1.07); }
         .mini-card:hover .mini-card-scrim { opacity: 1; }
         .mini-card:hover .mini-card-name { opacity: 1; transform: translateY(0); }
+        @media (max-width: 767px) {
+          .mini-card:hover .mini-card-scrim { opacity: 0; }
+          .mini-card:hover .mini-card-name { opacity: 0; transform: none; }
+        }
         .mini-fs-overlay, .mini-fs-overlay * { cursor: none !important; }
         @keyframes mpScrollL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         @keyframes mpScrollR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
@@ -1339,9 +1340,7 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
   const [navKey, setNavKey] = useState(0)
   const [oldBlurActive, setOldBlurActive] = useState(false)
   const lockRef = useRef(false)
-  const vw = typeof window !== 'undefined' ? window.innerWidth : 1440
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 900
-  const isMobile = vw < 768
+  const { vw, vh, isMobile } = useScroll()
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -1709,17 +1708,21 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
       <div className="mini-card-scrim" style={{
         position: 'absolute', inset: 0,
         background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.2) 45%, transparent 70%)',
-        opacity: 0, transition: 'opacity 0.35s ease',
+        opacity: 0,
+        display: isMobile ? 'none' : 'block',
+        transition: 'opacity 0.35s ease',
       }} />
-      <div className="mini-card-name" style={{
-        position: 'absolute', bottom: isMobile ? '10px' : '12px', left: isMobile ? '10px' : '12px', right: isMobile ? '10px' : '12px',
-        color: '#fff', fontSize: isMobile ? '12px' : '14px', fontWeight: 800,
-        textTransform: 'uppercase', letterSpacing: '-0.3px', lineHeight: 1.1,
-        textAlign: 'left',
-        opacity: isMobile ? 1 : 0, transform: isMobile ? 'translateY(0)' : 'translateY(8px) translateZ(36px)',
-        transition: 'opacity 0.35s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1)',
-        pointerEvents: 'none',
-      }}>{project.title[lang].replace('\n', ' ')}</div>
+      {!isMobile && (
+        <div className="mini-card-name" style={{
+          position: 'absolute', bottom: '12px', left: '12px', right: '12px',
+          color: '#fff', fontSize: '14px', fontWeight: 800,
+          textTransform: 'uppercase', letterSpacing: '-0.3px', lineHeight: 1.1,
+          textAlign: 'left',
+          opacity: 0, transform: 'translateY(8px) translateZ(36px)',
+          transition: 'opacity 0.35s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1)',
+          pointerEvents: 'none',
+        }}>{project.title[lang].replace('\n', ' ')}</div>
+      )}
     </button>
   )
 }

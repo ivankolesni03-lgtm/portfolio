@@ -398,7 +398,7 @@ export function ContactSection() {
         data-textcolor="white"
         style={{
           backgroundColor: '#0a0a0a',
-          minHeight: '100vh',
+          minHeight: 'var(--app-visual-height, 100svh)',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -512,7 +512,7 @@ export function ContactSection() {
       data-textcolor="white"
       style={{
         backgroundColor: '#0a0a0a',
-        minHeight: '100vh',
+        minHeight: 'var(--app-visual-height, 100svh)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',

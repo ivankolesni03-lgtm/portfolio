@@ -42,6 +42,13 @@ This backlog is based on a review of the current implementation. Tasks are order
 | R-04 | Mobile Optimization | Improve touch ergonomics and hover fallbacks | The site is heavily designed around custom cursors, hover states, and dense animated overlays. Touch devices need larger hit targets, clearer focus states, and hover-independent affordances. | `src/app/globals.css`, `src/components/CustomCursor.tsx`, `src/components/BrushCursor.tsx`, `src/components/ProjectsSection.tsx`, `src/components/Header.tsx`, `src/components/PasswordGate.tsx` | Interactive controls are comfortable on touch devices, hover-only cues have mobile equivalents, and the UI respects safe areas and virtual keyboard interactions. |
 | R-05 | Quality | Create a responsive QA matrix for common screen classes | This project has multiple art-directed layouts and many viewport-dependent calculations. Without an explicit screen matrix, regressions will keep slipping in when sections change. | `docs/tasks.md`, `src/components/*` | A repeatable manual or automated QA checklist covers small phones, large phones, tablets, laptops, standard desktop, ultrawide, and short-height viewports. |
 
+### Responsive Progress Notes
+
+- 2026-07-01: Started R-01/R-02 implementation by centralizing breakpoint, touch, orientation, short-height, and visual viewport state in `src/hooks/use-mobile.ts` and `src/contexts/ScrollContext.tsx`.
+- 2026-07-01: Replaced the main ad hoc mobile checks in Header, cursor, Hero, Projects, MiniProjekte, AI, GWA, Quote, ResumeTimeline, Stats, Contact, PasswordGate, and InteractiveDots with shared viewport state.
+- 2026-07-01: Added `--app-visual-height` / `--app-height` CSS variables and moved key sticky/fullscreen sections away from raw `100vh` toward viewport-safe sizing.
+- 2026-07-01: Verified with `npm run lint`, `npm run build`, and a mobile browser smoke check at 390px-class viewport; no horizontal overflow was detected.
+
 ## Optional Testing Track
 
 | ID | Area | Task | Why | Key files | Done when |

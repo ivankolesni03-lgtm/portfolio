@@ -5,11 +5,9 @@ import { useScroll } from '@/contexts/ScrollContext'
 
 export function CustomCursor({ hidden = false }: { hidden?: boolean }) {
   const { mouseX, mouseY } = useMouse()
-  const { vw } = useScroll()
-  
-  const isMobile = vw < 768
+  const { isMobile, isTouch } = useScroll()
 
-  if (isMobile || hidden) return null
+  if (isMobile || isTouch || hidden) return null
 
   return (
     <div

@@ -50,3 +50,20 @@ Successfully created a complete, production-ready photography portfolio website 
 - shadcn/ui components (Button, Card, Badge, Separator)
 - Custom animations in globals.css
 - Client-side interactivity with 'use client' directive
+
+---
+## Task ID: R-01/R-02 - Mobile Viewport Optimization Pass
+### Work Task
+Continue the responsive optimization plan by centralizing device-mode handling and replacing fragile mobile viewport sizing in the main one-page sections.
+
+### Work Summary
+- Extended the shared viewport hooks with mobile/tablet/desktop flags, touch and pointer state, orientation, short-height detection, and visual viewport height.
+- Added global viewport CSS variables for safe mobile sizing: `--app-height`, `--app-visual-height`, and `--app-width`.
+- Updated the primary animated sections to consume shared viewport state instead of local `window.innerWidth < 768` checks.
+- Replaced key `100vh` sticky/fullscreen surfaces with `var(--app-visual-height, 100svh)` in Hero, Projects, MiniProjekte, AI, Contact, PasswordGate, Quote, Timeline, Stats, and InteractiveDots flows.
+- Added touch-device cursor fallbacks so the custom cursor system does not force hidden cursors on coarse pointers.
+
+### Verification
+- `npm run lint` passed.
+- `npm run build` passed.
+- Mobile browser smoke check on `http://localhost:3000` passed with no horizontal overflow detected and `--app-visual-height` set from the visual viewport.

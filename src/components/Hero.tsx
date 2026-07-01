@@ -11,44 +11,43 @@ import { NavMaskedText } from '@/components/NavMaskedText'
 const chars = "!@#$%&*АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ01"
 
 const images = [
-  "/photos/IMG_0142.JPG",
-  "/photos/IMG_0205.JPG",
-  "/photos/IMG_0323_3.JPG",
-  "/photos/IMG_0397_2.JPG",
-  "/photos/IMG_0446.JPG",
-  "/photos/IMG_0689.JPG",
-  "/photos/IMG_1743.JPG",
-  "/photos/IMG_2127.JPG",
-  "/photos/IMG_3028.JPG",
-  "/photos/IMG_4818_2.JPG",
-  "/photos/IMG_5141.JPG",
-  "/photos/IMG_5434.JPG",
-  "/photos/IMG_6074.JPG",
-  "/photos/IMG_6228.JPG",
-  "/photos/IMG_6342.JPG",
-  "/photos/IMG_6518.JPG",
-  "/photos/IMG_6548.JPG",
-  "/photos/IMG_6575.JPG",
-  "/photos/IMG_6627.JPG",
-  "/photos/IMG_6857.JPG",
-  "/photos/IMG_6866.JPG",
-  "/photos/IMG_7386.JPG",
-  "/photos/IMG_7486.JPG",
-  "/photos/IMG_7616_2.JPG",
-  "/photos/IMG_7994.JPG",
-  "/photos/IMG_8185.JPG",
-  "/photos/IMG_8218.JPG",
-  "/photos/IMG_8286.JPG",
-  "/photos/IMG_8665_2.JPG",
-  "/photos/IMG_8705.JPG",
-  "/photos/IMG_8721.JPG",
-  "/photos/IMG_8922.JPG",
-  "/photos/IMG_8969.JPG",
-  "/photos/IMG_8994.JPG",
-  "/photos/IMG_9077_2.JPG",
-  "/photos/IMG_9189_2.JPG",
-  "/photos/IMG_9313.JPG",
-  "/photos/IMG_9680_2.JPG",
+  "/photos/hero-photo-1.JPG",
+  "/photos/hero-photo-2.JPG",
+  "/photos/hero-photo-3.JPG",
+  "/photos/hero-photo-4.JPG",
+  "/photos/hero-photo-5.JPG",
+  "/photos/hero-photo-6.JPG",
+  "/photos/hero-photo-7.JPG",
+  "/photos/hero-photo-8.JPG",
+  "/photos/hero-photo-9.JPG",
+  "/photos/hero-photo-10.JPG",
+  "/photos/hero-photo-11.JPG",
+  "/photos/hero-photo-12.JPG",
+  "/photos/hero-photo-13.JPG",
+  "/photos/hero-photo-14.JPG",
+  "/photos/hero-photo-15.JPG",
+  "/photos/hero-photo-16.JPG",
+  "/photos/hero-photo-17.JPG",
+  "/photos/hero-photo-18.JPG",
+  "/photos/hero-photo-19.JPG",
+  "/photos/hero-photo-20.JPG",
+  "/photos/hero-photo-21.JPG",
+  "/photos/hero-photo-22.JPG",
+  "/photos/hero-photo-23.JPG",
+  "/photos/hero-photo-24.JPG",
+  "/photos/hero-photo-25.JPG",
+  "/photos/hero-photo-26.JPG",
+  "/photos/hero-photo-27.JPG",
+  "/photos/hero-photo-28.JPG",
+  "/photos/hero-photo-29.JPG",
+  "/photos/hero-photo-30.JPG",
+  "/photos/hero-photo-31.JPG",
+  "/photos/hero-photo-32.JPG",
+  "/photos/hero-photo-33.JPG",
+  "/photos/hero-photo-34.JPG",
+  "/photos/hero-photo-35.JPG",
+  "/photos/hero-photo-36.JPG",
+  "/photos/hero-photo-37.JPG",
 ]
 
 const sizes = [
@@ -481,7 +480,7 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
 }
 
 function BgImage() {
-  const { isMobile, width } = useMobile()
+  const { isMobile } = useMobile()
   const { scrollY, vh } = useScroll()
 
   const progress = vh > 0 ? scrollY / (vh * 2.0) : 0
@@ -496,8 +495,8 @@ function BgImage() {
       className="fixed pointer-events-none"
       style={{
         right: isMobile ? '-12vw' : '1.5vw',
-        top: isMobile ? '30vh' : 'auto',
-        bottom: isMobile ? 'auto' : '10vh',
+        top: isMobile ? '30svh' : 'auto',
+        bottom: isMobile ? 'auto' : '10svh',
         zIndex: 0,
         opacity,
         filter: `blur(${blur}px)`,
@@ -685,7 +684,8 @@ export function Hero() {
         data-textcolor="black"
         onMouseMove={handleMouseMove}
         onTouchMove={handleTouchMove}
-        className="relative h-[220vh] md:h-[240vh] bg-white flex items-center overflow-hidden"
+        className="relative bg-white flex items-center overflow-hidden"
+        style={{ height: isMobile ? 'calc(var(--app-visual-height, 100svh) * 2.2)' : '240vh' }}
       >
         {trailImages.map((img) => (
           <PixelTrailImage key={img.id} img={img} blur={trailBlur} />

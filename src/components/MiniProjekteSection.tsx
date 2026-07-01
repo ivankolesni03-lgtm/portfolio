@@ -4,14 +4,12 @@ import { useScroll } from '@/contexts/ScrollContext'
 import { ProjectsMarquee, ViewCursor } from '@/components/ProjectsSection'
 
 export function MiniProjekteSection() {
-  const { scrollY, vh, vw } = useScroll()
+  const { scrollY, vh, isMobile } = useScroll()
   const spacerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [hoverMini, setHoverMini] = useState(false)
   const [aiVisible, setAiVisible] = useState(false)
   
-  const isMobile = vw < 768
-
   useEffect(() => {
     const el = spacerRef.current; if (!el) return
     const rect = el.getBoundingClientRect()
@@ -46,8 +44,8 @@ export function MiniProjekteSection() {
 
   return (
     <>
-      <div id="mini-projekte-section" ref={spacerRef} data-textcolor="black" style={{ height: isMobile ? '460vh' : '560vh', backgroundColor:'#ffffff', position:'relative', zIndex:30, marginTop: isMobile ? '-130vh' : '-220vh' }}>
-        <div style={{ position: 'sticky', top: 0, height: '100vh', width: '100%', backgroundColor: '#ffffff', overflowX: 'clip', overflowY: 'visible' }}>
+      <div id="mini-projekte-section" ref={spacerRef} data-textcolor="black" style={{ height: isMobile ? '460vh' : '560vh', backgroundColor:'#ffffff', position:'relative', zIndex: isMobile ? 45 : 30, marginTop: isMobile ? '-130vh' : '-220vh' }}>
+        <div style={{ position: 'sticky', top: 0, height: 'var(--app-visual-height, 100svh)', width: '100%', backgroundColor: '#ffffff', overflowX: 'clip', overflowY: 'visible' }}>
           <div style={{
             opacity: 1,
             transition: 'opacity 0.15s linear',

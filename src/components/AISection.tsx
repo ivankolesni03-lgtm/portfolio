@@ -386,7 +386,6 @@ export function AISection() {
 
   const [mounted,  setMounted]  = useState(false)
   const [exitP,    setExitP]    = useState(0)
-  const [mobile,   setMobile]   = useState(false)
   const [isActive, setIsActive] = useState(false)
   const [nearViewport, setNearViewport] = useState(false)
   const [phase,    setPhase]    = useState(0)
@@ -399,11 +398,12 @@ export function AISection() {
   const [seed, setSeed] = useState(42667)
   const steps = 28
   const autoGenerateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { isMobile, width, visualHeight } = useMobile()
+  const { scrollY, vh: scrollVh } = useScroll()
 
   useEffect(() => {
     const initFrame = requestAnimationFrame(() => {
       setMounted(true)
-      setMobile(window.innerWidth < 768)
     })
 
     const measure = () => {
@@ -411,7 +411,6 @@ export function AISection() {
       if (sec) {
         setDims({ w: sec.offsetWidth, h: sec.offsetHeight })
       }
-      setMobile(window.innerWidth < 768)
     }
 
     // Measure after paint so section has its final size
@@ -464,8 +463,6 @@ export function AISection() {
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [mounted, nearViewport])
 
-  const { scrollY, vh: scrollVh } = useScroll()
-  
   useEffect(() => {
     const el = outerRef.current; if (!el) return
     const s = Math.max(0, -el.getBoundingClientRect().top)
@@ -582,16 +579,16 @@ export function AISection() {
   // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
     <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'240vh', marginTop:'-420vh' }}>
-      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'100vh' }}/>
+      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'var(--app-visual-height, 100svh)' }}/>
     </div>
   )
 
-  const VW = dims?.w ?? window.innerWidth
-  const VH = dims?.h ?? window.innerHeight
+  const VW = dims?.w ?? width
+  const VH = dims?.h ?? visualHeight
 
   // ── Mobile ────────────────────────────────────────────────────────────────
-  if (mobile) return (
-    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'auto', minHeight:'100vh', marginTop:'-370vh' }}>
+  if (isMobile) return (
+    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'auto', minHeight:'var(--app-visual-height, 100svh)', marginTop:'-370vh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -601,7 +598,7 @@ export function AISection() {
         @font-face{font-family:'Borna';src:url('/fonts/Borna-Bold.otf') format('opentype');font-weight:700;font-display:swap}
         @font-face{font-family:'Borna';src:url('/fonts/Borna-SemiBold.otf') format('opentype');font-weight:600;font-display:swap}
       `}</style>
-      <section id="ki" style={{ backgroundColor:'#000', minHeight:'100vh', boxSizing:'border-box', padding:'0 0 40px' }}>
+      <section id="ki" style={{ backgroundColor:'#000', minHeight:'var(--app-visual-height, 100svh)', boxSizing:'border-box', padding:'0 0 40px' }}>
         <GridBg/>
         <div style={{ position:'relative', zIndex:3, padding:'20vw 5vw 5vw', display:'flex', flexDirection:'column', gap: 20 }}>
           <NeonHeading/>
@@ -817,7 +814,7 @@ export function AISection() {
         .ai-open-btn:hover{transform:scale(0.93);transition:transform 0.12s}
       `}</style>
 
-      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', overflow:'hidden', height:'100vh', boxSizing:'border-box' }}>
+      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', overflow:'hidden', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box' }}>
         <GridBg/>
         <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP}/>
 

@@ -156,7 +156,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
     return () => { headingRef.current?.() }
   }, [lang, headingText])
 
-  const { scrollY, vh: scrollVh, mounted } = useScroll()
+  const { scrollY, vh: scrollVh, vw, mounted } = useScroll()
 
   // Exit blur effect when scrolling past
   useEffect(() => {
@@ -217,7 +217,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
     const dx = swipeOffset
     const dt = Date.now() - touchStartRef.current.time
     const velocity = Math.abs(dx) / dt
-    const threshold = window.innerWidth * 0.25
+    const threshold = vw * 0.25
     
     // Navigate if swipe is fast enough or far enough
     if (dx < -threshold || (dx < -50 && velocity > 0.3)) {
@@ -230,7 +230,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
     
     touchStartRef.current = null
     setIsTouching(false)
-  }, [swipeOffset, isAnimating, activeIdx, goTo])
+  }, [swipeOffset, isAnimating, activeIdx, goTo, vw])
 
   const entry = entries[activeIdx]
 
@@ -244,7 +244,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
           position: 'sticky',
           top: 0,
           width: '100%',
-          height: '100vh',
+          height: 'var(--app-visual-height, 100svh)',
           backgroundColor: '#ffffff',
           overflow: 'hidden',
           touchAction: 'pan-y',
@@ -535,7 +535,7 @@ function DesktopTimeline({ lang }: { lang: Lang }) {
   return (
     <div ref={outerRef} data-textcolor="black" style={{ position: 'relative', zIndex: 70, height: `${(N - 2) * 100}vh`, marginTop: '-160vh' }}>
       <section style={{
-        position: 'sticky', top: 0, width: '100%', height: '100vh',
+        position: 'sticky', top: 0, width: '100%', height: 'var(--app-visual-height, 100svh)',
         backgroundColor: '#ffffff', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
         boxSizing: 'border-box',

@@ -531,13 +531,11 @@ type Lang = 'de' | 'en'
 // ─── GWASection ───────────────────────────────────────────────────────────────
 export function GWASection() {
   const { language } = useLanguage(); const lang = language as Lang
-  const { scrollY, vh, vw } = useScroll()
+  const { scrollY, vh, vw, isMobile } = useScroll()
   const secRef  = useRef<HTMLDivElement>(null)
   const figRef  = useRef<HTMLDivElement>(null)
   const [figureExit, setFigureExit] = useState({ blur: 0, opacity: 1 })
   
-  const isMobile = vw < 768
-
   useEffect(() => {
     if (isMobile) return
     const fig = figRef.current; const sec = secRef.current; if (!fig || !sec) return

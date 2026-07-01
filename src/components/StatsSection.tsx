@@ -4,13 +4,11 @@ import { useScroll } from '@/contexts/ScrollContext'
 import { ProjectsMarquee, ViewCursor } from '@/components/ProjectsSection'
 
 export function StatsSection() {
-  const { scrollY, vh, vw } = useScroll()
+  const { scrollY, vh, isMobile } = useScroll()
   const spacerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [hoverMini, setHoverMini] = useState(false)
   
-  const isMobile = vw < 768
-
   useEffect(() => {
     const el = spacerRef.current; if (!el) return
     const rect = el.getBoundingClientRect()
@@ -32,7 +30,7 @@ export function StatsSection() {
   return (
     <>
       <div ref={spacerRef} onMouseEnter={() => setHoverMini(true)} onMouseLeave={() => setHoverMini(false)} style={{ height: isMobile ? '520vh' : '560vh', backgroundColor:'#ffffff', position:'relative', zIndex:30, marginTop: isMobile ? '-240vh' : '-295vh' }}>
-        <div style={{ position: 'sticky', top: 0, height: '100vh', width: '100%', backgroundColor: '#ffffff', overflowX: 'clip', overflowY: 'visible' }}>
+        <div style={{ position: 'sticky', top: 0, height: 'var(--app-visual-height, 100svh)', width: '100%', backgroundColor: '#ffffff', overflowX: 'clip', overflowY: 'visible' }}>
           <div style={{
             opacity: 1,
             transition: 'opacity 0.15s linear',

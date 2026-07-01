@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { startScramble } from '@/lib/scramble'
+import { useMobile } from '@/hooks/use-mobile'
+import { useScroll } from '@/contexts/ScrollContext'
 
 const bigWords = {
   de: ['FALLEN', 'LERNEN', 'AUFSTEHEN', 'WIEDERHOLEN'],
@@ -16,25 +18,22 @@ function BigWord({ de, en, scrollY }: { de: string; en: string; scrollY: number 
   const [displayLetters, setDisplayLetters] = useState(targetText.split(''))
   const cleanupRef = useRef<(() => void) | null>(null)
   const mountedRef = useRef(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const { isMobile } = useMobile()
+  const { vh } = useScroll()
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setIsMobile(window.innerWidth < 768))
-    return () => {
-      cancelAnimationFrame(frame)
-      cleanupRef.current?.()
-    }
+    return () => { cleanupRef.current?.() }
   }, [])
 
   useEffect(() => {
     if (!ref.current) return
     const rect = ref.current.getBoundingClientRect()
-    const windowHeight = window.innerHeight
+    const windowHeight = vh
     const elementCenter = rect.top + rect.height / 2
     const p = Math.max(0, Math.min(1, (windowHeight * 0.75 - elementCenter) / (windowHeight * 0.25) + 1))
     const frame = requestAnimationFrame(() => setScrollProgress(Math.max(0, Math.min(1, p))))
     return () => cancelAnimationFrame(frame)
-  }, [scrollY])
+  }, [scrollY, vh])
 
   const scramble = useCallback((text: string) => {
     cleanupRef.current?.()
@@ -97,30 +96,27 @@ function YinYang({ visible, scrolledIn, sectionHeight }: {
   sectionHeight: number
 }) {
   const [textHeight, setTextHeight] = useState(0)
-  const [isMobile, setIsMobile] = useState(false)
+  const { isMobile, width } = useMobile()
+  const { vh } = useScroll()
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setIsMobile(window.innerWidth < 768))
     const el = document.querySelector('.quote-text-block') as HTMLElement
     if (el) {
       const measureFrame = requestAnimationFrame(() => setTextHeight(el.offsetHeight))
       return () => {
-        cancelAnimationFrame(frame)
         cancelAnimationFrame(measureFrame)
       }
     }
-    return () => cancelAnimationFrame(frame)
   }, [visible])
 
   const rotation = sectionHeight > 0 ? (scrolledIn / sectionHeight) * 360 : 0
 
   const size = isMobile
-    ? Math.min(window.innerWidth * 0.55, 220)
+    ? Math.min(width * 0.55, 220)
     : (textHeight > 20 ? textHeight * 1.0 : 240)
 
   const appearProgress = Math.max(0, Math.min(1,
-    (scrolledIn - (typeof window !== 'undefined' ? window.innerHeight : 800) * 0.2) /
-    ((typeof window !== 'undefined' ? window.innerHeight : 800) * 0.3)
+    (scrolledIn - vh * 0.2) / (vh * 0.3)
   ))
 
   return (
@@ -144,12 +140,8 @@ export function QuoteSection() {
   const [midReached, setMidReached] = useState(false)
   const [scrolledIn, setScrolledIn] = useState(0)
   const [sectionHeight, setSectionHeight] = useState(0)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setIsMobile(window.innerWidth < 768))
-    return () => cancelAnimationFrame(frame)
-  }, [])
+  const { isMobile } = useMobile()
+  const { vh } = useScroll()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -158,8 +150,6 @@ export function QuoteSection() {
 
       if (!sectionRef.current) return
       const rect = sectionRef.current.getBoundingClientRect()
-      const vh = window.innerHeight
-
       const scrolledInVal = Math.max(0, -rect.top)
       setScrolledIn(scrolledInVal)
       setSectionHeight(sectionRef.current.offsetHeight)
@@ -175,16 +165,16 @@ export function QuoteSection() {
     window.addEventListener('scroll', handleScroll, { passive: true })
     handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [vh])
 
   const blur = exitProgress * 24
   const opacity = 1 - exitProgress
 
   const padding = isMobile ? '0 5vw' : '0 9vw'
-  const textBottom = isMobile ? '30vh' : '9vw'
+  const textBottom = isMobile ? '30svh' : '9vw'
   const textLeft = isMobile ? '5vw' : '9vw'
   const textRight = isMobile ? '5vw' : '9vw'
-  const yinYangBottom = isMobile ? '45vh' : 'auto'
+  const yinYangBottom = isMobile ? '45svh' : 'auto'
   const yinYangTop = isMobile ? 'auto' : '7vw'
   const yinYangRight = isMobile ? '5vw' : '9vw'
 
@@ -203,7 +193,7 @@ export function QuoteSection() {
         style={{
           position: 'sticky',
           top: 0,
-          height: '100vh',
+          height: 'var(--app-visual-height, 100svh)',
           padding,
           overflow: 'hidden',
         }}
