@@ -9,7 +9,7 @@ import { useScramble, runScramble } from '@/hooks/use-scramble'
 const GWA_FALLBACK_IMAGE = '/images/gwa-foto.jpg'
 const GWA_VIDEO_SRC = '/videos/gwa-video.mp4'
 
-function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoElement | null> }) {
+function GWAVideoFrame({ videoRef, fit = 'cover' }: { videoRef?: React.RefObject<HTMLVideoElement | null>; fit?: 'cover' | 'contain' }) {
   const localRef = useRef<HTMLVideoElement>(null)
   const [videoReady, setVideoReady] = useState(false)
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
@@ -65,7 +65,7 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
           inset: 0,
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: fit,
           display: 'block',
           opacity: videoReady ? 0 : 1,
           transition: 'opacity 0.35s ease',
@@ -90,10 +90,10 @@ function GWAVideoFrame({ videoRef }: { videoRef?: React.RefObject<HTMLVideoEleme
         onError={() => setVideoReady(false)}
         style={{
           position: 'absolute',
-          inset: '-2px',
-          width: 'calc(100% + 4px)',
-          height: 'calc(100% + 4px)',
-          objectFit: 'cover',
+          inset: fit === 'contain' ? 0 : '-2px',
+          width: fit === 'contain' ? '100%' : 'calc(100% + 4px)',
+          height: fit === 'contain' ? '100%' : 'calc(100% + 4px)',
+          objectFit: fit,
           display: 'block',
           opacity: videoReady ? 1 : 0,
           transition: 'opacity 0.35s ease',
@@ -185,8 +185,10 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
         const model = gltf.scene
         const box = new THREE.Box3().setFromObject(model)
         const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3())
-        const scale = 1.6 / Math.max(size.x, size.y, size.z)
-        model.position.copy(center.multiplyScalar(-scale)); model.scale.setScalar(scale)
+        const scale = (autoRotate ? 1.42 : 1.6) / Math.max(size.x, size.y, size.z)
+        model.position.copy(center.multiplyScalar(-scale))
+        if (autoRotate) model.position.y -= 0.08
+        model.scale.setScalar(scale)
         model.traverse((c: any) => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true } })
         scene.add(model); loadedModel = model; controls.update()
       }, undefined, (err: any) => console.error('GLB load error:', err))
@@ -244,34 +246,36 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
 // ─── AwardBadge – einheitlich schwarz/weiß ────────────────────────────────────
 function AwardBadge({ label }: { label: string }) {
   const [hov, setHov] = useState(false)
+  const { isMobile } = useMobile()
   return (
     <span onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} style={{
       display: 'inline-block', backgroundColor: hov ? '#333' : '#0a0a0a', color: '#ffffff',
-      fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase',
-      padding: '7px 14px', transform: hov ? 'scale(0.96)' : 'scale(1)', transition: 'all 0.15s ease', cursor: 'default',
+      fontSize: isMobile ? 7 : 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase',
+      padding: isMobile ? '4px 7px' : '7px 14px', transform: hov ? 'scale(0.96)' : 'scale(1)', transition: 'all 0.15s ease', cursor: 'default',
     }}>{label}</span>
   )
 }
 
 // ─── LogoRow – drei Logos mit × dazwischen ────────────────────────────────────
 function LogoRow() {
+  const { isMobile } = useMobile()
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 'clamp(12px,2vw,28px)',
-      marginBottom: 'clamp(28px,3.5vw,48px)',
+      display: 'flex', alignItems: 'center', gap: isMobile ? 'clamp(6px,2vw,12px)' : 'clamp(12px,2vw,28px)',
+      marginBottom: isMobile ? 'clamp(8px,2.5vw,14px)' : 'clamp(28px,3.5vw,48px)',
     }}>
       {[
         { src: '/icons/hsh-logo.png',     alt: 'HSH' },
         { src: '/icons/hateaid-logo.png', alt: 'HateAid' },
         { src: '/icons/cc-logo.png',      alt: 'Creative Team' },
       ].map((logo, i) => (
-        <div key={logo.alt} style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px,2vw,28px)' }}>
+        <div key={logo.alt} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 'clamp(6px,2vw,12px)' : 'clamp(12px,2vw,28px)' }}>
           <img
             src={logo.src} alt={logo.alt}
-            style={{ height: 'clamp(56px,7.5vw,110px)', width: 'auto', objectFit: 'contain', filter: 'grayscale(1) contrast(1.2)', display: 'block' }}
+            style={{ height: isMobile ? 'clamp(44px,12.5vw,70px)' : 'clamp(56px,7.5vw,110px)', width: 'auto', objectFit: 'contain', filter: 'grayscale(1) contrast(1.2)', display: 'block' }}
           />
           {i < 2 && (
-            <span style={{ color: '#0a0a0a', fontSize: 'clamp(24px,3.2vw,48px)', fontWeight: 900, lineHeight: 1, userSelect: 'none' }}>×</span>
+            <span style={{ color: '#0a0a0a', fontSize: isMobile ? 'clamp(16px,4vw,24px)' : 'clamp(24px,3.2vw,48px)', fontWeight: 900, lineHeight: 1, userSelect: 'none' }}>×</span>
           )}
         </div>
       ))}
@@ -525,6 +529,10 @@ const T = {
     de: 'Beim GWA Junior Agency Award 2026 belegte unser Team Hannover den dritten Platz – und holte gleich zwei weitere Auszeichnungen: den Making-Off Award für die beste Behind-the-Scenes-Dokumentation und den Publikumspreis. Unser Kunde war HateAid, unsere Partneragentur Creative Team. Unser Claim – \u201EEiner f\u00FCr alle, alle gegen Hass\u201C – stellte den Teamgedanken ins Zentrum der Kampagne und mobilisierte das Publikum.',
     en: 'At the GWA Junior Agency Award 2026 our Hannover team secured third place – and took home two additional prizes: the Making-Off Award for best behind-the-scenes documentation and the Audience Award. Our client was HateAid, our partner agency Creative Team. Our claim – "One for all, all against hate" – put the team spirit at the heart of the campaign and mobilised the audience.',
   },
+  p1Mobile: {
+    de: 'Unser Team Hannover belegte Platz drei beim GWA Junior Agency Award 2026 und gewann zusätzlich den Making-Off Award sowie den Publikumspreis. Für HateAid und Creative Team stellten wir Solidarität gegen Hass ins Zentrum.',
+    en: 'Our Hannover team placed third at the GWA Junior Agency Award 2026 and also won the Making-Off Award plus the Audience Award. For HateAid and Creative Team, we put solidarity against hate at the centre.',
+  },
 }
 type Lang = 'de' | 'en'
 
@@ -535,6 +543,7 @@ export function GWASection() {
   const secRef  = useRef<HTMLDivElement>(null)
   const figRef  = useRef<HTMLDivElement>(null)
   const [figureExit, setFigureExit] = useState({ blur: 0, opacity: 1 })
+  const [mobileExitP, setMobileExitP] = useState(0)
   
   useEffect(() => {
     if (isMobile) return
@@ -554,27 +563,47 @@ export function GWASection() {
     setFigureExit({ blur: p * 24, opacity: 1 - p * 0.95 })
   }, [scrollY, vh, vw, isMobile])
 
+  useEffect(() => {
+    if (!isMobile) return
+    const sec = secRef.current
+    if (!sec) return
+    const rect = sec.getBoundingClientRect()
+    const totalH = sec.offsetHeight
+    const maxScroll = Math.max(1, totalH - vh)
+    const scrolled = Math.max(0, -rect.top)
+    const progress = Math.min(1, scrolled / maxScroll)
+    const blurStart = 0.78
+    const p = Math.max(0, (progress - blurStart) / (1 - blurStart))
+    setMobileExitP(p)
+  }, [scrollY, vh, isMobile])
+
   // ── Mobile ──────────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div ref={secRef} data-textcolor="black" style={{ position: 'relative', zIndex: 50, marginTop: '-5vh' }}>
-        <section id="gwa" style={{ backgroundColor: '#ffffff', boxSizing: 'border-box', overflow: 'hidden', padding: '20vw 5vw 18vw', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ marginBottom: 'clamp(20px,5vw,32px)' }}><StaticHeadingGWA /></div>
-          <div style={{ width: '100%', height: '72vw', maxHeight: 340, marginBottom: 'clamp(24px,6vw,40px)' }}>
-            <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} autoRotate={true} />
-          </div>
-          <LogoRow />
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'clamp(20px,5vw,32px)' }}>
-            <AwardBadge label={T.award1[lang]} />
-            <AwardBadge label={T.award2[lang]} />
-            <AwardBadge label={T.award3[lang]} />
-          </div>
-          <ScrambleP text={T.p1[lang]} style={{ color: 'rgba(10,10,10,0.6)', fontSize: 'clamp(14px,4vw,17px)', lineHeight: 1.8, fontWeight: 400, margin: '0 0 clamp(20px,5vw,32px)' }} />
-          <div>
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', overflow: 'hidden', marginBottom: 'clamp(14px,4vw,20px)', backgroundColor: '#0a0a0a' }}>
-              <GWAVideoFrame />
+      <div ref={secRef} data-textcolor="black" style={{ position: 'relative', zIndex: 55, height: '198svh', marginTop: '-65svh' }}>
+        <section id="gwa" style={{ position: 'sticky', top: 0, backgroundColor: '#ffffff', height: 'var(--app-visual-height, 100svh)', boxSizing: 'border-box', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, padding: '20vw 5vw 5vw', display: 'flex', flexDirection: 'column', filter: mobileExitP > 0.02 ? `blur(${mobileExitP * 18}px)` : 'none', opacity: 1 - mobileExitP * 0.92, transform: `scale(${1 - mobileExitP * 0.04})`, transformOrigin: 'center center', willChange: 'filter, opacity, transform' }}>
+            <div style={{ position: 'relative', zIndex: 20, marginBottom: 'clamp(8px,2.2vw,12px)' }}><StaticHeadingGWA /></div>
+            <div style={{ position: 'relative', zIndex: 30, width: '100%', aspectRatio: '16 / 9', marginTop: 'clamp(40px,10vw,62px)', marginBottom: 'clamp(44px,11vw,68px)' }}>
+              <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', backgroundColor: '#0a0a0a', zIndex: 10 }}>
+                <GWAVideoFrame fit="contain" />
+              </div>
+              <div style={{ position: 'absolute', right: '-19vw', top: '-16svh', width: '92vw', height: '52svh', zIndex: 80, pointerEvents: 'none' }}>
+                <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} autoRotate={true} />
+              </div>
             </div>
-            <MobileLivestreamBtn lang={lang} />
+            <div style={{ position: 'relative', zIndex: 25, marginBottom: 'clamp(16px,4.5vw,26px)' }}>
+              <LogoRow />
+            </div>
+            <div style={{ position: 'relative', zIndex: 25, display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 'clamp(14px,4vw,22px)' }}>
+              <AwardBadge label={T.award1[lang]} />
+              <AwardBadge label={T.award2[lang]} />
+              <AwardBadge label={T.award3[lang]} />
+            </div>
+            <ScrambleP text={T.p1[lang]} style={{ position: 'relative', zIndex: 25, color: 'rgba(10,10,10,0.6)', fontSize: 'clamp(10px,2.9vw,12.5px)', lineHeight: 1.26, fontWeight: 400, margin: '0 0 clamp(7px,2vw,11px)' }} />
+            <div style={{ position: 'relative', zIndex: 25, marginTop: 'clamp(14px,4vw,24px)' }}>
+              <MobileLivestreamBtn lang={lang} />
+            </div>
           </div>
         </section>
       </div>
@@ -624,8 +653,8 @@ function MobileLivestreamBtn({ lang }: { lang: 'de' | 'en' }) {
     <a href="https://www.youtube.com/live/WTt66Ojzi44?si=ufzNc8ExJtfVg_mo&t=4409" target="_blank" rel="noopener noreferrer"
       onMouseEnter={() => { setHov(true); scramble() }} onMouseLeave={() => setHov(false)}
       onTouchStart={scramble}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 10, backgroundColor: hov ? '#333' : '#0a0a0a', color: '#ffffff', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '11px 20px', textDecoration: 'none', transition: 'background-color 0.15s ease', cursor: 'pointer' }}>
-      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polygon points="2,1 12,6.5 2,12" fill="#ffffff"/></svg>
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, backgroundColor: hov ? '#333' : '#0a0a0a', color: '#ffffff', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '7px 12px', textDecoration: 'none', transition: 'background-color 0.15s ease', cursor: 'pointer' }}>
+      <svg width="10" height="10" viewBox="0 0 13 13" fill="none"><polygon points="2,1 12,6.5 2,12" fill="#ffffff"/></svg>
       {disp}
     </a>
   )

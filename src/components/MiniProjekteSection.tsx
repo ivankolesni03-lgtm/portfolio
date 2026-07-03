@@ -44,7 +44,7 @@ export function MiniProjekteSection() {
 
   return (
     <>
-      <div id="mini-projekte-section" ref={spacerRef} data-textcolor="black" style={{ height: isMobile ? '460vh' : '560vh', backgroundColor:'#ffffff', position:'relative', zIndex: isMobile ? 45 : 30, marginTop: isMobile ? '-130vh' : '-220vh' }}>
+      <div id="mini-projekte-section" ref={spacerRef} data-textcolor="black" style={{ height: isMobile ? '380vh' : '560vh', backgroundColor:'#ffffff', position:'relative', zIndex: isMobile ? 45 : 30, marginTop: isMobile ? '-105svh' : '-220vh' }}>
         <div style={{ position: 'sticky', top: 0, height: 'var(--app-visual-height, 100svh)', width: '100%', backgroundColor: '#ffffff', overflowX: 'clip', overflowY: 'visible' }}>
           <div style={{
             opacity: 1,

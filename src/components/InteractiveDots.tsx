@@ -121,7 +121,7 @@ export function InteractiveDots({
   
   // More icons on mobile with tighter spacing
   const circleSize = isMobile ? 44 : defaultCircleSize
-  const spacing = isMobile ? 52 : defaultSpacing
+  const spacing = isMobile ? 50 : defaultSpacing
   const padding = isMobile ? 24 : defaultPadding
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   const [exitP, setExitP] = useState(0)
@@ -135,6 +135,7 @@ export function InteractiveDots({
   const circlesRef = useRef<{ id: number; x: number; y: number; iconIndex: number }[]>([])
   const [circleItems, setCircleItems] = useState<{ id: number; x: number; y: number; iconIndex: number }[]>([])
   const simulationRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const fakeSwipeRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const userInteractedRef = useRef(false)
   
   // Touch-specific state for swipe-reveal
@@ -283,8 +284,8 @@ export function InteractiveDots({
 
   // Touch handlers for swipe-reveal on mobile
   const revealCirclesNearTouch = useCallback((touchX: number, touchY: number) => {
-    const REVEAL_RADIUS = spacing * 1.8
-    const FADE_DELAY = 2500 // Icons stay visible for 2.5s after touch leaves
+    const REVEAL_RADIUS = spacing * (isMobile ? 2.2 : 1.8)
+    const FADE_DELAY = isMobile ? 3000 : 2500 // Mobile remains visible a bit longer, but less aggressive
     
     const circlesNearTouch: number[] = []
     
@@ -324,7 +325,7 @@ export function InteractiveDots({
       }, FADE_DELAY)
       touchRevealTimersRef.current.set(id, timer)
     })
-  }, [spacing])
+  }, [spacing, isMobile])
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     userInteractedRef.current = true
@@ -535,12 +536,12 @@ export function InteractiveDots({
         const dx = c.x - nextCircle.x
         const dy = c.y - nextCircle.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < spacing * 2) neighbors.add(c.id)
+        if (dist < spacing * (isMobile ? 2.2 : 2)) neighbors.add(c.id)
       })
       setSimulatedNeighbors(neighbors)
       
-      // Faster movement - 200-400ms intervals
-      const delay = 200 + Math.random() * 200
+      // Slightly faster movement on mobile, but still controlled
+      const delay = isMobile ? 150 + Math.random() * 220 : 200 + Math.random() * 200
       simulationRef.current = setTimeout(simulate, delay)
     }
 
@@ -554,7 +555,73 @@ export function InteractiveDots({
         simulationRef.current = null
       }
     }
-  }, [spacing])
+  }, [spacing, isMobile, vw, vh])
+
+  // Mobile-only fake swipe sweeps: reveal broad trails to make many icons glow at once.
+  useEffect(() => {
+    if (!isMobile || circlesRef.current.length === 0 || userInteractedRef.current) {
+      if (fakeSwipeRef.current) {
+        clearTimeout(fakeSwipeRef.current)
+        fakeSwipeRef.current = null
+      }
+      return
+    }
+
+    let active = true
+
+    const runFakeSwipe = () => {
+      if (!active || userInteractedRef.current) return
+      const circles = circlesRef.current
+      if (circles.length === 0) return
+
+      const fromLeft = Math.random() > 0.5
+      const yBase = padding + Math.random() * Math.max(1, vh - padding * 2)
+      const steps = 8
+      const swipeIds = new Set<number>()
+
+      for (let i = 0; i < steps; i++) {
+        const t = i / (steps - 1)
+        const x = fromLeft ? (padding + t * (vw - padding * 2)) : (vw - padding - t * (vw - padding * 2))
+        const y = yBase + Math.sin(t * Math.PI * 2) * (spacing * 0.5)
+
+        circles.forEach((circle) => {
+          const dx = circle.x - x
+          const dy = circle.y - y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < spacing * 1.5) swipeIds.add(circle.id)
+        })
+      }
+
+      if (swipeIds.size > 0) {
+        setTouchRevealedIds(prev => {
+          const next = new Set(prev)
+          swipeIds.forEach(id => next.add(id))
+          return next
+        })
+
+        const idsToClear = Array.from(swipeIds)
+        setTimeout(() => {
+          setTouchRevealedIds(prev => {
+            const next = new Set(prev)
+            idsToClear.forEach(id => next.delete(id))
+            return next
+          })
+        }, 2200)
+      }
+
+      fakeSwipeRef.current = setTimeout(runFakeSwipe, 900)
+    }
+
+    fakeSwipeRef.current = setTimeout(runFakeSwipe, 350)
+
+    return () => {
+      active = false
+      if (fakeSwipeRef.current) {
+        clearTimeout(fakeSwipeRef.current)
+        fakeSwipeRef.current = null
+      }
+    }
+  }, [isMobile, vw, vh, spacing, padding, scrollY])
 
   const renderedCircles = useMemo(() => {
     return circleItems.map((circle) => {
@@ -578,14 +645,14 @@ export function InteractiveDots({
         scale = 1.22
         transition = 'transform 0.15s ease, opacity 0.15s ease'
       } else if (isNeighbor) {
-        opacity = 0.5
+        opacity = isMobile ? 0.62 : 0.5
         scale = 1.0
         transition = 'transform 0.2s ease, opacity 0.2s ease'
       } else if (wasRecentlyVisible) {
         // Was visible, now fading out - CSS handles the 6s fade
-        opacity = 0
+        opacity = isMobile ? 0.08 : 0
         scale = 1.0
-        transition = 'transform 0.3s ease, opacity 6s ease-out'
+        transition = isMobile ? 'transform 0.3s ease, opacity 6.5s ease-out' : 'transform 0.3s ease, opacity 6s ease-out'
       } else {
         // Never been visible or fully faded - render placeholder
         return <div key={circle.id} style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize }} />
@@ -611,13 +678,13 @@ export function InteractiveDots({
         </button>
       )
     })
-  }, [circleItems, hoveredId, neighborIds, simulatedHover, simulatedNeighbors, touchRevealedIds, recentlyVisible, circleSize, openOverlay, programs, lang])
+  }, [circleItems, hoveredId, neighborIds, simulatedHover, simulatedNeighbors, touchRevealedIds, recentlyVisible, circleSize, openOverlay, programs, lang, isMobile])
 
   const selectedProgram = openIdx !== null ? programs[openIdx] : null
 
   return (
     <>
-      <div ref={outerRef} data-textcolor="white" style={{ position: 'relative', zIndex: 60, height: '300vh', marginTop: '-10vh' }}>
+      <div ref={outerRef} data-textcolor="white" style={{ position: 'relative', zIndex: 60, height: '300vh', marginTop: isMobile ? '-65svh' : '-10vh' }}>
         <section 
           ref={containerRef} 
           onMouseMove={handleMouseMove} 

@@ -235,7 +235,7 @@ function MobileTimeline({ lang }: { lang: Lang }) {
   const entry = entries[activeIdx]
 
   return (
-    <div ref={outerRef} data-textcolor="black" style={{ position: 'relative', zIndex: 70, height: '250vh', marginTop: '-160vh' }}>
+    <div ref={outerRef} data-textcolor="black" style={{ position: 'relative', zIndex: 70, height: '250vh', marginTop: '-130svh' }}>
       <section
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

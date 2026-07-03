@@ -115,21 +115,20 @@ function CrazyTerminal({ phase, isActive, lang }: { phase: number; isActive: boo
     const idx = Math.min(Math.floor(phase * CRAZY.length), CRAZY.length - 1)
     if (idx > shown.current) {
       shown.current = idx
-      const frame = requestAnimationFrame(() => setLines(p => [...p.slice(-20), CRAZY[idx]]))
+      const frame = requestAnimationFrame(() => setLines(p => [...p.slice(-12), CRAZY[idx]]))
       return () => cancelAnimationFrame(frame)
     }
   }, [isActive, phase])
-  useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight }, [lines])
   const col = (t: string) => t==='m' ? 'rgba(57,255,20,0.75)' : t==='r' ? '#ff9900' : 'rgba(100,200,255,0.9)'
   return (
-    <div style={{ background:'#0d0d0d', fontFamily:MONO, fontSize:11, height:'100%', display:'flex', flexDirection:'column' }}>
-      <div style={{ padding:'5px 12px', background:'rgba(57,255,20,0.08)', borderBottom:'1px solid rgba(57,255,20,0.2)', flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
+    <div style={{ background:'#0d0d0d', fontFamily:MONO, fontSize:10, height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'4px 10px', background:'rgba(57,255,20,0.08)', borderBottom:'1px solid rgba(57,255,20,0.2)', flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
         <span style={{ color:'rgba(57,255,20,0.6)', fontSize:10 }}>{lang==='de'?'ТЕРМИНАЛ.exe':'TERMINAL.exe'}</span>
         <div style={{ flex:1 }}/>
         {isActive && <span style={{ color:'#39ff14', fontSize:9, animation:'aiBlink 0.5s infinite', background:'rgba(57,255,20,0.15)', padding:'1px 5px', border:'1px solid rgba(57,255,20,0.3)' }}>◈ АКТИВЕН</span>}
       </div>
-      <div ref={ref} style={{ padding:'8px 12px', flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:2 }}>
-        {lines.map((l,i) => <div key={i} style={{ color:col(l.t), whiteSpace:'pre-wrap', wordBreak:'break-all', lineHeight:1.5 }}>{l.c}</div>)}
+      <div ref={ref} style={{ padding:'7px 10px', flex:1, overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'flex-end', gap:2 }}>
+        {lines.map((l,i) => <div key={i} style={{ color:col(l.t), whiteSpace:'pre-wrap', wordBreak:'break-all', lineHeight:1.4 }}>{l.c}</div>)}
         {!isActive && <div style={{ color:'rgba(57,255,20,0.2)', animation:'aiBlink 1.2s infinite' }}>█</div>}
       </div>
     </div>
@@ -578,7 +577,7 @@ export function AISection() {
 
   // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
-    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'240vh', marginTop:'-420vh' }}>
+    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:isMobile ? 50 : 40, height:isMobile ? '230svh' : '240vh', marginTop:isMobile ? '-230svh' : '-420vh' }}>
       <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'var(--app-visual-height, 100svh)' }}/>
     </div>
   )
@@ -588,7 +587,7 @@ export function AISection() {
 
   // ── Mobile ────────────────────────────────────────────────────────────────
   if (isMobile) return (
-    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'auto', minHeight:'var(--app-visual-height, 100svh)', marginTop:'-370vh' }}>
+    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:50, height:'230svh', marginTop:'-230svh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -598,9 +597,9 @@ export function AISection() {
         @font-face{font-family:'Borna';src:url('/fonts/Borna-Bold.otf') format('opentype');font-weight:700;font-display:swap}
         @font-face{font-family:'Borna';src:url('/fonts/Borna-SemiBold.otf') format('opentype');font-weight:600;font-display:swap}
       `}</style>
-      <section id="ki" style={{ backgroundColor:'#000', minHeight:'var(--app-visual-height, 100svh)', boxSizing:'border-box', padding:'0 0 40px' }}>
+      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box', overflow:'hidden' }}>
         <GridBg/>
-        <div style={{ position:'relative', zIndex:3, padding:'20vw 5vw 5vw', display:'flex', flexDirection:'column', gap: 20 }}>
+        <div style={{ position:'relative', zIndex:3, height:'100%', boxSizing:'border-box', padding:'20vw 5vw 5vw', display:'flex', flexDirection:'column', justifyContent:'space-between', gap: 12, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
           <NeonHeading/>
           
           {/* ═══ AI GENERATOR INTERFACE ═══ */}
@@ -634,7 +633,7 @@ export function AISection() {
             <div ref={previewRef} style={{ 
               position: 'relative', 
               width: '100%', 
-              aspectRatio: '1/1', 
+              height: 'min(38svh, 72vw)',
               background: 'transparent',
               zIndex: 2
             }}>
@@ -695,9 +694,9 @@ export function AISection() {
                 background: isActive ? 'rgba(57,255,20,0.1)' : '#39ff14', 
                 border: 'none',
                 color: isActive ? '#39ff14' : '#000', 
-                padding: '16px', 
+                padding: '12px', 
                 fontFamily: BORNA, 
-                fontSize: 14, 
+                fontSize: 12, 
                 letterSpacing: '0.1em', 
                 cursor: isActive ? 'not-allowed' : 'pointer', 
                 fontWeight: 800,
@@ -709,12 +708,12 @@ export function AISection() {
           </div>
           
           {/* ═══ INFO CARDS ═══ */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             
             {/* ERFAHRUNG Card */}
             <div style={{ background: '#0d0d0d', border: '1px solid rgba(57,255,20,0.2)' }}>
               <div style={{ 
-                padding: '10px 14px', 
+                padding: '7px 10px', 
                 borderBottom: '1px solid rgba(57,255,20,0.15)',
                 display: 'flex',
                 alignItems: 'center',
@@ -725,13 +724,13 @@ export function AISection() {
                   {lang==='de'?'ERFAHRUNG':'EXPERIENCE'}
                 </span>
               </div>
-              <div style={{ padding: '12px 14px' }}>
-                <p style={{ margin: '0 0 12px', color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.6, fontFamily: BORNA }}>
+              <div style={{ padding: '8px 10px' }}>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: 10.5, lineHeight: 1.4, fontFamily: BORNA }}>
                   {lang==='de'
                     ?'Ich teste stets die neuesten Tools wie Sora oder Kling und baue daraus eigene lokale Workflows. Mit ComfyUI, N8N und gezieltem LoRA-Training erschaffe ich Bild und Video.'
                     :'I constantly test the latest tools like Sora and Kling, building my own local workflows. Using ComfyUI, N8N and targeted LoRA training, I create image and video.'}
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ display: 'none', flexWrap: 'wrap', gap: 6 }}>
                   {['ComfyUI','LoRA','N8N','Sora','Kling','Deepfakes'].map((t,i) => (
                     <span key={i} style={{ 
                       background: 'rgba(57,255,20,0.1)', 
@@ -750,7 +749,7 @@ export function AISection() {
             {/* VISION Card */}
             <div style={{ background: '#0d0d0d', border: '1px solid rgba(57,255,20,0.2)' }}>
               <div style={{ 
-                padding: '10px 14px', 
+                padding: '7px 10px', 
                 borderBottom: '1px solid rgba(57,255,20,0.15)',
                 display: 'flex',
                 alignItems: 'center',
@@ -759,8 +758,8 @@ export function AISection() {
                 <span style={{ color: '#39ff14', fontSize: 10 }}>◈</span>
                 <span style={{ color: '#fff', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: BORNA, fontWeight: 600 }}>VISION</span>
               </div>
-              <div style={{ padding: '12px 14px' }}>
-                <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.6, fontFamily: BORNA }}>
+              <div style={{ padding: '8px 10px' }}>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: 10.5, lineHeight: 1.4, fontFamily: BORNA }}>
                   {lang==='de'
                     ?'KI ist für mich kein bloßes Werkzeug, sondern ein neues Medium der Inspiration. Als Pionier der ersten Stunde nutze ich die generative Kraft, um meine künstlerische Ausdruckskraft zu schärfen.'
                     :'AI is not merely a tool for me, but a new medium of inspiration. As an early adopter, I use generative power to sharpen my artistic expression and make visions more precisely tangible.'}
@@ -869,8 +868,8 @@ export function AISection() {
           </Win>
 
           {/* TERMINAL */}
-          <Win id="terminal" title="TERMINAL" width={430} initPos={{x:C4, y:TERM_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.terminal} lit={wLit(4)} minH={295}>
-            <div style={{ height:283, background:'#0d0d0d' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang}/></div>
+          <Win id="terminal" title="TERMINAL" width={390} initPos={{x:C4, y:TERM_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.terminal} lit={wLit(4)} minH={250}>
+            <div style={{ height:238, background:'#0d0d0d', overflow:'hidden' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang}/></div>
           </Win>
 
           {/* PROGRESS */}

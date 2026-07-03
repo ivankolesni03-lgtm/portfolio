@@ -664,7 +664,7 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
   const steps = PROJECTS.length
   const segment = 1 / steps
   const enterBias = 1.05
-  const trailingHoldVh = 800
+  const trailingHoldVh = isMobile ? 360 : 800
   const [viewHover, setViewHover] = useState(false)
   const [miniSectionVisible, setMiniSectionVisible] = useState(false)
   const [aiSectionVisible, setAiSectionVisible] = useState(false)
@@ -708,7 +708,7 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
         backgroundColor: 'transparent',
         height: `${Math.max(420, steps * 90 + trailingHoldVh)}vh`,
         position: 'relative', zIndex: isMobile ? 20 : 20,
-        marginTop: '15vh',
+        marginTop: isMobile ? '18svh' : '15vh',
       }}>
         <div style={{
           position: 'sticky', top: 0, height: 'var(--app-visual-height, 100svh)', width: '100%', overflow: 'hidden',
@@ -1605,6 +1605,8 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
     shadow: '0 10px 26px rgba(0,0,0,0.22)',
     zIndex: 1,
   })
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const suppressClickRef = useRef(false)
 
   useEffect(() => {
     if (isMobile) return
@@ -1666,16 +1668,49 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
     return () => cancelAnimationFrame(raf)
   }, [isMobile])
 
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (isMobile && suppressClickRef.current) {
+      event.preventDefault()
+      event.stopPropagation()
+      suppressClickRef.current = false
+      return
+    }
     const el = cardRef.current
     const rect = el ? el.getBoundingClientRect() : { left: 0, top: 0, width: 0, height: 0 }
     onOpen({ x: rect.left, y: rect.top, w: rect.width, h: rect.height })
   }
 
+  const handleTouchStart = (event: React.TouchEvent<HTMLButtonElement>) => {
+    const touch = event.touches[0]
+    touchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+    suppressClickRef.current = false
+  }
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLButtonElement>) => {
+    const start = touchStartRef.current
+    const touch = event.touches[0]
+    if (!start || !touch) return
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    if (Math.sqrt(dx * dx + dy * dy) > 10) {
+      suppressClickRef.current = true
+    }
+  }
+
+  const handleTouchEnd = () => {
+    touchStartRef.current = null
+    window.setTimeout(() => { suppressClickRef.current = false }, 320)
+  }
+
   return (
     <button
+      type="button"
       ref={cardRef}
       onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
       className="mini-card"
       style={{
         flexShrink: 0,

@@ -738,17 +738,18 @@ export function Hero() {
                 : (isMobile ? [3, 3, 3, 3, 2, 2, 2, 3, 3, 4] : [3, 3, 3, 3, 2, 2, 2, 3, 3, 4])
               const lines: number[][] = []
               let cursor = 0
+              const lastWordBeforeDots = Math.max(0, descriptorWords.length - 4)
+              const dotIndices = [descriptorWords.length - 3, descriptorWords.length - 2, descriptorWords.length - 1]
               for (const count of lineSplits) {
-                if (cursor >= descriptorWords.length) break
-                const indices = Array.from({length: Math.min(count, descriptorWords.length - cursor)}, (_, i) => cursor + i)
+                if (cursor >= lastWordBeforeDots) break
+                const indices = Array.from({length: Math.min(count, lastWordBeforeDots - cursor)}, (_, i) => cursor + i)
                 lines.push(indices)
                 cursor += count
               }
-              if (cursor < descriptorWords.length) {
-                lines.push(Array.from({length: descriptorWords.length - cursor}, (_, i) => cursor + i))
+              if (cursor < lastWordBeforeDots) {
+                lines.push(Array.from({length: lastWordBeforeDots - cursor}, (_, i) => cursor + i))
               }
-              const lastWordBeforeDots = Math.max(0, descriptorWords.length - 4)
-              const dotIndices = [descriptorWords.length - 3, descriptorWords.length - 2, descriptorWords.length - 1]
+              lines.push([lastWordBeforeDots, ...dotIndices])
               return lines.map((lineIndices, li) => (
                 <div key={li} style={{ marginLeft: 0, lineHeight: 1.12 }}>
                   {lineIndices.map((gIdx, wi) => {
@@ -781,7 +782,7 @@ export function Hero() {
                                 fontWeight: 700,
                                 fontStyle: 'normal',
                                 color: '#ffffff',
-                                opacity: dotIdx < visibleWords ? 1 : 0,
+                                opacity: dotIndices[dotIndices.length - 1] < visibleWords ? 1 : 0,
                                 transition: 'opacity 0.25s linear',
                               }}
                             >

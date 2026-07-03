@@ -403,6 +403,7 @@ export function ContactSection() {
           flexDirection: 'column',
           position: 'relative',
           zIndex: 80,
+          marginTop: '-65svh',
           boxSizing: 'border-box',
         }}
       >
@@ -635,7 +636,6 @@ function DesktopFooter() {
       }}>
         © {new Date().getFullYear()} Ivan Kolesnikov
       </span>
-      <LegalLinks />
       <SocialIcons />
     </div>
   )
@@ -658,36 +658,7 @@ function MobileFooter() {
         </span>
         <SocialIcons />
       </div>
-      <LegalLinks compact />
     </div>
-  )
-}
-
-// ─── LegalLinks ──────────────────────────────────────────────────────────────
-function LegalLinks({ compact = false }: { compact?: boolean }) {
-  return (
-    <nav aria-label="Rechtliches" style={{ display: 'flex', gap: compact ? 18 : 22, flexWrap: 'wrap' }}>
-      {[
-        { href: '/impressum', label: 'Impressum' },
-        { href: '/datenschutz', label: 'Datenschutz' },
-      ].map((link) => (
-        <a
-          key={link.href}
-          href={link.href}
-          style={{
-            color: compact ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.72)',
-            fontSize: compact ? 11 : 'clamp(11px,0.95vw,13px)',
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            textDecoration: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          {link.label}
-        </a>
-      ))}
-    </nav>
   )
 }
 
