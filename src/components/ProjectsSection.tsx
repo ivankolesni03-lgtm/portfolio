@@ -1761,11 +1761,15 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
   const currentRef = useRef({ x: 0, y: 0, z: 0, rx: 0, ry: 0, s: 1, strength: 0 })
   const [visual, setVisual] = useState({
     transform: 'perspective(600px) translate3d(0px,0px,0px) rotateX(0deg) rotateY(0deg) scale(1)',
-    shadow: '0 10px 26px rgba(0,0,0,0.22)',
+    shadow: '0 6px 16px rgba(0,0,0,0.14)',
     zIndex: 1,
   })
+  const [nameVisible, setNameVisible] = useState(false)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const suppressClickRef = useRef(false)
+  const miniTitleText = project.title[lang].replace(/\s+/g, ' ').trim()
+  const miniTitleDisplay = project.title[lang].replace(/\s+/g, '\n').trim()
+  const { disp: miniTitleDisp, scramble: scrambleMiniTitle } = useScramble(miniTitleText)
 
   useEffect(() => {
     if (isMobile) return
@@ -1816,7 +1820,7 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
 
       setVisual({
         transform: `perspective(600px) translate3d(${c.x.toFixed(2)}px,${c.y.toFixed(2)}px,${c.z.toFixed(2)}px) rotateX(${c.rx.toFixed(2)}deg) rotateY(${c.ry.toFixed(2)}deg) scale(${c.s.toFixed(4)})`,
-        shadow: `0 ${Math.round(12 + c.strength * 22)}px ${Math.round(30 + c.strength * 42)}px rgba(0,0,0,${0.22 + c.strength * 0.24})`,
+        shadow: `0 ${Math.round(6 + c.strength * 8)}px ${Math.round(16 + c.strength * 16)}px rgba(0,0,0,${0.14 + c.strength * 0.08})`,
         zIndex: Math.round(1 + c.strength * 10),
       })
 
@@ -1866,6 +1870,8 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
       type="button"
       ref={cardRef}
       onClick={handleClick}
+      onMouseEnter={() => { setNameVisible(true); scrambleMiniTitle() }}
+      onMouseLeave={() => setNameVisible(false)}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -1888,8 +1894,8 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
         transform: isMobile ? 'none' : visual.transform,
         transformStyle: 'preserve-3d',
         transformOrigin: 'center center',
-        transition: 'box-shadow 200ms ease',
-        boxShadow: isMobile ? '0 8px 22px rgba(0,0,0,0.2)' : visual.shadow,
+        transition: 'none',
+        boxShadow: 'none',
         zIndex: isMobile ? 1 : visual.zIndex,
         opacity: 1,
         willChange: 'transform',
@@ -1897,26 +1903,34 @@ function MiniProjectCard({ project, lang, width, height, pointer, isMobile, onOp
     >
       <img src={project.image} alt="" className="mini-card-img" loading="lazy" decoding="async" fetchPriority="auto" style={{
         width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-        transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1)',
+        boxShadow: isMobile ? '0 5px 14px rgba(0,0,0,0.14)' : visual.shadow,
+        transform: nameVisible ? 'scale(1.07)' : 'scale(1)',
+        transformOrigin: 'center center',
+        transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1), box-shadow 200ms ease',
       }} />
       <div className="mini-card-scrim" style={{
         position: 'absolute', inset: 0,
         background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.2) 45%, transparent 70%)',
-        opacity: 0,
-        display: isMobile ? 'none' : 'block',
-        transition: 'opacity 0.35s ease',
+        opacity: nameVisible ? 1 : 0,
+        display: 'block',
+        transform: nameVisible ? 'scale(1.07)' : 'scale(1)',
+        transformOrigin: 'center center',
+        transition: 'opacity 0.35s ease, transform 0.5s cubic-bezier(0.16,1,0.3,1)',
+        zIndex: 2,
       }} />
-      {!isMobile && (
-        <div className="mini-card-name" style={{
-          position: 'absolute', bottom: '12px', left: '12px', right: '12px',
-          color: '#fff', fontSize: '14px', fontWeight: 800,
-          textTransform: 'uppercase', letterSpacing: '-0.3px', lineHeight: 1.1,
-          textAlign: 'left',
-          opacity: 0, transform: 'translateY(8px) translateZ(36px)',
-          transition: 'opacity 0.35s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1)',
-          pointerEvents: 'none',
-        }}>{project.title[lang].replace('\n', ' ')}</div>
-      )}
+      <div className="mini-card-name" style={{
+        position: 'absolute', bottom: isMobile ? '12px' : '16px', left: isMobile ? '12px' : '16px', right: isMobile ? '12px' : '16px',
+        color: '#fff', fontSize: isMobile ? '14px' : '19px', fontWeight: 900,
+        textTransform: 'uppercase', letterSpacing: '-0.4px', lineHeight: 0.96,
+        textAlign: 'left',
+        whiteSpace: 'pre-line',
+        wordBreak: 'normal',
+        opacity: nameVisible ? 1 : 0,
+        transform: nameVisible ? 'translateY(0) translateZ(36px)' : 'translateY(8px) translateZ(36px)',
+        transition: 'opacity 0.35s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1)',
+        pointerEvents: 'none',
+        zIndex: 3,
+      }}>{nameVisible ? miniTitleDisp.replace(/\s+/g, '\n') : miniTitleDisplay}</div>
     </button>
   )
 }

@@ -92,4 +92,7 @@ Thumbs.db
 !./*.ts
 public/_next-video
 
+# archived image assets
+/public/images/old/
+
 /old

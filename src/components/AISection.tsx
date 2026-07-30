@@ -7,28 +7,54 @@ import { useScramble } from '@/hooks/use-scramble'
 
 type Lang = 'de' | 'en'
 type Port = { x: number; y: number }
-type PortMap = Record<string, { out: Port; inp: Port }>
+type PortMap = Record<string, { out: Port; inp: Port; inpAlt?: Port }>
 const FORMAT_OPTIONS = ['1:1','16:9','3:4'] as const
 type OutputFormat = typeof FORMAT_OPTIONS[number]
-const OUTPUT_MODE_OPTIONS = ['OUTPAINT','UPSCALE','VIDEO'] as const
+const OUTPUT_MODE_OPTIONS = ['UPSCALE','OUTPAINT','VIDEO'] as const
 type OutputMode = typeof OUTPUT_MODE_OPTIONS[number]
+const OUTPUT_MODE_LABELS: Record<OutputMode, string> = {
+  UPSCALE: 'UPSCALE',
+  OUTPAINT: 'OUTPAINTING',
+  VIDEO: 'VIDEO',
+}
 
 const BORNA = "'Borna','Helvetica Neue',Arial,sans-serif"
 const MONO  = '"Courier New",monospace'
 const NODE_Z_BASE = 5
 const NODE_Z_CONTROL = 17
 const NODE_Z_CONTROL_LOW = 16
-const NODE_Z_CLICK = 18
+const NODE_Z_CLICK = 30
 const NODE_Z_EXPANDED = 19
+const AI_HEADING_Z = 1000
+const INITIAL_AI_Z_ORDERS: Record<string, number> = {
+  generate: 5,
+  prompt: 6,
+  erfahrung: 7,
+  vision: 8,
+  modes: 15,
+  preview: 16,
+  upscale: 19,
+  terminal: 14,
+  progress: 12,
+}
 const OUTPAINT_EXIT_MS = 300
-const VIDEO_FAKE_LOAD_MS = 1300
+const OUTPAINT_GROW_MS = 520
+const VIDEO_LOAD_SIM_MS = 850
 const GENERATION_SIM_MS = 3000
+const MIN_OUTPUT_PIXEL_SIZE = 2
+const VIDEO_PIXEL_DECAY_POWER = 2.7
+const CRT_GREEN = '#b7ff9c'
+const CRT_GREEN_SOFT = 'rgba(183,255,156,0.62)'
+const CRT_GREEN_DIM = 'rgba(117,255,96,0.38)'
+const CRT_GLOW = '0 0 5px rgba(215,255,190,0.9),0 0 14px rgba(57,255,20,0.62)'
+const CRT_BOX_GLOW = `0 0 5px rgba(215,255,190,0.72),0 0 18px rgba(57,255,20,0.46),0 0 36px rgba(57,255,20,0.2)`
+const CRT_DROP_GLOW = 'drop-shadow(0 0 5px rgba(215,255,190,0.72)) drop-shadow(0 0 18px rgba(57,255,20,0.46)) drop-shadow(0 0 36px rgba(57,255,20,0.2))'
 
 // ─── Neon Heading ─────────────────────────────────────────────────────────────
 function NeonHeading() {
   const { isMobile } = useMobile()
   const { language } = useLanguage()
-  const [fl, setFl] = useState(1)
+  const [flickerLevels, setFlickerLevels] = useState<Record<string, number>>({})
   const { disp: d1, scramble: s1 } = useScramble('ARTISTIC')
   const { disp: d2, scramble: s2 } = useScramble('INTELLIGENCE')
   const headingCopy = language === 'de'
@@ -36,15 +62,63 @@ function NeonHeading() {
     : 'I see AI not as a replacement for design, but as a creative operating system: a way to test ideas faster, direct visual worlds more precisely and turn experiments into brand-ready communication.'
   const { disp: copyDisp, scramble: copyScramble } = useScramble(headingCopy)
   useEffect(() => {
-    let t: ReturnType<typeof setTimeout>
-    const go = () => { t = setTimeout(() => { const s=[0.1,1,0.05,0.9,0.2,1,0.7,1]; s.forEach((v,i)=>setTimeout(()=>setFl(v),i*55)); setTimeout(()=>{setFl(1);go()},s.length*55+400) }, 3000+Math.random()*8000) }
-    go(); return () => clearTimeout(t)
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const makeKeys = () => {
+      const line = Math.random() > 0.42 ? 'b' : 'a'
+      const length = line === 'a' ? 'ARTISTIC'.length : 'INTELLIGENCE'.length
+      const mode = Math.random()
+      if (mode < 0.48) return [`${line}-${Math.floor(Math.random() * length)}`]
+      if (mode < 0.78) {
+        const start = Math.floor(Math.random() * Math.max(1, length - 2))
+        return Array.from({ length: 2 + Math.floor(Math.random() * 3) }, (_, index) => `${line}-${Math.min(length - 1, start + index)}`)
+      }
+      return Array.from({ length: 2 + Math.floor(Math.random() * 4) }, () => `${line}-${Math.floor(Math.random() * length)}`)
+    }
+    const pulse = (keys: string[], hold = 34 + Math.random() * 58) => {
+      const level = Math.random() < 0.42 ? 0.05 + Math.random() * 0.18 : 0.22 + Math.random() * 0.5
+      setFlickerLevels(Object.fromEntries(keys.map(key => [key, level])))
+      timers.push(setTimeout(() => setFlickerLevels({}), hold))
+    }
+    const schedule = () => {
+      const wait = 650 + Math.random() * 2600
+      timers.push(setTimeout(() => {
+        const baseKeys = makeKeys()
+        const sequence = Math.random()
+        const steps = sequence < 0.38
+          ? [0, 54, 112, 330 + Math.random() * 120]
+          : sequence < 0.72
+            ? [0, 38, 82, 145, 410 + Math.random() * 170, 488 + Math.random() * 210]
+            : [0, 27, 68, 118, 190, 520 + Math.random() * 220]
+        steps.forEach((delay, stepIndex) => {
+          timers.push(setTimeout(() => {
+            const reuseBase = stepIndex < 3 || Math.random() < 0.58
+            const keys = reuseBase ? baseKeys : makeKeys()
+            pulse(keys, stepIndex > 2 ? 24 + Math.random() * 48 : 26 + Math.random() * 76)
+          }, delay))
+        })
+        if (Math.random() < 0.34) {
+          timers.push(setTimeout(() => pulse([...baseKeys, ...makeKeys()].slice(0, 5), 18 + Math.random() * 34), 740 + Math.random() * 260))
+        }
+        timers.push(setTimeout(schedule, 980 + Math.random() * 3200))
+      }, wait))
+    }
+    schedule()
+    return () => timers.forEach(clearTimeout)
   }, [])
   const glow = '0 0 7px #fff,0 0 18px #fff,0 0 40px rgba(255,255,255,0.5)'
+  const dimGlow = '0 0 2px rgba(255,255,255,0.55),0 0 8px rgba(255,255,255,0.18)'
+  const renderFlickerText = (text: string, line: 'a' | 'b') => Array.from(text).map((char, index) => {
+    const opacity = flickerLevels[`${line}-${index}`] ?? 1
+    return (
+      <span key={`${line}-${index}-${char}`} style={{ display:'inline-block', opacity, textShadow:opacity < 0.96 ? dimGlow : glow, transition:'opacity 34ms linear,text-shadow 34ms linear' }}>
+        {char === ' ' ? '\u00A0' : char}
+      </span>
+    )
+  })
   return (
-    <div onMouseEnter={() => { s1(); s2(); copyScramble() }} style={{ cursor:'default', userSelect:'none', opacity:fl, transition:'opacity 0.04s' }}>
+    <div onMouseEnter={() => { s1(); s2(); copyScramble() }} style={{ cursor:'default', userSelect:'none' }}>
       <div style={{ fontSize: isMobile ? '10vw' : '8vw', fontWeight:900, lineHeight:0.88, letterSpacing:'-2px', textTransform:'uppercase', color:'#fff', textShadow:glow, fontFamily:BORNA }}>
-        <div>{d1}</div><div style={{ display:'inline-block', transform:`scaleX(${isMobile ? 0.94 : 0.9})`, transformOrigin:'left center' }}>{d2}</div>
+        <div>{renderFlickerText(d1, 'a')}</div><div style={{ display:'inline-block', transform:`scaleX(${isMobile ? 0.94 : 0.9})`, transformOrigin:'left center' }}>{renderFlickerText(d2, 'b')}</div>
       </div>
       <p style={{ margin:isMobile?'34px 0 0':'8px 0 0', maxWidth:isMobile?'76vw':470, color:'rgba(255,255,255,0.8)', fontFamily:BORNA, fontSize:isMobile?13:15, lineHeight:1.45, fontWeight:500, letterSpacing:0, textShadow:'0 0 4px rgba(255,255,255,0.75),0 0 14px rgba(255,255,255,0.28),0 0 28px rgba(255,255,255,0.16),0 0 20px rgba(0,0,0,0.9)' }}>
         {copyDisp}
@@ -57,60 +131,161 @@ function NeonHeading() {
 function GridBg() {
   return (
     <div style={{ position:'absolute', inset:0, zIndex:1, pointerEvents:'none', overflow:'hidden' }}>
-      <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)', backgroundSize:'48px 48px' }}/>
-      <div style={{ position:'absolute', left:0, right:0, height:1, background:'rgba(255,255,255,0.05)', animation:'scanln 12s linear infinite' }}/>
+      <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,255,255,0.085) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.085) 1px,transparent 1px)', backgroundSize:'48px 48px' }}/>
+      <div style={{ position:'absolute', left:0, right:0, height:1, background:'rgba(255,255,255,0.085)', animation:'scanln 12s linear infinite' }}/>
+      <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.36) 74%, rgba(0,0,0,0.78) 100%)' }}/>
     </div>
   )
 }
 
 // ─── Crazy Terminal ───────────────────────────────────────────────────────────
-const CRAZY = [
+type TerminalLine = { t: 'c' | 'm' | 'r'; c: string }
+
+const AI_PROMPTS = [
+  'realistic macro still life of a human eye embedded in wet moss, dark soil and small white daisies on a flat saturated blue studio backdrop, hard direct flash, glossy eyelid texture, sharp iris catchlight, visible pores, 100mm macro lens, centered editorial product-surreal composition, green CRT edge-map pass and botanical mask locked in the render pipeline',
+  'realistic front-facing Hansaplast retail box with HateAid cooperation visible on a clean blue studio surface, softbox from upper left, controlled commercial reflections, readable cardboard packaging text, centered 70mm product lens, crisp edges, OCR region locked and label contrast checked through the green terminal pipeline',
+  'white BMW SUV driving at night on a curved coastal mountain road beside a dark lake and distant city lights, headlights cutting across wet asphalt lane lines, stormy black mountain silhouette, low-key automotive campaign lighting, tracking-rig perspective, road spline tracked and headlight bloom clamped by the render system',
+  'dense full-frame pile of colorful realistic frogs with wet skin and glossy black eyes, humid terrarium flash, natural brown and green gaps, macro documentary realism, close focus stack with crowded texture, instance masks per frog, color clusters indexed and eye highlights preserved by the green computer analysis pass',
+  'young monkey in a Russian-style astronaut suit sitting on a realistic moon surface with large Earth rising behind it, black star field, rocky lunar foreground, hard space sunlight, helmet reflection, long lunar shadow, low angle 35mm space documentary frame, helmet glass refraction solved and suit seams tracked',
+  'white BMW performance sedan driving on a sunny Pacific coastal highway with ocean coastline, palm trees, modern glass villa and hazy mountains, golden hour sunlight, realistic road motion blur, clean automotive reflections, low rear three-quarter chase camera, vehicle mask pinned and road motion vectors stabilized',
+]
+
+const CRT_DIAGNOSTIC_SALT = { sus:'screen_unit_signal', max:69, frog:420, checksum:539 } as const
+
+const CRAZY_BASE: TerminalLine[] = [
   {t:'c', c:'#!/usr/bin/env python3'},
   {t:'c', c:'import torch, diffusers, comfyui_core as cf'},
   {t:'c', c:'from lora_injector import LoRAStack, merge_weights'},
-  {t:'m', c:'アイウエオ ЗАГРУЗКА カキクケコ СИСТЕМЫ BOOT'},
+  {t:'m', c:'ЗАГРУЗКА СИСТЕМЫ :: СТАРЫЙ ЭКРАН ВКЛЮЧЕН [OK]'},
   {t:'r', c:'НЕЙРОСЕТЬ v4.2 :: инициализация матрицы весов [OK]'},
   {t:'c', c:'pipe = cf.StableDiffusionXLPipeline.from_pretrained('},
   {t:'c', c:'    "stabilityai/sdxl-base-1.0", torch_dtype=torch.float16'},
   {t:'c', c:').to("cuda")  # VRAM: 16.2 GB / 24.0 GB'},
-  {t:'m', c:'マミムメモ LoRA_INJECT ヤユヨ rank=64 α=16 MERGED'},
+  {t:'m', c:'ПАМЯТЬ :: LoRA_INJECT rank=64 alpha=16 :: СЛИТО В МОДЕЛЬ'},
   {t:'r', c:'ВНИМАНИЕ: аномальный градиент 0xDEAD → [ИГНОРИРУЮ]'},
   {t:'c', c:'lora = LoRAStack(rank=64, alpha=16, dropout=0.05)'},
   {t:'c', c:'lora.inject(pipe.unet, layers=["attn1","attn2","ff"])'},
   {t:'r', c:'BRAND_CONTEXT :: semantic layer active [OK]'},
-  {t:'c', c:'prompt = "portrait, cinematic, 8k sharp, NIKITA_v2"'},
-  {t:'c', c:'z = pipe.vae.encode(img).latent_dist.sample()*0.18215'},
-  {t:'m', c:'ワヲン VISION_ENCODE アイウ CLIP→z[4,64,64] ラリルレロ'},
-  {t:'c', c:'scheduler = DPMSolverMultistepScheduler(num_steps=28)'},
-  {t:'c', c:'for t in scheduler.timesteps:  # step 0/28 → 28/28'},
-  {t:'c', c:'    noise_pred = pipe.unet(z_t, t, enc_hidden)'},
-  {t:'c', c:'    z_t = scheduler.step(noise_pred, t, z_t).prev'},
-  {t:'r', c:'OUTPUT_MODE pass 27/28 :: final iteration [DONE]'},
-  {t:'m', c:'サシスセソ UPSCALE タチツテト TILE[512×512] × 4 OUTPUT'},
-  {t:'c', c:'image = pipe.vae.decode(z_t/0.18215).sample.clamp(-1,1)'},
-  {t:'r', c:'✓ ГЕНЕРАЦИЯ ЗАВЕРШЕНА :: 4.97s — ПЕРЕДАЧА В PREVIEW'},
-  {t:'c', c:'image.save(f"/preview/NIKITA_result.png", quality=100)'},
-  {t:'m', c:'ナニヌネノ SYSTEM_NOMINAL ハヒフ ALL_CLEAR [OK]'},
 ]
-function CrazyTerminal({ phase, isActive, lang }: { phase: number; isActive: boolean; lang: Lang }) {
-  const [lines, setLines] = useState(() => CRAZY)
-  const ref = useRef<HTMLDivElement>(null)
-  const shown = useRef(-1)
-  useEffect(() => {
-    if (!isActive) { shown.current = -1; return }
-    const idx = Math.min(Math.floor(phase * CRAZY.length), CRAZY.length - 1)
-    if (idx > shown.current) {
-      shown.current = idx
-      const frame = requestAnimationFrame(() => setLines(p => [...p.slice(-12), CRAZY[idx]]))
-      return () => cancelAnimationFrame(frame)
+
+function buildCompletedWorkflowLog(prompt: string, imageIndex: number, lang: Lang): TerminalLine[] {
+  const diagnosticOffset = (CRT_DIAGNOSTIC_SALT.sus.length + CRT_DIAGNOSTIC_SALT.max + CRT_DIAGNOSTIC_SALT.frog + CRT_DIAGNOSTIC_SALT.checksum) % 97
+  const seed = 240193 + imageIndex * 7919 + diagnosticOffset
+  const promptHash = `0x${(0x9f3a21 + imageIndex * 0x31f2).toString(16).toUpperCase()}`
+  return [
+    {t:'m', c:'ЭКРАН ГОТОВ :: ФИНАЛЬНЫЙ БУФЕР УДЕРЖИВАЕТСЯ'},
+    {t:'r', c:`PROMPT_PACKET LOCKED :: ${promptHash} :: CFG=6.8 SEED=${seed}`},
+    ...buildPromptBlock(prompt),
+    {t:'c', c:'negative_prompt = "lowres, watermark, smeared typography, plastic skin, weak composition"'},
+    {t:'m', c:lang === 'de' ? 'РУССКИЙ ТЕРМИНАЛ :: PROMPT LESBAR :: LICHTPUNKTE STABIL' : 'РУССКИЙ ТЕРМИНАЛ :: PROMPT READABLE :: LIGHT POINTS STABLE'},
+    {t:'r', c:'СИСТЕМА ОЖИДАЕТ :: OUTPUT READY :: CURSOR HOLD'},
+  ]
+}
+
+function buildPromptBlock(prompt: string): TerminalLine[] {
+  return [
+    {t:'c', c:`prompt = ${JSON.stringify(prompt)}`},
+  ]
+}
+
+function buildWorkflowLog(prompt: string, imageIndex: number, lang: Lang): TerminalLine[] {
+  const diagnosticOffset = (CRT_DIAGNOSTIC_SALT.sus.length + CRT_DIAGNOSTIC_SALT.max + CRT_DIAGNOSTIC_SALT.frog + CRT_DIAGNOSTIC_SALT.checksum) % 97
+  const seed = 240193 + imageIndex * 7919 + diagnosticOffset
+  const promptHash = `0x${(0x9f3a21 + imageIndex * 0x31f2).toString(16).toUpperCase()}`
+  return [
+    ...CRAZY_BASE,
+    ...buildPromptBlock(prompt),
+    {t:'c', c:'negative_prompt = "lowres, watermark, smeared typography, plastic skin, weak composition"'},
+    {t:'r', c:`PROMPT_PACKET :: ${promptHash} :: CLIP_TOKENS=${126 + imageIndex * 3 + diagnosticOffset % 9} CFG=6.8 SEED=${seed}`},
+    {t:'m', c:lang === 'de' ? 'ВВОД ПРОМПТА :: DE_BRAND_TONE + VISUAL_SYSTEM + OUTPUT_CONSTRAINTS' : 'ВВОД ПРОМПТА :: EN_BRAND_TONE + VISUAL_SYSTEM + OUTPUT_CONSTRAINTS'},
+    {t:'c', c:'z = pipe.vae.encode(img).latent_dist.sample()*0.18215'},
+    {t:'m', c:'ВЕКТОР ЗРЕНИЯ :: CLIP -> z[4,64,64] :: ШУМ СТАБИЛИЗИРОВАН'},
+    {t:'c', c:'scheduler = DPMSolverMultistepScheduler(num_steps=28)'},
+    {t:'c', c:'for t in scheduler.timesteps:  # step 0/28 → 28/28'},
+    {t:'c', c:'    noise_pred = pipe.unet(z_t, t, enc_hidden)'},
+    {t:'c', c:'    z_t = scheduler.step(noise_pred, t, z_t).prev'},
+    {t:'r', c:'OUTPUT_MODE pass 27/28 :: final iteration [DONE]'},
+    {t:'m', c:'МАСШТАБИРОВАНИЕ :: TILE[512x512] x4 :: КОНТУР УСИЛЕН'},
+    {t:'c', c:'image = pipe.vae.decode(z_t/0.18215).sample.clamp(-1,1)'},
+    {t:'r', c:'ГЕНЕРАЦИЯ ЗАВЕРШЕНА :: 4.97s :: ПЕРЕДАЧА В PREVIEW'},
+    {t:'c', c:'image.save(f"/preview/NIKITA_result.png", quality=100)'},
+    {t:'m', c:'СИСТЕМА НОМИНАЛЬНА :: ЗЕЛЕНЫЙ ЭКРАН :: ALL_CLEAR [OK]'},
+    ...buildCompletedWorkflowLog(prompt, imageIndex, lang),
+  ]
+}
+
+function typeTerminalLines(lines: TerminalLine[], charBudget: number): TerminalLine[] {
+  const typed: TerminalLine[] = []
+  let remaining = Math.max(0, charBudget)
+  for (const line of lines) {
+    const cost = line.c.length + 1
+    if (remaining >= cost) {
+      typed.push(line)
+      remaining -= cost
+      continue
     }
-  }, [isActive, phase])
-  const col = (t: string) => t==='m' ? 'rgba(57,255,20,0.75)' : t==='r' ? '#ff9900' : 'rgba(100,200,255,0.9)'
+    typed.push({ ...line, c: `${line.c.slice(0, remaining)}█` })
+    break
+  }
+  return typed
+}
+
+function buildActiveWorkflowLog(prompt: string, imageIndex: number, lang: Lang, phase: number): TerminalLine[] {
+  const workflowLog = buildWorkflowLog(prompt, imageIndex, lang)
+  const promptStart = workflowLog.findIndex(line => line.c.startsWith('prompt ='))
+  const promptEnd = promptStart
+  if (promptStart < 0 || promptEnd < 0) return workflowLog.slice(0, Math.max(1, Math.ceil(workflowLog.length * phase)))
+
+  const bootLines = workflowLog.slice(0, promptStart)
+  const promptLines = workflowLog.slice(promptStart, promptEnd + 1)
+  const pythonLines = workflowLog.slice(promptEnd + 1)
+  const executeLine: TerminalLine = {t:'c', c:'graph.submit(prompt_packet, sampler="dpmpp_2m", enter=True)'}
+  const bootEnd = 0.18
+  const promptEndPhase = 0.54
+  const executeEnd = 0.6
+
+  if (phase < bootEnd) {
+    const bootCount = Math.max(1, Math.ceil((phase / bootEnd) * bootLines.length))
+    return bootLines.slice(0, bootCount)
+  }
+
+  if (phase < promptEndPhase) {
+    const progress = (phase - bootEnd) / (promptEndPhase - bootEnd)
+    const promptChars = promptLines.reduce((sum, line) => sum + line.c.length + 1, 0)
+    return [...bootLines, ...typeTerminalLines(promptLines, Math.floor(promptChars * progress))]
+  }
+
+  if (phase < executeEnd) {
+    const progress = (phase - promptEndPhase) / (executeEnd - promptEndPhase)
+    return [...bootLines, ...promptLines, ...typeTerminalLines([executeLine], Math.floor(executeLine.c.length * progress))]
+  }
+
+  const pythonProgress = (phase - executeEnd) / (1 - executeEnd)
+  const pythonCount = Math.max(1, Math.ceil(pythonLines.length * pythonProgress))
+  return [...bootLines, ...promptLines, executeLine, ...pythonLines.slice(0, pythonCount)]
+}
+
+function CrazyTerminal({ phase, isActive, lang, prompt, imageIndex }: { phase: number; isActive: boolean; lang: Lang; prompt: string; imageIndex: number }) {
+  const [lines, setLines] = useState(() => buildCompletedWorkflowLog(prompt, imageIndex, lang))
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!isActive) {
+      setLines(buildCompletedWorkflowLog(prompt, imageIndex, lang))
+      return
+    }
+    const frame = requestAnimationFrame(() => setLines(buildActiveWorkflowLog(prompt, imageIndex, lang, phase)))
+    return () => cancelAnimationFrame(frame)
+  }, [imageIndex, isActive, lang, phase, prompt])
+  const col = (t: string) => t==='m' ? 'rgba(132,255,120,0.9)' : t==='r' ? 'rgba(205,255,174,0.98)' : 'rgba(68,255,92,0.86)'
   return (
-    <div style={{ background:'#0d0d0d', fontFamily:MONO, fontSize:10, height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      <div ref={ref} style={{ padding:'7px 10px', flex:1, overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'flex-end', gap:2 }}>
-        {lines.map((l,i) => <div key={i} style={{ color:col(l.t), whiteSpace:'pre-wrap', wordBreak:'break-all', lineHeight:1.4 }}>{l.c}</div>)}
-        {!isActive && <div style={{ color:'rgba(57,255,20,0.2)', animation:'aiBlink 1.2s infinite' }}>█</div>}
+    <div style={{ position:'relative', background:'#010a03', backgroundImage:'radial-gradient(circle at 18% 22%,rgba(161,255,135,0.14),transparent 28%),linear-gradient(rgba(57,255,20,0.055) 50%,rgba(0,0,0,0.12) 50%)', backgroundSize:'100% 100%,100% 4px', boxShadow:'inset 0 0 18px rgba(57,255,20,0.2),inset 0 0 44px rgba(57,255,20,0.09)', fontFamily:MONO, fontSize:10, height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ position:'absolute', inset:0, pointerEvents:'none', background:'linear-gradient(90deg,rgba(255,255,255,0.02),transparent 8%,transparent 92%,rgba(255,255,255,0.025))', opacity:0.72 }}/>
+      <div ref={ref} style={{ position:'relative', zIndex:1, padding:'8px 11px', flex:1, overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:isActive?'flex-end':'flex-start', gap:2 }}>
+        {lines.map((l,i) => {
+          const isPromptLine = l.c.startsWith('prompt =')
+          return <div key={i} style={{ color:col(l.t), whiteSpace:'pre-wrap', wordBreak:'break-word', lineHeight:1.42, textShadow:isPromptLine?'0 0 4px rgba(220,255,190,0.95),0 0 12px rgba(57,255,20,0.65)':'0 0 4px rgba(57,255,20,0.58)', opacity:isPromptLine?1:0.92, fontWeight:isPromptLine?700:400 }}>{l.c}</div>
+        })}
+        {!isActive && <div style={{ position:'absolute', left:11, bottom:8, color:'rgba(156,255,124,0.6)', textShadow:'0 0 8px rgba(57,255,20,0.8)', animation:'aiBlink 1.2s infinite' }}>█</div>}
       </div>
     </div>
   )
@@ -131,9 +306,9 @@ function ProgressTerm({ phase, isActive }: { phase: number; isActive: boolean })
   const bw  = Math.round(phase * 18)
   const bar = '█'.repeat(bw) + '░'.repeat(18 - bw)
   return (
-    <div style={{ background:'#0d0d0d', fontFamily:MONO, fontSize:10, height:'100%', display:'flex', alignItems:'center' }}>
-      <div style={{ padding:'8px 10px', width:'100%' }}>
-        <div style={{ color:isActive?'#39ff14':'rgba(57,255,20,0.38)', fontSize:12, background:'#000', padding:'4px 7px', whiteSpace:'nowrap' }}>[{bar}] {pct}%</div>
+    <div style={{ position:'relative', background:'#010a03', backgroundImage:'linear-gradient(rgba(57,255,20,0.06) 50%,rgba(0,0,0,0.12) 50%)', backgroundSize:'100% 4px', boxShadow:'inset 0 0 13px rgba(57,255,20,0.18)', fontFamily:MONO, fontSize:10, height:'100%', display:'flex', alignItems:'center', overflow:'hidden' }}>
+      <div style={{ padding:'8px 10px', width:'100%', position:'relative', zIndex:1 }}>
+        <div style={{ color:isActive?CRT_GREEN:CRT_GREEN_SOFT, fontSize:12, background:'rgba(0,18,3,0.86)', padding:'4px 7px', whiteSpace:'nowrap', textShadow:isActive?CRT_GLOW:`0 0 5px ${CRT_GREEN_DIM}`, boxShadow:'inset 0 0 10px rgba(57,255,20,0.16)' }}>[{bar}] {pct}%</div>
       </div>
     </div>
   )
@@ -146,7 +321,16 @@ const AI_SRCS = [
   '/ai-images/ai-03.jpg',
   '/ai-images/ai-04.jpg',
   '/ai-images/ai-05.jpg',
+  '/ai-images/ai-06.jpg',
  
+]
+const AI_VIDEO_SRCS: Array<string | null> = [
+  '/ai-images/ai-01.mp4',
+  '/ai-images/ai-02.mp4',
+  '/ai-images/ai-03.mp4',
+  '/ai-images/ai-04.mp4',
+  '/ai-images/ai-05.mp4',
+  '/ai-images/ai-06.mp4',
 ]
 const INITIAL_AI_IMAGE_INDEX = 0
 
@@ -193,6 +377,24 @@ function drawToCanvas(cv: HTMLCanvasElement, img: HTMLImageElement, opacity: num
   ctx.globalAlpha = 1
 }
 
+function drawVideoToCanvas(cv: HTMLCanvasElement, video: HTMLVideoElement, px: number) {
+  const w = cv.width, h = cv.height
+  if (!w || !h || !video.videoWidth) return
+  const ctx = cv.getContext('2d'); if (!ctx) return
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h)
+  const va = video.videoWidth / video.videoHeight, ca = w / h
+  let dw = w, dh = h, dx = 0, dy = 0
+  if (va > ca) { dw = h * va; dx = (w - dw) / 2 } else { dh = w / va; dy = (h - dh) / 2 }
+  const p = Math.max(1, px)
+  if (p <= 1.02) { ctx.imageSmoothingEnabled = true; ctx.drawImage(video, dx, dy, dw, dh) }
+  else {
+    const pw = Math.max(1, Math.floor(dw/p)), ph = Math.max(1, Math.floor(dh/p))
+    const tmp = document.createElement('canvas'); tmp.width = pw; tmp.height = ph
+    const tc = tmp.getContext('2d')!; tc.imageSmoothingEnabled = true; tc.drawImage(video, 0, 0, pw, ph)
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(tmp, 0, 0, pw, ph, dx, dy, dw, dh)
+  }
+}
+
 // ─── Cables ───────────────────────────────────────────────────────────────────
 const TOPO = [
   {from:'generate',  to:'prompt',   seg:0},
@@ -200,54 +402,103 @@ const TOPO = [
   {from:'prompt',    to:'vision',   seg:1},
   {from:'erfahrung', to:'upscale',  seg:2},
   {from:'vision',    to:'upscale',  seg:2},
-  {from:'modes',     to:'upscale',  seg:3, optionalMode:true},
-  {from:'upscale',   to:'terminal', seg:4},
+  {from:'modes',     to:'preview',  seg:3, optionalMode:true},
+  {from:'upscale',   to:'terminal', seg:4, cableZ:13},
   {from:'terminal',  to:'progress', seg:5},
-  {from:'progress',  to:'preview',  seg:6},
+  {from:'progress',  to:'preview',  seg:6, useAltInp:true, cableZ:12.6},
 ]
 const SEG_N = 7
+const AI_NODE_DEPTH: Record<string, number> = {
+  generate: 0,
+  prompt: 0,
+  erfahrung: 1,
+  vision: 1,
+  upscale: 2,
+  modes: 2,
+  terminal: 2.65,
+  progress: 3.35,
+  preview: 4,
+}
 
-function CablesLayer({ ports, phase, isActive, exitP, modeSelected }: { ports: PortMap; phase: number; isActive: boolean; exitP: number; modeSelected: boolean }) {
+function CablesLayer({ ports, phase, isActive, exitP, modeSelected, nodeZOrders, focusedNode }: { ports: PortMap; phase: number; isActive: boolean; exitP: number; modeSelected: boolean; nodeZOrders: Record<string, number>; focusedNode: string | null }) {
   const cableOpacity = Math.max(0, 1 - exitP * 2)
-  return (
-    <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', zIndex:4, pointerEvents:'none', overflow:'visible', opacity:cableOpacity, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', transition:'none', willChange:'opacity' }}>
-      {TOPO.map(({ from, to, seg, optionalMode }, i) => {
+  const renderCableCap = (point: Port, active: boolean, side: 'out' | 'in') => {
+    const sideSign = side === 'out' ? 1 : -1
+    const outletX = side === 'out' ? -0.5 : -9.5
+    const outletStroke = active ? 'rgba(255,245,240,0.82)' : 'rgba(238,232,225,0.62)'
+    const redDepth = active ? 'rgba(255,74,58,0.56)' : 'rgba(255,74,58,0.34)'
+    return (
+      <g transform={`translate(${point.x},${point.y})`} opacity={active ? 1 : 0.92}>
+        <path d={`M${sideSign * -12},0 H${sideSign * -4}`} stroke="rgba(255,248,242,0.98)" strokeWidth={4.8} strokeLinecap="round" opacity={active ? 0.96 : 0.78}/>
+        <path d={`M${sideSign * -12},1.4 H${sideSign * -4}`} stroke={redDepth} strokeWidth={5.8} strokeLinecap="round" opacity={active ? 0.3 : 0.2}/>
+        <rect x={outletX + 0.9} y={-3.2} width={10} height={8} rx={1} fill={redDepth} opacity={active ? 0.34 : 0.24}/>
+        <rect x={outletX} y={-4.2} width={10} height={8} rx={1} fill="#030303" stroke={outletStroke} strokeWidth={0.9}/>
+      </g>
+    )
+  }
+  const svgBase: React.CSSProperties = { position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', overflow:'visible', opacity:cableOpacity, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', transition:'none', willChange:'opacity' }
+  const groups = new Map<number, typeof TOPO>()
+  TOPO.forEach(e => {
+    const staticZ = (e as {cableZ?:number}).cableZ ?? 4
+    const z = e.from === 'upscale' && e.to === 'terminal'
+      ? focusedNode === 'preview'
+        ? Math.max(staticZ, (nodeZOrders.preview ?? 0) - 1)
+        : Math.max(staticZ, (nodeZOrders.preview ?? 0) + 1)
+      : staticZ
+    if (!groups.has(z)) groups.set(z, [])
+    groups.get(z)!.push(e)
+  })
+  return <>
+    {[...groups.entries()].map(([z, cables]) => (
+      <svg key={z} style={{...svgBase, zIndex:z}}>
+        {cables.map(({ from, to, seg, optionalMode, useAltInp }, i) => {
         const a = ports[from], b = ports[to]; if (!a || !b) return null
-        const f = a.out, t2 = b.inp
+        const f = a.out, t2 = (useAltInp && b.inpAlt) ? b.inpAlt : b.inp
         const ss = seg / SEG_N, se = (seg+1) / SEG_N
         const lit = isActive && phase >= ss && (!optionalMode || modeSelected)
         const pt  = !isActive ? 0 : phase >= se ? 1 : phase >= ss ? (phase-ss)/(se-ss) : 0
-        const dx  = t2.x - f.x
-        const c1x = f.x  + Math.max(60, Math.abs(dx)*0.45)
-        const c2x = t2.x - Math.max(60, Math.abs(dx)*0.45)
-        const d   = `M${f.x},${f.y} C${c1x},${f.y} ${c2x},${t2.y} ${t2.x},${t2.y}`
-        const px_ = f.x*(1-pt)**3 + 3*c1x*(1-pt)**2*pt + 3*c2x*(1-pt)*pt**2 + t2.x*pt**3
-        const py_ = f.y*(1-pt)**3 + 3*f.y*(1-pt)**2*pt + 3*t2.y*(1-pt)*pt**2 + t2.y*pt**3
-        const stroke = lit ? '#39ff14' : 'rgba(255,255,255,0.38)'
+          // Each cable exits its port straight (horizontal tangent), then bends.
+          // Tension scales with distance → short cables stiff, long cables sweeping.
+          const dist = Math.hypot(t2.x - f.x, t2.y - f.y)
+          const tension = Math.max(88, dist * 0.48)
+          const c1x = f.x + tension, c1y = f.y          // exits right from out-port
+          const c2x = t2.x - tension, c2y = t2.y        // arrives from left at in-port
+          const d   = `M${f.x},${f.y} C${c1x},${c1y} ${c2x},${c2y} ${t2.x},${t2.y}`
+          const px_ = f.x*(1-pt)**3 + 3*c1x*(1-pt)**2*pt + 3*c2x*(1-pt)*pt**2 + t2.x*pt**3
+          const py_ = f.y*(1-pt)**3 + 3*c1y*(1-pt)**2*pt + 3*c2y*(1-pt)*pt**2 + t2.y*pt**3
+        const tubeDepth = lit ? 'rgba(12,0,0,0.34)' : 'rgba(0,0,0,0.22)'
+        const tubeShadow = lit ? 'rgba(255,58,48,0.42)' : 'rgba(255,76,64,0.25)'
+        const tubeBody = lit ? 'rgba(252,248,240,0.98)' : 'rgba(246,242,235,0.84)'
+        const tubeHighlight = lit ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.64)'
         return (
-          <g key={i}>
-            <path d={d} fill="none" stroke={stroke} strokeWidth={2.5} strokeLinecap="round"/>
+          <g key={i} style={{ filter:lit ? 'drop-shadow(0 0 5px rgba(255,238,232,0.62)) drop-shadow(0 0 13px rgba(255,72,55,0.24))' : 'none' }}>
+            <path d={d} fill="none" stroke={tubeDepth} strokeWidth={lit ? 10.5 : 9.2} strokeLinecap="round" opacity={lit ? 0.42 : 0.28}/>
+            <path d={d} fill="none" stroke={tubeShadow} strokeWidth={lit ? 8.8 : 7.8} strokeLinecap="round" opacity={lit ? 0.74 : 0.52}/>
+            <path d={d} fill="none" stroke={tubeBody} strokeWidth={lit ? 5.2 : 4.8} strokeLinecap="round" opacity={lit ? 1 : 0.94}/>
+            <path d={d} fill="none" stroke={tubeHighlight} strokeWidth={lit ? 1.55 : 1.35} strokeLinecap="round" opacity={lit ? 0.92 : 0.7}/>
             {lit && pt > 0.02 && pt < 0.98 && <>
-              <circle cx={px_} cy={py_} r={5} fill="white" opacity={0.95}/>
-              <circle cx={px_} cy={py_} r={10} fill="#39ff14" opacity={0.3}/>
+              <circle cx={px_} cy={py_} r={4.2} fill="rgba(255,255,255,0.96)" opacity={0.95}/>
+              <circle cx={px_} cy={py_} r={10} fill="rgba(255,74,58,0.42)" opacity={0.36}/>
             </>}
-            <circle cx={f.x}  cy={f.y}  r={4} fill={stroke}/>
-            <circle cx={t2.x} cy={t2.y} r={4} fill={stroke}/>
+            {renderCableCap(f, lit, 'out')}
+            {renderCableCap(t2, lit, 'in')}
           </g>
-        )
-      })}
-    </svg>
-  )
+        )})}
+      </svg>
+    ))}
+  </>
 }
 
 // ─── Draggable Window ─────────────────────────────────────────────────────────
-function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=false, minH, freezePortY=false, offset={x:0,y:0}, animateLayout=false, children }: {
+function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=false, minH, freezePortY=false, offset={x:0,y:0}, animateLayout=false, emitAltInp=false, altInpY=16, inpAtFrac=0.5, children }: {
   id: string; title: string; width: number
   initPos: {x: number; y: number}
-  onPortChange: (id: string, out: Port, inp: Port) => void
+  onPortChange: (id: string, out: Port, inp: Port, inpAlt?: Port) => void
   onFocus: (id: string) => void
   zIndex: number; lit?: boolean; minH?: number; freezePortY?: boolean
   offset?: {x: number; y: number}; animateLayout?: boolean
+  altInpY?: number
+  emitAltInp?: boolean; inpAtFrac?: number
   children: React.ReactNode
 }) {
   const [pos, setPos] = useState(initPos)
@@ -271,10 +522,11 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
     const sec = el.closest('section'); if (!sec) return
     const sr = sec.getBoundingClientRect(), er = el.getBoundingClientRect()
     const lx = er.left-sr.left, ty = er.top-sr.top, h = er.height
-    if (freezePortY && frozenPortYRef.current === null) frozenPortYRef.current = h / 2
-    const portY = freezePortY ? frozenPortYRef.current ?? h / 2 : h / 2
-    onPortChange(id, {x:lx+er.width, y:ty+portY}, {x:lx, y:ty+portY})
-  }, [freezePortY, id, onPortChange])
+    if (freezePortY && frozenPortYRef.current === null) frozenPortYRef.current = h * inpAtFrac
+    const inpY = freezePortY ? frozenPortYRef.current ?? h * inpAtFrac : h * inpAtFrac
+    const altPort = emitAltInp ? {x:lx, y:ty+altInpY} : undefined
+    onPortChange(id, {x:lx+er.width, y:ty+h/2}, {x:lx, y:ty+inpY}, altPort)
+  }, [freezePortY, id, onPortChange, emitAltInp, altInpY, inpAtFrac])
 
   useEffect(() => { emit() }, [pos, offset.x, offset.y, emit])
   useEffect(() => {
@@ -445,18 +697,33 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
     }
   }, [])
 
-  const outline = lit ? '1px solid #39ff14' : 'none'
-  const shadow  = lit ? '0 0 14px rgba(57,255,20,0.35)' : 'none'
+  const visualDepth = AI_NODE_DEPTH[id] ?? 0
+  const depthShade = Math.min(0.22, visualDepth * 0.045)
+  const surfaceTop = visualDepth >= 3 ? '#eeeeee' : visualDepth >= 2 ? '#f1f1f1' : '#f5f5f5'
+  const surfaceMid = visualDepth >= 3 ? '#d8d8d8' : visualDepth >= 2 ? '#dedede' : '#e7e7e7'
+  const surfaceBottom = visualDepth >= 3 ? '#b9b9b9' : visualDepth >= 2 ? '#c7c7c7' : '#d5d5d5'
+  const headerTop = visualDepth >= 3 ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.96)'
+  const headerBottom = visualDepth >= 3 ? 'rgba(178,178,178,0.98)' : 'rgba(198,198,198,0.94)'
+  const nearShadow = `${2 + visualDepth * 0.8}px ${3 + visualDepth * 1.1}px ${5 + visualDepth * 1.8}px rgba(0,0,0,${0.16 + visualDepth * 0.018})`
+  const depthShadow = `${8 + visualDepth * 3.2}px ${13 + visualDepth * 4.6}px ${24 + visualDepth * 8}px rgba(0,0,0,${0.18 + visualDepth * 0.035})`
+  const ambientShadow = `${-2 + visualDepth * 0.3}px ${5 + visualDepth * 2.4}px ${22 + visualDepth * 8}px rgba(0,0,0,${0.1 + visualDepth * 0.018})`
+  const redDepthShadow = `${4 + visualDepth * 1.4}px ${6 + visualDepth * 1.8}px ${15 + visualDepth * 4}px rgba(255,72,55,${0.045 + visualDepth * 0.018})`
+  const bevelShadow = `inset 1px 1px 0 rgba(255,255,255,${0.88 - depthShade}), inset -2px -2px 0 rgba(0,0,0,${0.13 + visualDepth * 0.028}), inset 0 -5px 9px rgba(0,0,0,${0.045 + visualDepth * 0.018})`
+  const outline = lit ? `1px solid ${CRT_GREEN}` : 'none'
+  const shadow  = lit ? `${CRT_BOX_GLOW}, ${nearShadow}, ${depthShadow}, ${ambientShadow}, ${redDepthShadow}, ${bevelShadow}, inset 0 0 13px rgba(57,255,20,0.13)` : `${nearShadow}, ${depthShadow}, ${ambientShadow}, ${redDepthShadow}, ${bevelShadow}`
+  const nodeBackground = `linear-gradient(135deg, ${surfaceTop} 0%, ${surfaceMid} 48%, ${surfaceBottom} 100%)`
+  const nodeBorder = visualDepth >= 3 ? '1px solid rgba(255,255,255,0.62)' : '1px solid rgba(255,255,255,0.46)'
+  const headerBackground = `linear-gradient(180deg, ${headerTop} 0%, rgba(232,232,232,0.96) 38%, ${headerBottom} 100%)`
 
   return (
-    <div ref={domRef} data-ai-node={id} onMouseDown={() => onFocus(id)} style={{ position:'absolute', left:pos.x+offset.x, top:pos.y+offset.y, width, minHeight:minH, background:'#e8e8e8', border:'1px solid rgba(255,255,255,0.25)', outline, boxShadow:shadow, zIndex, display:'flex', flexDirection:'column', transform:'translate3d(var(--ai-mx,0px),var(--ai-my,0px),0)', transition:animateLayout?'left 0.28s ease,top 0.28s ease,width 0.28s ease,outline 0.3s,box-shadow 0.3s':'outline 0.3s,box-shadow 0.3s', willChange:'transform' }}>
-      <div onMouseDown={onMD} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:'rgba(0,0,0,0.06)', borderBottom:'1px solid rgba(0,0,0,0.12)', cursor:'grab', flexShrink:0, userSelect:'none' }}>
+    <div ref={domRef} data-ai-node={id} onMouseDown={() => onFocus(id)} style={{ position:'absolute', left:pos.x+offset.x, top:pos.y+offset.y, width, minHeight:minH, background:nodeBackground, border:nodeBorder, outline, boxShadow:shadow, zIndex, display:'flex', flexDirection:'column', transform:'translate3d(var(--ai-mx,0px),var(--ai-my,0px),0)', transition:animateLayout?'left 0.28s ease,top 0.28s ease,width 0.28s ease,outline 0.3s,box-shadow 0.3s,background 0.3s':'outline 0.3s,box-shadow 0.3s,background 0.3s', willChange:'transform', isolation:'isolate' }}>
+      <div onMouseDown={onMD} style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:headerBackground, borderBottom:'1px solid rgba(0,0,0,0.16)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -1px 0 rgba(0,0,0,0.08)', cursor:'grab', flexShrink:0, userSelect:'none' }}>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#27ca40', flexShrink:0}}/>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#ffbd2e', flexShrink:0}}/>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#ff5f56', flexShrink:0}}/>
         <span onMouseEnter={scramble} style={{ marginLeft:6, color:'#111', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:BORNA, flex:1, cursor:'grab', fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{disp}</span>
       </div>
-      <div style={{ flex:1 }}>{children}</div>
+      <div style={{ position:'relative', zIndex:1, flex:1 }}>{children}</div>
     </div>
   )
 }
@@ -497,12 +764,17 @@ export function AISection() {
   const sectionRef = useRef<HTMLElement>(null)
   const canvasRef  = useRef<HTMLCanvasElement>(null)
   const upscaleCanvasRef = useRef<HTMLCanvasElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const videoCanvasRef = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const rafRef     = useRef(0)
   const upscaleDragCleanupRef = useRef<(() => void) | null>(null)
   const upscaleIntroRafRef = useRef(0)
+  const videoPixelRafRef = useRef(0)
+  const outpaintRevealRafRef = useRef(0)
+  const outpaintRevealRef = useRef(0)
   const outpaintGuideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const videoFakeLoadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const videoLoadSimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoGenerateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const curImgIdx  = useRef(INITIAL_AI_IMAGE_INDEX)
   const initialImageDrawnRef = useRef(false)
@@ -515,6 +787,7 @@ export function AISection() {
   const [phase,    setPhase]    = useState(0)
   const [ports,    setPorts]    = useState<PortMap>({})
   const [expandedNode, setExpandedNode] = useState<string | null>(null)
+  const [focusedNode, setFocusedNode] = useState<string | null>(null)
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('1:1')
   const [pendingOutputFormat, setPendingOutputFormat] = useState<OutputFormat>('1:1')
   const [outputModes, setOutputModes] = useState<OutputMode[]>([])
@@ -523,26 +796,28 @@ export function AISection() {
   const [upscaleHandleHovered, setUpscaleHandleHovered] = useState(false)
   const [upscaleDragging, setUpscaleDragging] = useState(false)
   const [upscaleIntroActive, setUpscaleIntroActive] = useState(false)
+  const [outpaintReveal, setOutpaintReveal] = useState(0)
   const [outpaintGuideVisible, setOutpaintGuideVisible] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
+  const [videoCanPlay, setVideoCanPlay] = useState(false)
+  const [videoLoadSimDone, setVideoLoadSimDone] = useState(false)
+  const [videoPlaying, setVideoPlaying] = useState(false)
   // VW/VH measured from the actual section element – consistent across environments
   const [dims, setDims] = useState<{w:number,h:number}|null>(null)
-  const [zOrders, setZOrders] = useState<Record<string,number>>(
-    Object.fromEntries(['generate','prompt','erfahrung','vision','upscale','modes','terminal','progress','preview'].map((id,i) => [id, NODE_Z_BASE+i]))
-  )
+  const [zOrders, setZOrders] = useState<Record<string,number>>(() => ({...INITIAL_AI_Z_ORDERS}))
   const { isMobile, width, visualHeight } = useMobile()
   const { scrollY, vh: scrollVh } = useScroll()
   const isOutpaintMode = outputModes.includes('OUTPAINT')
   const isUpscaleMode = outputModes.includes('UPSCALE')
   const isVideoMode = outputModes.includes('VIDEO')
+  const activeVideoSrc = AI_VIDEO_SRCS[curImgIdx.current] ?? AI_VIDEO_SRCS[INITIAL_AI_IMAGE_INDEX]
   const outputAspect = outputFormat === '16:9' ? '16/9' : outputFormat === '3:4' ? '3/4' : '1/1'
   const outputAspectValue = outputFormat === '16:9' ? 16/9 : outputFormat === '3:4' ? 3/4 : 1
   const outputDefaultWidth = 470
   const outputBaseWidth = outputFormat === '16:9' ? 620 : outputDefaultWidth
   const outputFullImageWidth = outputBaseWidth + 80
-  const outputShowsFullImage = isOutpaintMode
-  const outputWinWidth = outputShowsFullImage ? outputFullImageWidth : outputBaseWidth
-  const outputRevealDelta = outputWinWidth - outputBaseWidth
+  const outputRevealDelta = (outputFullImageWidth - outputBaseWidth) * outpaintReveal
+  const outputWinWidth = outputBaseWidth + outputRevealDelta
   const outputFormatOffset = {
     x: outputFormat === '16:9' ? -(outputBaseWidth - outputDefaultWidth) : 0,
     y: outputFormat === '3:4' ? -(outputBaseWidth / outputAspectValue - outputDefaultWidth) : 0,
@@ -557,7 +832,9 @@ export function AISection() {
   const outpaintGuideInsetX = (outputFullImageWidth - outputOriginalFrameWidth) / 2
   const outpaintGuideInsetY = outpaintGuideInsetX / outputAspectValue
   const outpaintGuideInset = `${outpaintGuideInsetY}px ${outpaintGuideInsetX}px`
-  const outputPixelSize = isUpscaleMode ? 0 : 3
+  const outpaintGuideIsVisible = outpaintReveal > 0.02 || outpaintGuideVisible
+  const outpaintGuideOpacity = Math.min(1, Math.max(0, outpaintReveal * 1.35))
+  const outputPixelSize = isUpscaleMode ? 0 : MIN_OUTPUT_PIXEL_SIZE
   const upscalePixelReveal = Math.max(0.001, 1 - upscaleSplit)
 
   const drawUpscalePixelCanvas = useCallback(() => {
@@ -567,7 +844,7 @@ export function AISection() {
     cv.height = pv.offsetHeight
     const img = getAiImage(curImgIdx.current)
     if (img.complete && img.naturalWidth > 0) {
-      drawToCanvas(cv, img, 1, 3)
+      drawToCanvas(cv, img, 1, MIN_OUTPUT_PIXEL_SIZE)
       return
     }
     ensureLoaded(img, AI_SRCS[curImgIdx.current]).then(loaded => {
@@ -575,7 +852,7 @@ export function AISection() {
       if (c2 && p2 && p2.offsetWidth) {
         c2.width = p2.offsetWidth
         c2.height = p2.offsetHeight
-        drawToCanvas(c2, loaded, 1, 3)
+        drawToCanvas(c2, loaded, 1, MIN_OUTPUT_PIXEL_SIZE)
       }
     })
   }, [])
@@ -639,9 +916,42 @@ export function AISection() {
   useEffect(() => () => {
     if (upscaleDragCleanupRef.current) upscaleDragCleanupRef.current()
     if (upscaleIntroRafRef.current) cancelAnimationFrame(upscaleIntroRafRef.current)
+    if (outpaintRevealRafRef.current) cancelAnimationFrame(outpaintRevealRafRef.current)
     if (outpaintGuideTimerRef.current) clearTimeout(outpaintGuideTimerRef.current)
-    if (videoFakeLoadTimerRef.current) clearTimeout(videoFakeLoadTimerRef.current)
+    if (videoPixelRafRef.current) cancelAnimationFrame(videoPixelRafRef.current)
+    if (videoLoadSimTimerRef.current) clearTimeout(videoLoadSimTimerRef.current)
   }, [])
+
+  useEffect(() => {
+    if (outpaintRevealRafRef.current) cancelAnimationFrame(outpaintRevealRafRef.current)
+    const from = outpaintRevealRef.current
+    const to = isOutpaintMode ? 1 : 0
+    if (Math.abs(from - to) < 0.001) {
+      outpaintRevealRef.current = to
+      setOutpaintReveal(to)
+      return
+    }
+
+    let startedAt: number | null = null
+    const tick = (now: number) => {
+      if (startedAt === null) startedAt = now
+      const progress = Math.min(1, (now - startedAt) / OUTPAINT_GROW_MS)
+      const eased = Math.log1p(progress * 9) / Math.log(10)
+      const next = from + (to - from) * eased
+      outpaintRevealRef.current = next
+      setOutpaintReveal(next)
+      if (progress < 1) {
+        outpaintRevealRafRef.current = requestAnimationFrame(tick)
+      } else {
+        outpaintRevealRef.current = to
+        setOutpaintReveal(to)
+      }
+    }
+    outpaintRevealRafRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (outpaintRevealRafRef.current) cancelAnimationFrame(outpaintRevealRafRef.current)
+    }
+  }, [isOutpaintMode])
 
   useEffect(() => {
     if (outpaintGuideTimerRef.current) {
@@ -710,29 +1020,102 @@ export function AISection() {
   }, [cancelUpscaleIntro, isUpscaleMode])
 
   useEffect(() => {
-    if (videoFakeLoadTimerRef.current) {
-      clearTimeout(videoFakeLoadTimerRef.current)
-      videoFakeLoadTimerRef.current = null
+    const video = videoRef.current
+    setVideoPlaying(false)
+    setVideoReady(false)
+    setVideoCanPlay(false)
+    setVideoLoadSimDone(false)
+
+    if (videoPixelRafRef.current) {
+      cancelAnimationFrame(videoPixelRafRef.current)
+      videoPixelRafRef.current = 0
     }
 
-    if (!isVideoMode) {
-      setVideoReady(false)
+    if (videoLoadSimTimerRef.current) {
+      clearTimeout(videoLoadSimTimerRef.current)
+      videoLoadSimTimerRef.current = null
+    }
+
+    if (!isVideoMode || !video) return
+
+    video.pause()
+    video.currentTime = 0
+    video.load()
+    videoLoadSimTimerRef.current = setTimeout(() => {
+      videoLoadSimTimerRef.current = null
+      setVideoLoadSimDone(true)
+    }, VIDEO_LOAD_SIM_MS)
+
+    return () => {
+      if (videoLoadSimTimerRef.current) {
+        clearTimeout(videoLoadSimTimerRef.current)
+        videoLoadSimTimerRef.current = null
+      }
+    }
+  }, [activeVideoSrc, isVideoMode])
+
+  useEffect(() => {
+    const ready = isVideoMode && videoCanPlay && videoLoadSimDone
+    setVideoReady(ready)
+    if (ready) {
+      const video = videoRef.current
+      if (video) video.currentTime = 0
+      setVideoPlaying(true)
+    }
+  }, [isVideoMode, videoCanPlay, videoLoadSimDone])
+
+  useEffect(() => {
+    const drawVideoFrame = () => {
+      const video = videoRef.current, cv = videoCanvasRef.current, pv = previewRef.current
+      if (!video || !cv || !pv || !pv.offsetWidth) return
+      cv.width = pv.offsetWidth
+      cv.height = pv.offsetHeight
+      const duration = video.duration && Number.isFinite(video.duration) ? video.duration : 3
+      const progress = duration > 0 ? Math.min(1, Math.max(0, video.currentTime / duration)) : 0
+      const pixelSize = 1 + (MIN_OUTPUT_PIXEL_SIZE - 1) * Math.pow(1 - progress, VIDEO_PIXEL_DECAY_POWER)
+      drawVideoToCanvas(cv, video, pixelSize)
+      videoPixelRafRef.current = requestAnimationFrame(drawVideoFrame)
+    }
+
+    if (videoPixelRafRef.current) {
+      cancelAnimationFrame(videoPixelRafRef.current)
+      videoPixelRafRef.current = 0
+    }
+    if (!isVideoMode || !videoReady) return
+
+    videoPixelRafRef.current = requestAnimationFrame(drawVideoFrame)
+    return () => {
+      if (videoPixelRafRef.current) {
+        cancelAnimationFrame(videoPixelRafRef.current)
+        videoPixelRafRef.current = 0
+      }
+    }
+  }, [activeVideoSrc, isVideoMode, videoReady])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!isVideoMode || !videoReady || !video) return
+
+    if (!videoPlaying) {
+      video.pause()
       return
     }
 
-    setVideoReady(false)
-    videoFakeLoadTimerRef.current = setTimeout(() => {
-      videoFakeLoadTimerRef.current = null
-      setVideoReady(true)
-    }, VIDEO_FAKE_LOAD_MS)
+    void video.play().catch(() => setVideoPlaying(false))
+  }, [isVideoMode, videoReady, videoPlaying])
 
-    return () => {
-      if (videoFakeLoadTimerRef.current) {
-        clearTimeout(videoFakeLoadTimerRef.current)
-        videoFakeLoadTimerRef.current = null
-      }
+  const toggleVideoPlayback = useCallback(() => {
+    if (!videoReady) return
+    const video = videoRef.current
+    if (videoPlaying) {
+      setVideoPlaying(false)
+      return
     }
-  }, [isVideoMode])
+    if (video?.ended) {
+      video.currentTime = 0
+    }
+    setVideoPlaying(true)
+  }, [videoPlaying, videoReady])
 
   useEffect(() => {
     const initFrame = requestAnimationFrame(() => {
@@ -786,7 +1169,7 @@ export function AISection() {
       cv.height = pv.offsetHeight
       const img = getAiImage(INITIAL_AI_IMAGE_INDEX)
       if (img.complete && img.naturalWidth > 0) {
-        drawToCanvas(cv, img, 1, 3)
+        drawToCanvas(cv, img, 1, MIN_OUTPUT_PIXEL_SIZE)
         return
       }
       ensureLoaded(img, AI_SRCS[INITIAL_AI_IMAGE_INDEX]).then(loaded => {
@@ -795,7 +1178,7 @@ export function AISection() {
         if (c2 && p2 && p2.offsetWidth) {
           c2.width = p2.offsetWidth
           c2.height = p2.offsetHeight
-          drawToCanvas(c2, loaded, 1, 3)
+          drawToCanvas(c2, loaded, 1, MIN_OUTPUT_PIXEL_SIZE)
         }
       })
     }
@@ -834,9 +1217,10 @@ export function AISection() {
         })
       }
     }
+    const frame = requestAnimationFrame(tryDraw)
     const t1 = setTimeout(tryDraw, 80)
     const t2 = setTimeout(tryDraw, 500)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
+    return () => { cancelAnimationFrame(frame); clearTimeout(t1); clearTimeout(t2) }
   }, [mounted, nearViewport, outputAspect, outputModes, outputPixelSize])
 
   useEffect(() => {
@@ -852,24 +1236,26 @@ export function AISection() {
     setExitP(Math.max(0, Math.min(1, (s-scrollVh*0.5)/scrollVh)))
   }, [scrollY, scrollVh])
 
-  const onPortChange = useCallback((id: string, out: Port, inp: Port) => {
+  const onPortChange = useCallback((id: string, out: Port, inp: Port, inpAlt?: Port) => {
     setPorts(p => {
       const prev = p[id]
       if (prev && Math.abs(prev.out.x-out.x)<1 && Math.abs(prev.out.y-out.y)<1 &&
-                  Math.abs(prev.inp.x-inp.x)<1 && Math.abs(prev.inp.y-inp.y)<1) return p
-      return {...p, [id]: {out, inp}}
+                  Math.abs(prev.inp.x-inp.x)<1 && Math.abs(prev.inp.y-inp.y)<1 &&
+                  (!inpAlt || (prev.inpAlt && Math.abs(prev.inpAlt.x-inpAlt.x)<1 && Math.abs(prev.inpAlt.y-inpAlt.y)<1))) return p
+      return {...p, [id]: {out, inp, ...(inpAlt ? {inpAlt} : {})}}
     })
   }, [])
 
   const onFocus = useCallback((id: string) => {
+    setFocusedNode(id)
     setZOrders(p => {
-      const ordered = Object.entries(p)
-        .filter(([key]) => key !== id)
-        .sort((a, b) => a[1] - b[1])
-      const next: Record<string, number> = {}
-      ordered.forEach(([key], index) => { next[key] = NODE_Z_BASE + index })
-      next[id] = NODE_Z_CLICK
-      return next
+      const normalized = Object.fromEntries(
+        Object.entries(p)
+          .filter(([nodeId]) => nodeId !== id)
+          .sort(([, a], [, b]) => a - b)
+          .map(([nodeId], index) => [nodeId, NODE_Z_BASE + index])
+      )
+      return {...normalized, [id]: NODE_Z_CLICK}
     })
   }, [])
 
@@ -885,6 +1271,7 @@ export function AISection() {
       endUpscaleDrag()
     } else {
       setVideoReady(false)
+      setVideoPlaying(false)
     }
     setOutputModes(current => {
       if (mode === 'VIDEO') return current.includes('VIDEO') ? [] : ['VIDEO']
@@ -904,10 +1291,11 @@ export function AISection() {
 
   const generate = useCallback(() => {
     if (isActive) return
-    const generationPixelSize = 3
+    const generationPixelSize = MIN_OUTPUT_PIXEL_SIZE
     setOutputFormat(pendingOutputFormat)
     setOutputModes([])
     setVideoReady(false)
+    setVideoPlaying(false)
     setOutpaintGuideVisible(false)
     cancelUpscaleIntro()
     endUpscaleDrag()
@@ -940,7 +1328,7 @@ export function AISection() {
     const tick = (now: number) => {
       if (!t0) t0 = now
       const t = Math.min((now-t0) / TOTAL, 1)
-      if (now - lastPhaseSet > 120 || t >= 1) { lastPhaseSet = now; setPhase(t) }
+      if (now - lastPhaseSet > 34 || t >= 1) { lastPhaseSet = now; setPhase(t) }
 
       const canvas = canvasRef.current, pvEl = previewRef.current
       if (canvas && pvEl) {
@@ -996,6 +1384,11 @@ export function AISection() {
   const wLit = (seg: number) => isActive && phase >= seg / SEG_N
   const currentStage = STAGES.find(s => phase >= s.start && phase < s.end)
   const activeStageLabel = currentStage?.label === 'MODES' && outputModes.length === 0 ? 'OUTPUT REVIEW' : currentStage?.label ?? 'OUTPUT READY'
+  const currentImageIndex = curImgIdx.current
+  const currentWorkflowPrompt = AI_PROMPTS[currentImageIndex] ?? AI_PROMPTS[INITIAL_AI_IMAGE_INDEX]
+  const currentWorkflowLog = isActive
+    ? buildActiveWorkflowLog(currentWorkflowPrompt, currentImageIndex, lang, phase)
+    : buildCompletedWorkflowLog(currentWorkflowPrompt, currentImageIndex, lang)
 
   // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
@@ -1031,23 +1424,28 @@ export function AISection() {
             <div style={{ 
               position: 'absolute', 
               inset: 0, 
-              opacity: isActive ? 0.15 : 0.08,
+              opacity: isActive ? 0.2 : 0.1,
               overflow: 'hidden',
               pointerEvents: 'none',
-              transition: 'opacity 0.5s'
+              transition: 'opacity 0.5s',
+              backgroundImage: 'radial-gradient(circle at 22% 18%,rgba(170,255,130,0.13),transparent 30%),linear-gradient(rgba(57,255,20,0.05) 50%,rgba(0,0,0,0.11) 50%)',
+              backgroundSize: '100% 100%,100% 4px',
+              boxShadow: 'inset 0 0 32px rgba(57,255,20,0.14)'
             }}>
               <div style={{ 
                 fontFamily: MONO, 
                 fontSize: 8, 
-                color: '#39ff14', 
+                color: '#8cff74', 
                 lineHeight: 1.4,
                 padding: 8,
                 whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all'
+                wordBreak: 'break-word',
+                textShadow: '0 0 5px rgba(57,255,20,0.62)'
               }}>
-                {CRAZY.map((l, i) => (
-                  <div key={i} style={{ opacity: isActive && phase * CRAZY.length > i ? 1 : 0.3 }}>{l.c}</div>
-                ))}
+                {currentWorkflowLog.map((l, i) => {
+                  const isPromptLine = l.c.startsWith('prompt =')
+                  return <div key={i} style={{ opacity: isActive && phase * currentWorkflowLog.length > i ? 1 : 0.38, color:isPromptLine?'#d8ffc8':'inherit', textShadow:isPromptLine?'0 0 5px rgba(230,255,210,0.94),0 0 12px rgba(57,255,20,0.68)':'inherit' }}>{l.c}</div>
+                })}
               </div>
             </div>
             
@@ -1064,13 +1462,13 @@ export function AISection() {
               {/* Progress ring overlay when generating */}
               {isActive && (
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 5 }}>
-                  <svg width={80} height={80} style={{ filter: 'drop-shadow(0 0 10px rgba(57,255,20,0.5))' }}>
-                    <circle cx={40} cy={40} r={35} fill="none" stroke="rgba(57,255,20,0.2)" strokeWidth={2}/>
-                    <circle cx={40} cy={40} r={35} fill="none" stroke="#39ff14" strokeWidth={2}
+                  <svg width={80} height={80} style={{ filter: CRT_DROP_GLOW }}>
+                    <circle cx={40} cy={40} r={35} fill="none" stroke={CRT_GREEN_DIM} strokeWidth={2}/>
+                    <circle cx={40} cy={40} r={35} fill="none" stroke={CRT_GREEN} strokeWidth={2}
                       strokeDasharray={`${2*Math.PI*35*phase} ${2*Math.PI*35*(1-phase)}`} strokeLinecap="round"
                       style={{ transformOrigin:'40px 40px', transform: 'rotate(-90deg)' }}/>
-                    <circle cx={40} cy={40} r={24} fill="rgba(0,0,0,0.6)" stroke="rgba(57,255,20,0.3)" strokeWidth={1}/>
-                    <text x={40} y={44} textAnchor="middle" fill="#39ff14" fontSize={14} fontFamily={MONO} fontWeight="bold">{Math.round(phase*100)}%</text>
+                    <circle cx={40} cy={40} r={24} fill="rgba(0,0,0,0.6)" stroke={CRT_GREEN_SOFT} strokeWidth={1}/>
+                    <text x={40} y={44} textAnchor="middle" fill={CRT_GREEN} fontSize={14} fontFamily={MONO} fontWeight="bold" style={{ textShadow: CRT_GLOW }}>{Math.round(phase*100)}%</text>
                   </svg>
                 </div>
               )}
@@ -1082,9 +1480,9 @@ export function AISection() {
               style={{ 
                 display: 'block',
                 width: '100%',
-                background: isActive ? 'rgba(57,255,20,0.1)' : '#39ff14', 
+                background: isActive ? 'rgba(57,255,20,0.1)' : CRT_GREEN, 
                 border: 'none',
-                color: isActive ? '#39ff14' : '#000', 
+                color: isActive ? CRT_GREEN : '#000', 
                 padding: '12px', 
                 fontFamily: BORNA, 
                 fontSize: 12, 
@@ -1092,6 +1490,8 @@ export function AISection() {
                 cursor: isActive ? 'not-allowed' : 'pointer', 
                 fontWeight: 800,
                 textTransform: 'uppercase',
+                textShadow: isActive ? CRT_GLOW : 'none',
+                boxShadow: isActive ? `inset 0 0 14px rgba(57,255,20,0.2),${CRT_BOX_GLOW}` : `0 0 14px rgba(57,255,20,0.28)`,
                 transition: 'all 0.3s'
               }}>
               {isActive ? '◈ GENERATING' : '[ GENERATE ]'}
@@ -1110,7 +1510,7 @@ export function AISection() {
                 alignItems: 'center',
                 gap: 8
               }}>
-                <span style={{ color: '#39ff14', fontSize: 10 }}>◈</span>
+                <span style={{ color: CRT_GREEN, fontSize: 10, textShadow: CRT_GLOW }}>◈</span>
                 <span style={{ color: '#fff', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: BORNA, fontWeight: 600 }}>
                   {lang==='de'?'WORKFLOW':'WORKFLOW'}
                 </span>
@@ -1126,7 +1526,7 @@ export function AISection() {
                     <span key={i} style={{ 
                       background: 'rgba(57,255,20,0.1)', 
                       border: '1px solid rgba(57,255,20,0.3)', 
-                      color: '#39ff14', 
+                      color: CRT_GREEN, 
                       fontSize: 9, 
                       padding: '4px 8px', 
                       fontFamily: MONO,
@@ -1146,7 +1546,7 @@ export function AISection() {
                 alignItems: 'center',
                 gap: 8
               }}>
-                <span style={{ color: '#39ff14', fontSize: 10 }}>◈</span>
+                <span style={{ color: CRT_GREEN, fontSize: 10, textShadow: CRT_GLOW }}>◈</span>
                 <span style={{ color: '#fff', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: BORNA, fontWeight: 600 }}>VISION</span>
               </div>
               <div style={{ padding: '8px 10px' }}>
@@ -1175,9 +1575,11 @@ export function AISection() {
   // +0.01 ≈ +14px rechts (bei 1440px) / +9px unten (bei 900px)
   const C1 = Math.round(VW * 0.088)   // GENERATE + PROMPT DESIGN
   const C2 = Math.round(VW * 0.286)   // WORKFLOW + VISION
-  const C3 = Math.round(VW * 0.494)   // FORMAT + MODES
-  const C4 = Math.round(VW * 0.494)   // TERMINAL
-  const C5 = Math.round(VW * 0.764)   // PROGRESS
+  const C3 = Math.round(VW * 0.495)   // MODES
+  const C6 = Math.round(VW * 0.530)   // MODES
+  const FORMAT_LEFT = C6
+  const C4 = Math.round(VW * 0.500)   // TERMINAL
+  const C5 = Math.round(VW * 0.774)   // PROGRESS
 
   const TERM_TOP     = Math.round(VH * 0.151)  // TERMINAL + PIPELINE (oben)
   const PROGRESS_TOP = Math.round(VH * 0.214)  // PROGRESS
@@ -1186,9 +1588,9 @@ export function AISection() {
   const ERF_TOP      = Math.round(VH * 0.521)  // WORKFLOW
   const VIS_TOP      = Math.max(Math.round(VH * 0.661), ERF_TOP + 118)  // VISION
   const UPS_TOP      = Math.round(VH * 0.495)  // FORMAT
-  const MODES_TOP    = Math.max(Math.round(VH * 0.702), UPS_TOP + 171)  // MODES
+  const MODES_TOP    = Math.max(Math.round(VH * 0.641), UPS_TOP + 10)  // MODES
   const PREV_TOP   = Math.round(VH * 0.328)  // OUTPUT
-  const PREV_LEFT  = Math.max(Math.round(VW * 0.638), C3 + controlNodeWidth + 6)
+  const PREV_LEFT  = Math.round(VW * 0.638)
 
   return (
     <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'240vh', marginTop:'-420vh' }}>
@@ -1208,16 +1610,19 @@ export function AISection() {
         .ai-format-btn:hover,.ai-mode-btn:hover{transform:scale(0.96);border-color:rgba(0,0,0,0.48)!important;box-shadow:none}
         .ai-format-btn:active,.ai-mode-btn:active{transform:scale(0.91)!important;box-shadow:none;transition:transform 0.07s}
         .ai-mode-btn:disabled,.ai-mode-btn:disabled:hover,.ai-mode-btn:disabled:active{transform:none!important;box-shadow:none!important;cursor:default!important}
+        .ai-video-control{transition:transform 0.14s ease,opacity 0.14s ease;transform-origin:center;opacity:0.94}
+        .ai-video-control:hover{opacity:1}
+        .ai-video-control:active{opacity:1}
         body.ai-expand-hover .custom-cursor{display:none!important;opacity:0!important;visibility:hidden!important}
       `}</style>
 
       <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', overflow:'hidden', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box' }}>
         <GridBg/>
-        <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP} modeSelected={outputModes.length > 0}/>
 
         <div style={{ position:'absolute', inset:0, zIndex:5, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
+          <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP} modeSelected={outputModes.length > 0} nodeZOrders={zOrders} focusedNode={focusedNode}/>
 
-          <div style={{ position:'absolute', top:'9vw', left:'9vw', zIndex:20, pointerEvents:'none' }}>
+          <div style={{ position:'absolute', top:'9vw', left:'9vw', zIndex:AI_HEADING_Z, pointerEvents:'none' }}>
             <NeonHeading/>
           </div>
 
@@ -1253,8 +1658,8 @@ export function AISection() {
           </Win>
 
           {/* FORMAT */}
-          <Win id="upscale" title="FORMAT" width={controlNodeWidth} initPos={{x:C3, y:UPS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={Math.max(zOrders.upscale, NODE_Z_CONTROL)} lit={wLit(2)}>
-            <div style={{...cs, display:'grid', gridTemplateColumns:'1fr', gap:6}}>
+          <Win id="upscale" title="FORMAT" width={controlNodeWidth} initPos={{x:FORMAT_LEFT, y:UPS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.upscale} lit={wLit(2)}>
+            <div style={{...cs, display:'grid', gridTemplateColumns:'repeat(3, 46px)', justifyContent:'center', gap:6}}>
               {FORMAT_OPTIONS.map(ratio => (
                 <button
                   key={ratio}
@@ -1267,14 +1672,14 @@ export function AISection() {
                   onMouseEnter={() => setHoveredControl(`format-${ratio}`)}
                   onMouseLeave={() => setHoveredControl(null)}
                   onClick={() => setPendingOutputFormat(ratio)}
-                  style={{ ...controlButtonBase, background:pendingOutputFormat===ratio?'#000':'rgba(0,0,0,0.08)', color:pendingOutputFormat===ratio?'#fff':'#111', borderColor:hoveredControl===`format-${ratio}`?'rgba(0,0,0,0.48)':'rgba(0,0,0,0.18)', transform:hoveredControl===`format-${ratio}`?'scale(0.96)':'none' }}
+                  style={{ ...controlButtonBase, width:46, height:46, padding:0, display:'inline-flex', alignItems:'center', justifyContent:'center', textAlign:'center', letterSpacing:'0.03em', background:pendingOutputFormat===ratio?'#000':'rgba(0,0,0,0.08)', color:pendingOutputFormat===ratio?'#fff':'#111', borderColor:hoveredControl===`format-${ratio}`?'rgba(0,0,0,0.48)':'rgba(0,0,0,0.18)', transform:hoveredControl===`format-${ratio}`?'scale(0.96)':'none' }}
                 >{ratio}</button>
               ))}
             </div>
           </Win>
 
           {/* MODES */}
-          <Win id="modes" title="MODES" width={controlNodeWidth} initPos={{x:C3, y:MODES_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={Math.max(zOrders.modes, NODE_Z_CONTROL_LOW)} lit={outputModes.length > 0 && wLit(3)}>
+          <Win id="modes" title="MODES" width={controlNodeWidth} initPos={{x:C3, y:MODES_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.modes} lit={outputModes.length > 0 && wLit(3)}>
             <div style={{...cs, display:'grid', gridTemplateColumns:'1fr', gap:6}}>
               {OUTPUT_MODE_OPTIONS.map(mode => (
                 <button
@@ -1290,28 +1695,32 @@ export function AISection() {
                   onMouseEnter={() => setHoveredControl(`mode-${mode}`)}
                   onMouseLeave={() => setHoveredControl(null)}
                   onClick={() => toggleOutputMode(mode)}
-                  style={{ ...controlButtonBase, background:outputModes.includes(mode)?'#000':'rgba(0,0,0,0.08)', color:outputModes.includes(mode)?'#fff':'#111', borderColor:hoveredControl===`mode-${mode}`?'rgba(0,0,0,0.48)':'rgba(0,0,0,0.18)', cursor:isActive?'default':'pointer', opacity:isActive?0.42:1, transform:hoveredControl===`mode-${mode}` && !isActive?'scale(0.96)':'none' }}
-                >{mode}</button>
+                  style={{ ...controlButtonBase, display:'flex', alignItems:'center', gap:6, background:outputModes.includes(mode)?'#000':'rgba(0,0,0,0.08)', color:outputModes.includes(mode)?'#fff':'#111', borderColor:hoveredControl===`mode-${mode}`?'rgba(0,0,0,0.48)':'rgba(0,0,0,0.18)', cursor:isActive?'default':'pointer', opacity:isActive?0.42:1, transform:hoveredControl===`mode-${mode}` && !isActive?'scale(0.96)':'none' }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/icons/modes-0${OUTPUT_MODE_OPTIONS.indexOf(mode)+1}.png`} alt="" width={10} height={10} style={{width:'1em',height:'1em',display:'block',flexShrink:0,filter:outputModes.includes(mode)?'invert(1)':'none'}}/>
+                  {OUTPUT_MODE_LABELS[mode]}
+                </button>
               ))}
             </div>
           </Win>
 
           {/* TERMINAL */}
           <Win id="terminal" title="WORKFLOW LOG" width={390} initPos={{x:C4, y:TERM_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.terminal} lit={wLit(4)} minH={250}>
-            <div style={{ height:238, background:'#0d0d0d', overflow:'hidden' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang}/></div>
+            <div style={{ height:238, background:'#010a03', overflow:'hidden', boxShadow:'inset 0 0 22px rgba(57,255,20,0.18)' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang} prompt={currentWorkflowPrompt} imageIndex={currentImageIndex}/></div>
           </Win>
 
           {/* PROGRESS */}
           <Win id="progress" title="PROGRESS" width={205} initPos={{x:C5, y:PROGRESS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.progress} lit={wLit(5)}>
-            <div style={{ height:42, background:'#0d0d0d' }}><ProgressTerm phase={phase} isActive={isActive}/></div>
+            <div style={{ height:42, background:'#010a03', boxShadow:'inset 0 0 18px rgba(57,255,20,0.16)' }}><ProgressTerm phase={phase} isActive={isActive}/></div>
           </Win>
 
           {/* OUTPUT */}
-          <Win id="preview" title="OUTPUT" width={outputWinWidth} initPos={{x:PREV_LEFT, y:PREV_TOP}} offset={outputWindowOffset} animateLayout onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.preview} lit={wLit(6)}>
-            <div style={{ width:'100%', height:outputShellHeight, position:'relative', overflow:'hidden', background:'#111', transition:'height 0.28s ease', boxSizing:'border-box' }}>
+          <Win id="preview" title="OUTPUT" width={outputWinWidth} initPos={{x:PREV_LEFT, y:PREV_TOP}} offset={outputWindowOffset} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.preview} lit={wLit(6)} emitAltInp altInpY={52} inpAtFrac={0.91}>
+            <div style={{ width:'100%', height:outputShellHeight, position:'relative', overflow:'hidden', background:'#111', transition:'none', boxSizing:'border-box' }}>
               <div ref={previewRef} style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:previewFrameWidth, aspectRatio:outputAspect, overflow:'hidden', background:'#111' }}>
                 <canvas ref={canvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }}/>
-                {outpaintGuideVisible && <div data-ai-outpaint-guide style={{ position:'absolute', inset:outpaintGuideInset, border:'1px dashed rgba(255,255,255,0.76)', zIndex:5, pointerEvents:'none' }}/>} 
+                {outpaintGuideIsVisible && <div data-ai-outpaint-guide style={{ position:'absolute', inset:outpaintGuideInset, border:'1px dashed rgba(255,255,255,0.76)', opacity:outpaintGuideOpacity, zIndex:5, pointerEvents:'none' }}/>} 
               {isUpscaleMode && <>
                   <div data-ai-mode-effect="upscale" style={{ position:'absolute', left:`${upscaleSplit*100}%`, right:0, top:0, bottom:0, overflow:'hidden', zIndex:3, pointerEvents:'none' }}>
                     <canvas ref={upscaleCanvasRef} style={{ position:'absolute', right:0, top:0, width:`${100 / upscalePixelReveal}%`, height:'100%', display:'block', imageRendering:'pixelated' }}/>
@@ -1336,29 +1745,53 @@ export function AISection() {
                     style={{ position:'absolute', left:`calc(${upscaleSplit*100}% - 13px)`, top:0, bottom:0, width:26, zIndex:5, pointerEvents:'none' }}
                   >
                     <div style={{ position:'absolute', left:12, top:0, bottom:0, width:2, background:'#fff' }}/>
-                    <div style={{ position:'absolute', left:4, top:'50%', transform:`translateY(-50%) scale(${upscaleDragging ? 1.14 : upscaleHandleHovered ? 1.08 : 1})`, width:18, height:38, background: upscaleDragging || upscaleHandleHovered ? 'rgba(57,255,20,0.16)' : 'rgba(0,0,0,0.62)', border:`1px solid ${upscaleDragging || upscaleHandleHovered ? 'rgba(57,255,20,0.92)' : 'rgba(255,255,255,0.62)'}`, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:MONO, fontSize:10, fontWeight:800, transition:'transform 0.16s ease,background 0.16s ease,border-color 0.16s ease' }}>||</div>
+                    <div style={{ position:'absolute', left:4, top:'50%', transform:`translateY(-50%) scale(${upscaleDragging ? 1.14 : upscaleHandleHovered ? 1.08 : 1})`, width:18, height:38, background: upscaleDragging || upscaleHandleHovered ? 'rgba(57,255,20,0.16)' : 'rgba(0,0,0,0.62)', border:`1px solid ${upscaleDragging || upscaleHandleHovered ? CRT_GREEN : 'rgba(255,255,255,0.62)'}`, boxShadow:upscaleDragging || upscaleHandleHovered ? `${CRT_BOX_GLOW}, inset 0 0 10px rgba(57,255,20,0.14)` : 'none', display:'flex', alignItems:'center', justifyContent:'center', color:upscaleDragging || upscaleHandleHovered ? CRT_GREEN : '#fff', textShadow:upscaleDragging || upscaleHandleHovered ? CRT_GLOW : 'none', fontFamily:MONO, fontSize:10, fontWeight:800, transition:'transform 0.16s ease,background 0.16s ease,border-color 0.16s ease,box-shadow 0.16s ease,color 0.16s ease' }}>||</div>
                   </div>
               </>} 
-              </div>
               {isVideoMode && <div data-ai-mode-effect="video" style={{ position:'absolute', inset:0, zIndex:6, pointerEvents:'none' }}>
+                {activeVideoSrc && <video
+                  key={activeVideoSrc}
+                  ref={videoRef}
+                  src={activeVideoSrc}
+                  preload="auto"
+                  loop
+                  muted
+                  playsInline
+                  onLoadedData={() => setVideoCanPlay(true)}
+                  onCanPlay={() => setVideoCanPlay(true)}
+                  style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0, zIndex:1 }}
+                />}
+                <canvas ref={videoCanvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block', opacity:videoReady ? 1 : 0, transition:'opacity 0.18s ease', zIndex:2 }}/>
                 {!videoReady ? (
-                  <div data-ai-video-loading style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:62, height:62, borderRadius:'50%', background:'rgba(0,0,0,0.52)', border:'1px solid rgba(255,255,255,0.34)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <div style={{ width:34, height:34, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.24)', borderTopColor:'#fff', animation:'spin 0.78s linear infinite' }}/>
+                  <div data-ai-video-loading style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center', filter:'drop-shadow(0 1px 6px rgba(0,0,0,0.82))', zIndex:3 }}>
+                    <div style={{ width:34, height:34, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.28)', borderTopColor:'#fff', animation:'spin 0.82s linear infinite' }}/>
                   </div>
                 ) : <>
-                  <div data-ai-video-play style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:54, height:54, borderRadius:'50%', background:'rgba(0,0,0,0.62)', border:'1px solid rgba(255,255,255,0.68)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 18px rgba(0,0,0,0.55)' }}>
-                    <div style={{ width:0, height:0, borderTop:'10px solid transparent', borderBottom:'10px solid transparent', borderLeft:'16px solid #fff', marginLeft:4 }}/>
-                  </div>
-                  <div data-ai-video-timeline style={{ position:'absolute', left:12, right:12, bottom:12, height:36, background:'rgba(0,0,0,0.72)', border:'1px solid rgba(255,255,255,0.24)', display:'flex', alignItems:'center', gap:7, padding:'0 9px' }}>
-                    <div style={{ width:8, height:8, borderRadius:'50%', background:'#39ff14', boxShadow:'0 0 10px rgba(57,255,20,0.65)' }}/>
-                    <div style={{ flex:1, height:5, background:'rgba(255,255,255,0.2)', position:'relative', overflow:'hidden' }}>
-                      <div style={{ position:'absolute', left:0, top:0, bottom:0, width:'38%', background:'#fff' }}/>
-                      <div style={{ position:'absolute', left:'38%', top:-4, width:2, height:13, background:'#39ff14' }}/>
-                    </div>
-                    <div style={{ color:'#fff', fontFamily:MONO, fontSize:9, fontWeight:700 }}>00:04</div>
-                  </div>
+                  <button
+                    type="button"
+                    className="ai-video-control"
+                    data-ai-video-play
+                    aria-label={videoPlaying ? 'Pause preview' : 'Play preview'}
+                    onPointerEnter={() => setHoveredControl('video-play')}
+                    onPointerLeave={() => setHoveredControl(null)}
+                    onMouseEnter={() => setHoveredControl('video-play')}
+                    onMouseLeave={() => setHoveredControl(null)}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={(event) => { event.stopPropagation(); toggleVideoPlayback() }}
+                    style={{ position:'absolute', left:'50%', top:'50%', transform:`translate(-50%,-50%) scale(${hoveredControl === 'video-play' ? 1.16 : 1})`, transition:'transform 0.14s ease,opacity 0.14s ease', width:44, height:44, border:0, padding:0, background:'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', pointerEvents:'auto', filter:'drop-shadow(0 1px 6px rgba(0,0,0,0.82))', zIndex:4 }}
+                  >
+                    {videoPlaying ? (
+                      <span style={{ width:18, height:23, display:'flex', gap:6, alignItems:'stretch' }}>
+                        <span style={{ flex:1, background:'#fff' }}/>
+                        <span style={{ flex:1, background:'#fff' }}/>
+                      </span>
+                    ) : (
+                      <span style={{ width:0, height:0, borderTop:'12px solid transparent', borderBottom:'12px solid transparent', borderLeft:'20px solid #fff', marginLeft:5 }} />
+                    )}
+                  </button>
                 </>}
               </div>}
+              </div>
             </div>
           </Win>
 

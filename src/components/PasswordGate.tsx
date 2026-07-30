@@ -282,7 +282,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
             fontSize: isMobile ? 'clamp(20px, 6.4vw, 34px)' : 'clamp(28px, 2.7vw, 46px)',
           }}
         >
-          Experience<br />Designer
+          Process<br />Designer
         </div>
 
         <style jsx>{`

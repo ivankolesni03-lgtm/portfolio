@@ -531,7 +531,7 @@ export function Hero() {
   const lastPosRef = useRef({ x: 0, y: 0 })
   const imageIdRef = useRef(0)
   const [descFade, setDescFade] = useState(1)
-  const expScramble = useScramble('Experience')
+  const expScramble = useScramble('Process')
   const desScramble = useScramble('Designer')
   const expScrambleRef = useRef(expScramble.scrambleTo)
   const desScrambleRef = useRef(desScramble.scrambleTo)
@@ -540,7 +540,7 @@ export function Hero() {
     desScrambleRef.current = desScramble.scrambleTo
   }, [desScramble.scrambleTo, expScramble.scrambleTo])
   const handleHeaderHover = useCallback(() => {
-    expScrambleRef.current('Experience')
+    expScrambleRef.current('Process')
     desScrambleRef.current('Designer')
   }, [])
   const heroProgress = vh > 0 ? Math.min(1, scrollY / (vh * 2.0)) : 0
@@ -602,7 +602,10 @@ export function Hero() {
   }, [scrollY, vh])
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 100)
+    const handleScroll = () => {
+      const nextIsScrolled = window.scrollY > 100
+      setIsScrolled(prev => (prev === nextIsScrolled ? prev : nextIsScrolled))
+    }
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
