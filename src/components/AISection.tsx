@@ -8,16 +8,33 @@ import { useScramble } from '@/hooks/use-scramble'
 type Lang = 'de' | 'en'
 type Port = { x: number; y: number }
 type PortMap = Record<string, { out: Port; inp: Port }>
+const FORMAT_OPTIONS = ['1:1','16:9','3:4'] as const
+type OutputFormat = typeof FORMAT_OPTIONS[number]
+const OUTPUT_MODE_OPTIONS = ['OUTPAINT','UPSCALE','VIDEO'] as const
+type OutputMode = typeof OUTPUT_MODE_OPTIONS[number]
 
 const BORNA = "'Borna','Helvetica Neue',Arial,sans-serif"
 const MONO  = '"Courier New",monospace'
+const NODE_Z_BASE = 5
+const NODE_Z_CONTROL = 17
+const NODE_Z_CONTROL_LOW = 16
+const NODE_Z_CLICK = 18
+const NODE_Z_EXPANDED = 19
+const OUTPAINT_EXIT_MS = 300
+const VIDEO_FAKE_LOAD_MS = 1300
+const GENERATION_SIM_MS = 3000
 
 // ─── Neon Heading ─────────────────────────────────────────────────────────────
 function NeonHeading() {
   const { isMobile } = useMobile()
+  const { language } = useLanguage()
   const [fl, setFl] = useState(1)
-  const { disp: d1, scramble: s1 } = useScramble('PROMPT')
-  const { disp: d2, scramble: s2 } = useScramble('DESIGN')
+  const { disp: d1, scramble: s1 } = useScramble('ARTISTIC')
+  const { disp: d2, scramble: s2 } = useScramble('INTELLIGENCE')
+  const headingCopy = language === 'de'
+    ? 'Ich sehe KI nicht als Ersatz für Gestaltung, sondern als kreatives Betriebssystem: ein Werkzeug, um Ideen schneller zu testen, Bildwelten präziser zu steuern und aus Experimenten markentaugliche Kommunikation zu formen.'
+    : 'I see AI not as a replacement for design, but as a creative operating system: a way to test ideas faster, direct visual worlds more precisely and turn experiments into brand-ready communication.'
+  const { disp: copyDisp, scramble: copyScramble } = useScramble(headingCopy)
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>
     const go = () => { t = setTimeout(() => { const s=[0.1,1,0.05,0.9,0.2,1,0.7,1]; s.forEach((v,i)=>setTimeout(()=>setFl(v),i*55)); setTimeout(()=>{setFl(1);go()},s.length*55+400) }, 3000+Math.random()*8000) }
@@ -25,10 +42,13 @@ function NeonHeading() {
   }, [])
   const glow = '0 0 7px #fff,0 0 18px #fff,0 0 40px rgba(255,255,255,0.5)'
   return (
-    <div onMouseEnter={() => { s1(); s2() }} style={{ cursor:'default', userSelect:'none', opacity:fl, transition:'opacity 0.04s' }}>
+    <div onMouseEnter={() => { s1(); s2(); copyScramble() }} style={{ cursor:'default', userSelect:'none', opacity:fl, transition:'opacity 0.04s' }}>
       <div style={{ fontSize: isMobile ? '10vw' : '8vw', fontWeight:900, lineHeight:0.88, letterSpacing:'-2px', textTransform:'uppercase', color:'#fff', textShadow:glow, fontFamily:BORNA }}>
-        <div>{d1}</div><div>{d2}</div>
+        <div>{d1}</div><div style={{ display:'inline-block', transform:`scaleX(${isMobile ? 0.94 : 0.9})`, transformOrigin:'left center' }}>{d2}</div>
       </div>
+      <p style={{ margin:isMobile?'34px 0 0':'8px 0 0', maxWidth:isMobile?'76vw':470, color:'rgba(255,255,255,0.8)', fontFamily:BORNA, fontSize:isMobile?13:15, lineHeight:1.45, fontWeight:500, letterSpacing:0, textShadow:'0 0 4px rgba(255,255,255,0.75),0 0 14px rgba(255,255,255,0.28),0 0 28px rgba(255,255,255,0.16),0 0 20px rgba(0,0,0,0.9)' }}>
+        {copyDisp}
+      </p>
     </div>
   )
 }
@@ -39,35 +59,6 @@ function GridBg() {
     <div style={{ position:'absolute', inset:0, zIndex:1, pointerEvents:'none', overflow:'hidden' }}>
       <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)', backgroundSize:'48px 48px' }}/>
       <div style={{ position:'absolute', left:0, right:0, height:1, background:'rgba(255,255,255,0.05)', animation:'scanln 12s linear infinite' }}/>
-    </div>
-  )
-}
-
-// ─── Spinner ──────────────────────────────────────────────────────────────────
-function SpinnerContent({ isActive, phase }: { isActive: boolean; phase: number }) {
-  const s=130, c=65, r1=52, r2=40, r3=25
-  const pct = Math.round(phase*100)
-  const arc = (r: number, t: number) => `${2*Math.PI*r*t} ${2*Math.PI*r*(1-t)}`
-  return (
-    <div style={{ padding:'14px', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-      <svg width={s} height={s}>
-        <circle cx={c} cy={c} r={r1} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth={3}/>
-        <circle cx={c} cy={c} r={r1} fill="none" stroke={isActive?'#39ff14':'rgba(0,0,0,0.15)'} strokeWidth={3}
-          strokeDasharray={arc(r1,phase)} strokeLinecap="round"
-          style={{ transformOrigin:`${c}px ${c}px`, animation:'spin 4s linear infinite' }}/>
-        <circle cx={c} cy={c} r={r2} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={2}/>
-        <circle cx={c} cy={c} r={r2} fill="none" stroke={isActive?'rgba(57,255,20,0.5)':'rgba(0,0,0,0.1)'} strokeWidth={2}
-          strokeDasharray={arc(r2,0.6)} style={{ transformOrigin:`${c}px ${c}px`, animation:'spinReverse 2s linear infinite' }}/>
-        <circle cx={c} cy={c} r={r3} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={1.5}/>
-        <circle cx={c} cy={c} r={r3} fill="none" stroke={isActive?'rgba(57,255,20,0.4)':'rgba(0,0,0,0.08)'} strokeWidth={1.5}
-          strokeDasharray={arc(r3,phase*0.8)} style={{ transformOrigin:`${c}px ${c}px`, animation:'spin 1.5s linear infinite' }}/>
-        {Array.from({length:24},(_,i)=>{ const a=(i/24)*Math.PI*2; return <line key={i} x1={c+Math.cos(a)*(r1+3)} y1={c+Math.sin(a)*(r1+3)} x2={c+Math.cos(a)*(r1+8)} y2={c+Math.sin(a)*(r1+8)} stroke={i/24<=phase?'#000':'rgba(0,0,0,0.2)'} strokeWidth={i/24<=phase?2:1}/> })}
-        <circle cx={c} cy={c} r={12} fill={isActive?'#39ff14':'rgba(0,0,0,0.15)'}/>
-        <text x={c} y={c+4} textAnchor="middle" fill={isActive?'#000':'rgba(0,0,0,0.4)'} fontSize={9} fontFamily={MONO} fontWeight="bold">{pct}%</text>
-      </svg>
-      <div style={{ fontFamily:MONO, fontSize:9, color:isActive?'#39ff14':'rgba(0,0,0,0.35)', letterSpacing:'0.1em', textAlign:'center' }}>
-        {isActive ? 'PROCESSING...' : 'STANDBY'}
-      </div>
     </div>
   )
 }
@@ -86,7 +77,7 @@ const CRAZY = [
   {t:'r', c:'ВНИМАНИЕ: аномальный градиент 0xDEAD → [ИГНОРИРУЮ]'},
   {t:'c', c:'lora = LoRAStack(rank=64, alpha=16, dropout=0.05)'},
   {t:'c', c:'lora.inject(pipe.unet, layers=["attn1","attn2","ff"])'},
-  {t:'r', c:'ОБРАБОТКА ERFAHRUNG :: семантический стек АКТИВЕН'},
+  {t:'r', c:'BRAND_CONTEXT :: semantic layer active [OK]'},
   {t:'c', c:'prompt = "portrait, cinematic, 8k sharp, NIKITA_v2"'},
   {t:'c', c:'z = pipe.vae.encode(img).latent_dist.sample()*0.18215'},
   {t:'m', c:'ワヲン VISION_ENCODE アイウ CLIP→z[4,64,64] ラリルレロ'},
@@ -94,7 +85,7 @@ const CRAZY = [
   {t:'c', c:'for t in scheduler.timesteps:  # step 0/28 → 28/28'},
   {t:'c', c:'    noise_pred = pipe.unet(z_t, t, enc_hidden)'},
   {t:'c', c:'    z_t = scheduler.step(noise_pred, t, z_t).prev'},
-  {t:'r', c:'DENOISE шаг 27/28 DPM++ :: финальная итерация [DONE]'},
+  {t:'r', c:'OUTPUT_MODE pass 27/28 :: final iteration [DONE]'},
   {t:'m', c:'サシスセソ UPSCALE タチツテト TILE[512×512] × 4 OUTPUT'},
   {t:'c', c:'image = pipe.vae.decode(z_t/0.18215).sample.clamp(-1,1)'},
   {t:'r', c:'✓ ГЕНЕРАЦИЯ ЗАВЕРШЕНА :: 4.97s — ПЕРЕДАЧА В PREVIEW'},
@@ -102,12 +93,7 @@ const CRAZY = [
   {t:'m', c:'ナニヌネノ SYSTEM_NOMINAL ハヒフ ALL_CLEAR [OK]'},
 ]
 function CrazyTerminal({ phase, isActive, lang }: { phase: number; isActive: boolean; lang: Lang }) {
-  const [lines, setLines] = useState([
-    {t:'c', c:'#!/usr/bin/env python3  # ATOMIC_HEART ТЕРМИНАЛ v4.2'},
-    {t:'r', c:'СИСТЕМА ГОТОВА — ожидание команды GENERATE'},
-    {t:'c', c:'import comfyui_core, lora_injector, vae, clip, torch'},
-    {t:'m', c:'サシスセソ ALL_SYSTEMS_NOMINAL タチツテト [OK]'},
-  ])
+  const [lines, setLines] = useState(() => CRAZY)
   const ref = useRef<HTMLDivElement>(null)
   const shown = useRef(-1)
   useEffect(() => {
@@ -122,11 +108,6 @@ function CrazyTerminal({ phase, isActive, lang }: { phase: number; isActive: boo
   const col = (t: string) => t==='m' ? 'rgba(57,255,20,0.75)' : t==='r' ? '#ff9900' : 'rgba(100,200,255,0.9)'
   return (
     <div style={{ background:'#0d0d0d', fontFamily:MONO, fontSize:10, height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      <div style={{ padding:'4px 10px', background:'rgba(57,255,20,0.08)', borderBottom:'1px solid rgba(57,255,20,0.2)', flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
-        <span style={{ color:'rgba(57,255,20,0.6)', fontSize:10 }}>{lang==='de'?'ТЕРМИНАЛ.exe':'TERMINAL.exe'}</span>
-        <div style={{ flex:1 }}/>
-        {isActive && <span style={{ color:'#39ff14', fontSize:9, animation:'aiBlink 0.5s infinite', background:'rgba(57,255,20,0.15)', padding:'1px 5px', border:'1px solid rgba(57,255,20,0.3)' }}>◈ АКТИВЕН</span>}
-      </div>
       <div ref={ref} style={{ padding:'7px 10px', flex:1, overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'flex-end', gap:2 }}>
         {lines.map((l,i) => <div key={i} style={{ color:col(l.t), whiteSpace:'pre-wrap', wordBreak:'break-all', lineHeight:1.4 }}>{l.c}</div>)}
         {!isActive && <div style={{ color:'rgba(57,255,20,0.2)', animation:'aiBlink 1.2s infinite' }}>█</div>}
@@ -137,42 +118,22 @@ function CrazyTerminal({ phase, isActive, lang }: { phase: number; isActive: boo
 
 // ─── Progress Terminal ────────────────────────────────────────────────────────
 const STAGES = [
-  {label:'PROMPT PARSE', start:0,    end:0.14},
-  {label:'ERFAHRUNG',    start:0.14, end:0.28},
-  {label:'VISION',       start:0.28, end:0.42},
-  {label:'UPSCALE 4x',   start:0.42, end:0.56},
-  {label:'DENOISE',      start:0.56, end:0.70},
-  {label:'DECODE/VAE',   start:0.70, end:0.85},
-  {label:'→ PREVIEW',    start:0.85, end:1.00},
+  {label:'PROMPT DESIGN', start:0,    end:0.14},
+  {label:'BRAND CONTEXT', start:0.14, end:0.28},
+  {label:'VISUAL SYSTEM', start:0.28, end:0.42},
+  {label:'FORMAT',        start:0.42, end:0.56},
+  {label:'MODES',         start:0.56, end:0.70},
+  {label:'OUTPUT REVIEW', start:0.70, end:0.85},
+  {label:'→ CASE OUTPUT', start:0.85, end:1.00},
 ]
 function ProgressTerm({ phase, isActive }: { phase: number; isActive: boolean }) {
   const pct = Math.round(phase * 100)
-  const bw  = Math.round(phase * 22)
-  const bar = '█'.repeat(bw) + '░'.repeat(22 - bw)
+  const bw  = Math.round(phase * 18)
+  const bar = '█'.repeat(bw) + '░'.repeat(18 - bw)
   return (
-    <div style={{ background:'#0d0d0d', fontFamily:MONO, fontSize:10, height:'100%', display:'flex', flexDirection:'column' }}>
-      <div style={{ padding:'5px 12px', background:'rgba(57,255,20,0.08)', borderBottom:'1px solid rgba(57,255,20,0.2)', flexShrink:0 }}>
-        <span style={{ color:'rgba(57,255,20,0.6)', fontSize:10 }}>PIPELINE.status</span>
-      </div>
-      <div style={{ padding:'10px 12px', flex:1, display:'flex', flexDirection:'column', gap:4 }}>
-        <div style={{ color:'#39ff14', fontSize:13, background:'#000', padding:'4px 8px' }}>[{bar}] {pct}%</div>
-        <div style={{ color: isActive ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.25)', fontSize:10, marginBottom:4 }}>
-          {isActive ? `► ${STAGES.find(s=>phase>=s.start&&phase<s.end)?.label ?? 'COMPLETE'}` : 'STANDBY'}
-        </div>
-        <div style={{ height:1, background:'rgba(57,255,20,0.15)', marginBottom:4 }}/>
-        {STAGES.map((s, i) => {
-          const done = phase >= s.end, active = phase >= s.start && phase < s.end
-          const sp = active ? Math.round(((phase-s.start)/(s.end-s.start))*100) : done ? 100 : 0
-          const sb = '▓'.repeat(Math.round(sp/10)) + '░'.repeat(10-Math.round(sp/10))
-          return (
-            <div key={i} style={{ display:'flex', gap:5, alignItems:'center', opacity: done||active ? 1 : 0.25 }}>
-              <span style={{ color: done?'#39ff14':active?'#fff':'rgba(255,255,255,0.3)', fontSize:9 }}>{done?'✓':active?'►':'○'}</span>
-              <span style={{ color:'rgba(255,255,255,0.7)', fontSize:9, minWidth:82 }}>{s.label}</span>
-              <span style={{ color: done?'#39ff14':'rgba(255,255,255,0.3)', fontSize:9 }}>[{sb}]</span>
-              {active && <span style={{ color:'#39ff14', fontSize:9, animation:'aiBlink 0.6s infinite', fontWeight:700 }}>{sp}%</span>}
-            </div>
-          )
-        })}
+    <div style={{ background:'#0d0d0d', fontFamily:MONO, fontSize:10, height:'100%', display:'flex', alignItems:'center' }}>
+      <div style={{ padding:'8px 10px', width:'100%' }}>
+        <div style={{ color:isActive?'#39ff14':'rgba(57,255,20,0.38)', fontSize:12, background:'#000', padding:'4px 7px', whiteSpace:'nowrap' }}>[{bar}] {pct}%</div>
       </div>
     </div>
   )
@@ -180,20 +141,14 @@ function ProgressTerm({ phase, isActive }: { phase: number; isActive: boolean })
 
 // ─── Images – preloaded at module level ──────────────────────────────────────
 const AI_SRCS = [
-  '/ai-images/nikita-01.jpg',
-  '/ai-images/nikita-02.jpg',
-  '/ai-images/car-01.jpg',
-  '/ai-images/car-02.jpg',
-  '/ai-images/nikita-03.jpg',
-  '/ai-images/nikita-04.jpg',
-  '/ai-images/nikita-05.jpg',
-  '/ai-images/car-03.jpg',
-  '/ai-images/car-04.jpg',
-  '/ai-images/random-01.jpg',
-  '/ai-images/random-02.jpg',
-  '/ai-images/random-03.jpg',
-  '/ai-images/random-04.jpg',
+  '/ai-images/ai-01.jpg',
+  '/ai-images/ai-02.jpg',
+  '/ai-images/ai-03.jpg',
+  '/ai-images/ai-04.jpg',
+  '/ai-images/ai-05.jpg',
+ 
 ]
+const INITIAL_AI_IMAGE_INDEX = 0
 
 const AI_IMAGES: Array<HTMLImageElement | undefined> = []
 
@@ -225,7 +180,7 @@ function drawToCanvas(cv: HTMLCanvasElement, img: HTMLImageElement, opacity: num
   if (opacity <= 0) return
   const ia = img.naturalWidth / img.naturalHeight, ca = w / h
   let dw = w, dh = h, dx = 0, dy = 0
-  if (ia > ca) { dh = w / ia; dy = (h - dh) / 2 } else { dw = h * ia; dx = (w - dw) / 2 }
+  if (ia > ca) { dw = h * ia; dx = (w - dw) / 2 } else { dh = w / ia; dy = (h - dh) / 2 }
   const p = Math.max(1, Math.round(px))
   ctx.globalAlpha = opacity
   if (p <= 1.5) { ctx.imageSmoothingEnabled = true; ctx.drawImage(img, dx, dy, dw, dh) }
@@ -245,24 +200,22 @@ const TOPO = [
   {from:'prompt',    to:'vision',   seg:1},
   {from:'erfahrung', to:'upscale',  seg:2},
   {from:'vision',    to:'upscale',  seg:2},
-  {from:'upscale',   to:'denoise',  seg:3},
-  {from:'denoise',   to:'spinner',  seg:3},
-  {from:'denoise',   to:'terminal', seg:4},
-  {from:'spinner',   to:'terminal', seg:4},
+  {from:'modes',     to:'upscale',  seg:3, optionalMode:true},
+  {from:'upscale',   to:'terminal', seg:4},
   {from:'terminal',  to:'progress', seg:5},
   {from:'progress',  to:'preview',  seg:6},
 ]
 const SEG_N = 7
 
-function CablesLayer({ ports, phase, isActive, exitP }: { ports: PortMap; phase: number; isActive: boolean; exitP: number }) {
+function CablesLayer({ ports, phase, isActive, exitP, modeSelected }: { ports: PortMap; phase: number; isActive: boolean; exitP: number; modeSelected: boolean }) {
   const cableOpacity = Math.max(0, 1 - exitP * 2)
   return (
     <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', zIndex:4, pointerEvents:'none', overflow:'visible', opacity:cableOpacity, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', transition:'none', willChange:'opacity' }}>
-      {TOPO.map(({ from, to, seg }, i) => {
+      {TOPO.map(({ from, to, seg, optionalMode }, i) => {
         const a = ports[from], b = ports[to]; if (!a || !b) return null
         const f = a.out, t2 = b.inp
         const ss = seg / SEG_N, se = (seg+1) / SEG_N
-        const lit = isActive && phase >= ss
+        const lit = isActive && phase >= ss && (!optionalMode || modeSelected)
         const pt  = !isActive ? 0 : phase >= se ? 1 : phase >= ss ? (phase-ss)/(se-ss) : 0
         const dx  = t2.x - f.x
         const c1x = f.x  + Math.max(60, Math.abs(dx)*0.45)
@@ -288,18 +241,29 @@ function CablesLayer({ ports, phase, isActive, exitP }: { ports: PortMap; phase:
 }
 
 // ─── Draggable Window ─────────────────────────────────────────────────────────
-function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=false, minH, children }: {
+function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=false, minH, freezePortY=false, offset={x:0,y:0}, animateLayout=false, children }: {
   id: string; title: string; width: number
   initPos: {x: number; y: number}
   onPortChange: (id: string, out: Port, inp: Port) => void
   onFocus: (id: string) => void
-  zIndex: number; lit?: boolean; minH?: number
+  zIndex: number; lit?: boolean; minH?: number; freezePortY?: boolean
+  offset?: {x: number; y: number}; animateLayout?: boolean
   children: React.ReactNode
 }) {
   const [pos, setPos] = useState(initPos)
   const domRef   = useRef<HTMLDivElement>(null)
   const dOff     = useRef({x:0, y:0})
   const dragging = useRef(false)
+  const magRef = useRef({ x:0, y:0 })
+  const targetMagRef = useRef({ x:0, y:0 })
+  const magDirRef = useRef({ x:1, y:0 })
+  const pointerRef = useRef<{ x: number; y: number } | null>(null)
+  const magRafRef = useRef(0)
+  const pointerRafRef = useRef(0)
+  const magResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const needsFinalPortEmit = useRef(false)
+  const lastPortMagRef = useRef({ x:0, y:0 })
+  const frozenPortYRef = useRef<number | null>(null)
   const { disp, scramble } = useScramble(title)
 
   const emit = useCallback(() => {
@@ -307,10 +271,12 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
     const sec = el.closest('section'); if (!sec) return
     const sr = sec.getBoundingClientRect(), er = el.getBoundingClientRect()
     const lx = er.left-sr.left, ty = er.top-sr.top, h = er.height
-    onPortChange(id, {x:lx+er.width, y:ty+h/2}, {x:lx, y:ty+h/2})
-  }, [id, onPortChange])
+    if (freezePortY && frozenPortYRef.current === null) frozenPortYRef.current = h / 2
+    const portY = freezePortY ? frozenPortYRef.current ?? h / 2 : h / 2
+    onPortChange(id, {x:lx+er.width, y:ty+portY}, {x:lx, y:ty+portY})
+  }, [freezePortY, id, onPortChange])
 
-  useEffect(() => { emit() }, [pos, emit])
+  useEffect(() => { emit() }, [pos, offset.x, offset.y, emit])
   useEffect(() => {
     const t1 = setTimeout(emit, 60)
     const t2 = setTimeout(emit, 200)
@@ -318,29 +284,177 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [])
 
+  useEffect(() => {
+    const el = domRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => emit())
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [emit])
+
   const onMD = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); onFocus(id)
-    dOff.current = {x: e.clientX-pos.x, y: e.clientY-pos.y}; dragging.current = true
-  }, [pos, id, onFocus])
+    const el = domRef.current
+    if (el) {
+      if (magResetTimerRef.current) {
+        clearTimeout(magResetTimerRef.current)
+        magResetTimerRef.current = null
+      }
+      needsFinalPortEmit.current = false
+      magRef.current = { x:0, y:0 }
+      targetMagRef.current = { x:0, y:0 }
+      lastPortMagRef.current = { x:0, y:0 }
+      magDirRef.current = { x:1, y:0 }
+      el.style.setProperty('--ai-mx', '0px')
+      el.style.setProperty('--ai-my', '0px')
+      emit()
+    }
+    dOff.current = {x: e.clientX-(pos.x+offset.x), y: e.clientY-(pos.y+offset.y)}; dragging.current = true
+  }, [pos, offset.x, offset.y, id, onFocus])
+
+  const finishMagReset = useCallback(() => {
+    if (!needsFinalPortEmit.current) return
+    needsFinalPortEmit.current = false
+    if (magResetTimerRef.current) {
+      clearTimeout(magResetTimerRef.current)
+      magResetTimerRef.current = null
+    }
+    lastPortMagRef.current = { x:0, y:0 }
+    emit()
+  }, [emit])
+
+  const emitMovingPorts = useCallback((next: { x: number; y: number }) => {
+    const prev = lastPortMagRef.current
+    if (Math.abs(next.x - prev.x) < 0.55 && Math.abs(next.y - prev.y) < 0.55) return
+    lastPortMagRef.current = next
+    emit()
+  }, [emit])
+
+  const animateMag = useCallback(() => {
+    magRafRef.current = 0
+    const el = domRef.current; if (!el) return
+    const current = magRef.current
+    const target = targetMagRef.current
+    const next = {
+      x: current.x + (target.x - current.x) * 0.16,
+      y: current.y + (target.y - current.y) * 0.16,
+    }
+    if (Math.abs(next.x - target.x) < 0.02) next.x = target.x
+    if (Math.abs(next.y - target.y) < 0.02) next.y = target.y
+    magRef.current = next
+    el.style.setProperty('--ai-mx', `${next.x.toFixed(2)}px`)
+    el.style.setProperty('--ai-my', `${next.y.toFixed(2)}px`)
+    emitMovingPorts(next)
+    const settled = Math.abs(next.x - target.x) < 0.03 && Math.abs(next.y - target.y) < 0.03
+    if (!settled) {
+      magRafRef.current = requestAnimationFrame(animateMag)
+      return
+    }
+    if (Math.abs(target.x) < 0.01 && Math.abs(target.y) < 0.01) finishMagReset()
+  }, [emitMovingPorts, finishMagReset])
+
+  const startMagAnimation = useCallback(() => {
+    if (!magRafRef.current) magRafRef.current = requestAnimationFrame(animateMag)
+  }, [animateMag])
+
+  const updateMagFromPointer = useCallback((clientX: number, clientY: number) => {
+    pointerRef.current = { x: clientX, y: clientY }
+    if (pointerRafRef.current) return
+    pointerRafRef.current = requestAnimationFrame(() => {
+      pointerRafRef.current = 0
+      if (dragging.current) return
+      const pointer = pointerRef.current
+      const el = domRef.current; if (!el || !pointer) return
+      const r = el.getBoundingClientRect()
+      const cx = r.left - magRef.current.x + r.width / 2
+      const cy = r.top - magRef.current.y + r.height / 2
+      const dx = pointer.x - cx, dy = pointer.y - cy
+      const dist = Math.hypot(dx, dy)
+      const radius = 235
+      const influence = Math.max(0, 1 - dist / radius)
+      const maxPull = 11
+      const centerDeadzone = 8
+      if (dist > centerDeadzone) {
+        magDirRef.current = { x: dx / dist, y: dy / dist }
+      }
+      const dir = magDirRef.current
+      const pull = maxPull * Math.pow(influence, 1.45)
+      const next = influence <= 0 ? { x:0, y:0 } : { x: dir.x * pull, y: dir.y * pull }
+      const wasMagnetized = Math.abs(targetMagRef.current.x) > 0.01 || Math.abs(targetMagRef.current.y) > 0.01 || Math.abs(magRef.current.x) > 0.01 || Math.abs(magRef.current.y) > 0.01
+      const nextIsResting = Math.abs(next.x) <= 0.01 && Math.abs(next.y) <= 0.01
+      targetMagRef.current = next
+      if (magResetTimerRef.current) {
+        clearTimeout(magResetTimerRef.current)
+        magResetTimerRef.current = null
+      }
+      if (nextIsResting && wasMagnetized) {
+        needsFinalPortEmit.current = true
+      } else if (!nextIsResting) {
+        needsFinalPortEmit.current = false
+      }
+      startMagAnimation()
+    })
+  }, [startMagAnimation])
+
+  const resetMag = useCallback(() => {
+    if (dragging.current) return
+    const el = domRef.current; if (!el) return
+    if (magResetTimerRef.current) {
+      clearTimeout(magResetTimerRef.current)
+      magResetTimerRef.current = null
+    }
+    targetMagRef.current = { x:0, y:0 }
+    needsFinalPortEmit.current = true
+    startMagAnimation()
+    magResetTimerRef.current = setTimeout(() => {
+      if (!needsFinalPortEmit.current) return
+      needsFinalPortEmit.current = false
+      magResetTimerRef.current = null
+      emit()
+    }, 360)
+  }, [emit, startMagAnimation])
 
   useEffect(() => {
-    const move = (e: MouseEvent) => { if (!dragging.current) return; setPos({x:e.clientX-dOff.current.x, y:e.clientY-dOff.current.y}) }
-    const up   = () => { dragging.current = false }
+    const move = (e: MouseEvent) => { if (!dragging.current) return; setPos({x:e.clientX-dOff.current.x-offset.x, y:e.clientY-dOff.current.y-offset.y}) }
+    const up   = () => {
+      const wasDragging = dragging.current
+      dragging.current = false
+      if (wasDragging) emit()
+    }
     window.addEventListener('mousemove', move); window.addEventListener('mouseup', up)
     return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up) }
+  }, [emit, offset.x, offset.y])
+
+  useEffect(() => {
+    const move = (e: MouseEvent) => updateMagFromPointer(e.clientX, e.clientY)
+    window.addEventListener('mousemove', move, { passive: true })
+    window.addEventListener('blur', resetMag)
+    document.addEventListener('mouseleave', resetMag)
+    return () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('blur', resetMag)
+      document.removeEventListener('mouseleave', resetMag)
+    }
+  }, [updateMagFromPointer, resetMag])
+
+  useEffect(() => {
+    return () => {
+      if (pointerRafRef.current) cancelAnimationFrame(pointerRafRef.current)
+      if (magRafRef.current) cancelAnimationFrame(magRafRef.current)
+      if (magResetTimerRef.current) clearTimeout(magResetTimerRef.current)
+    }
   }, [])
 
   const outline = lit ? '1px solid #39ff14' : 'none'
   const shadow  = lit ? '0 0 14px rgba(57,255,20,0.35)' : 'none'
 
   return (
-    <div ref={domRef} onMouseDown={() => onFocus(id)} style={{ position:'absolute', left:pos.x, top:pos.y, width, minHeight:minH, background:'#e8e8e8', border:'1px solid rgba(255,255,255,0.25)', outline, boxShadow:shadow, zIndex, display:'flex', flexDirection:'column', transition:'outline 0.3s,box-shadow 0.3s' }}>
-      <div onMouseDown={onMD} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:lit?'rgba(57,255,20,0.1)':'rgba(0,0,0,0.06)', borderBottom:lit?'1px solid rgba(57,255,20,0.25)':'1px solid rgba(0,0,0,0.12)', cursor:'grab', flexShrink:0, userSelect:'none' }}>
+    <div ref={domRef} data-ai-node={id} onMouseDown={() => onFocus(id)} style={{ position:'absolute', left:pos.x+offset.x, top:pos.y+offset.y, width, minHeight:minH, background:'#e8e8e8', border:'1px solid rgba(255,255,255,0.25)', outline, boxShadow:shadow, zIndex, display:'flex', flexDirection:'column', transform:'translate3d(var(--ai-mx,0px),var(--ai-my,0px),0)', transition:animateLayout?'left 0.28s ease,top 0.28s ease,width 0.28s ease,outline 0.3s,box-shadow 0.3s':'outline 0.3s,box-shadow 0.3s', willChange:'transform' }}>
+      <div onMouseDown={onMD} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:'rgba(0,0,0,0.06)', borderBottom:'1px solid rgba(0,0,0,0.12)', cursor:'grab', flexShrink:0, userSelect:'none' }}>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#27ca40', flexShrink:0}}/>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#ffbd2e', flexShrink:0}}/>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#ff5f56', flexShrink:0}}/>
-        <span onMouseEnter={scramble} style={{ marginLeft:6, color:lit?'#39ff14':'#111', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:BORNA, flex:1, cursor:'grab', fontWeight:lit?700:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{disp}</span>
-        {lit && <span style={{ width:8, height:8, borderRadius:'50%', background:'#39ff14', boxShadow:'0 0 8px #39ff14', display:'inline-block', animation:'aiBlink 0.8s infinite', flexShrink:0 }}/>}
+        <span onMouseEnter={scramble} style={{ marginLeft:6, color:'#111', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:BORNA, flex:1, cursor:'grab', fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{disp}</span>
       </div>
       <div style={{ flex:1 }}>{children}</div>
     </div>
@@ -348,24 +462,28 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
 }
 
 // ─── ExpandCard ───────────────────────────────────────────────────────────────
-function ExpandCard({ text, tags, hint, lang }: { text: string; tags?: string[]; hint: string; lang: Lang }) {
+function ExpandCard({ text, tags, hint, onOpenChange }: { text: string; tags?: string[]; hint: string; onOpenChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(false)
   const tS: React.CSSProperties = { background:'rgba(0,0,0,0.08)', border:'1px solid rgba(0,0,0,0.2)', color:'#000', fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', padding:'4px 9px', fontFamily:BORNA, display:'inline-block', fontWeight:600 }
+
+  const setHoverOpen = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen)
+    onOpenChange?.(nextOpen)
+  }, [onOpenChange])
+
   return (
-    <div style={{ padding:'10px 12px', fontFamily:BORNA, fontSize:11, color:'#111', lineHeight:1.6, fontWeight:500 }}>
-      {!open
-        ? <div style={{ cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }} onClick={() => setOpen(true)}>
-            <span style={{ opacity:0.7, fontSize:11, color:'#111', fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1 }}>{hint}</span>
-            <span className="ai-open-btn" style={{ color:'#fff', background:'#000', fontSize:10, padding:'4px 10px', whiteSpace:'nowrap', letterSpacing:'0.1em', fontFamily:BORNA, fontWeight:700, flexShrink:0, display:'inline-block', cursor:'pointer' }}>
-              [ {lang==='de'?'ÖFFNEN':'OPEN'} ]
-            </span>
-          </div>
-        : <div>
-            <div style={{ cursor:'pointer', color:'rgba(0,0,0,0.35)', fontSize:9, textAlign:'right', marginBottom:8 }} onClick={() => setOpen(false)}>▼ {lang==='de'?'SCHLIEẞEN':'CLOSE'}</div>
-            <p style={{ margin:'0 0 12px' }}>{text}</p>
-            {tags && <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>{tags.map((t,i) => <span key={i} style={tS}>{t}</span>)}</div>}
-          </div>
-      }
+    <div
+      onMouseEnter={() => setHoverOpen(true)}
+      onMouseLeave={() => setHoverOpen(false)}
+      style={{ padding:'11px 12px', fontFamily:BORNA, fontSize:11, color:'#111', lineHeight:1.6, fontWeight:500, cursor:'none', overflow:'hidden' }}
+    >
+      <div style={{ display:'grid', gap:5 }}>
+        <span style={{ opacity:open?1:0.82, fontSize:12, color:'#111', fontWeight:700, lineHeight:1.25, transition:'opacity 0.22s ease' }}>{hint}</span>
+      </div>
+      <div style={{ maxHeight:open?260:0, opacity:open?1:0, transform:open?'translateY(0)':'translateY(-6px)', overflow:'hidden', transition:'max-height 0.36s cubic-bezier(0.22,1,0.36,1), opacity 0.2s ease, transform 0.28s ease' }}>
+        <p style={{ margin:'9px 0 12px' }}>{text}</p>
+        {tags && <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>{tags.map((t,i) => <span key={i} style={tS}>{t}</span>)}</div>}
+      </div>
     </div>
   )
 }
@@ -378,9 +496,16 @@ export function AISection() {
   const outerRef   = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLElement>(null)
   const canvasRef  = useRef<HTMLCanvasElement>(null)
+  const upscaleCanvasRef = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const rafRef     = useRef(0)
-  const curImgIdx  = useRef(0)
+  const upscaleDragCleanupRef = useRef<(() => void) | null>(null)
+  const upscaleIntroRafRef = useRef(0)
+  const outpaintGuideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const videoFakeLoadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoGenerateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const curImgIdx  = useRef(INITIAL_AI_IMAGE_INDEX)
+  const initialImageDrawnRef = useRef(false)
   const shuffledQueue = useRef<number[]>([])
 
   const [mounted,  setMounted]  = useState(false)
@@ -389,16 +514,225 @@ export function AISection() {
   const [nearViewport, setNearViewport] = useState(false)
   const [phase,    setPhase]    = useState(0)
   const [ports,    setPorts]    = useState<PortMap>({})
+  const [expandedNode, setExpandedNode] = useState<string | null>(null)
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('1:1')
+  const [pendingOutputFormat, setPendingOutputFormat] = useState<OutputFormat>('1:1')
+  const [outputModes, setOutputModes] = useState<OutputMode[]>([])
+  const [hoveredControl, setHoveredControl] = useState<string | null>(null)
+  const [upscaleSplit, setUpscaleSplit] = useState(0.5)
+  const [upscaleHandleHovered, setUpscaleHandleHovered] = useState(false)
+  const [upscaleDragging, setUpscaleDragging] = useState(false)
+  const [upscaleIntroActive, setUpscaleIntroActive] = useState(false)
+  const [outpaintGuideVisible, setOutpaintGuideVisible] = useState(false)
+  const [videoReady, setVideoReady] = useState(false)
   // VW/VH measured from the actual section element – consistent across environments
   const [dims, setDims] = useState<{w:number,h:number}|null>(null)
   const [zOrders, setZOrders] = useState<Record<string,number>>(
-    Object.fromEntries(['generate','prompt','erfahrung','vision','upscale','denoise','terminal','progress','preview','spinner'].map((id,i) => [id, 10+i]))
+    Object.fromEntries(['generate','prompt','erfahrung','vision','upscale','modes','terminal','progress','preview'].map((id,i) => [id, NODE_Z_BASE+i]))
   )
-  const [seed, setSeed] = useState(42667)
-  const steps = 28
-  const autoGenerateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { isMobile, width, visualHeight } = useMobile()
   const { scrollY, vh: scrollVh } = useScroll()
+  const isOutpaintMode = outputModes.includes('OUTPAINT')
+  const isUpscaleMode = outputModes.includes('UPSCALE')
+  const isVideoMode = outputModes.includes('VIDEO')
+  const outputAspect = outputFormat === '16:9' ? '16/9' : outputFormat === '3:4' ? '3/4' : '1/1'
+  const outputAspectValue = outputFormat === '16:9' ? 16/9 : outputFormat === '3:4' ? 3/4 : 1
+  const outputDefaultWidth = 470
+  const outputBaseWidth = outputFormat === '16:9' ? 620 : outputDefaultWidth
+  const outputFullImageWidth = outputBaseWidth + 80
+  const outputShowsFullImage = isOutpaintMode
+  const outputWinWidth = outputShowsFullImage ? outputFullImageWidth : outputBaseWidth
+  const outputRevealDelta = outputWinWidth - outputBaseWidth
+  const outputFormatOffset = {
+    x: outputFormat === '16:9' ? -(outputBaseWidth - outputDefaultWidth) : 0,
+    y: outputFormat === '3:4' ? -(outputBaseWidth / outputAspectValue - outputDefaultWidth) : 0,
+  }
+  const outputWindowOffset = {
+    x: outputFormatOffset.x - outputRevealDelta / 2,
+    y: outputFormatOffset.y - (outputRevealDelta / outputAspectValue) / 2,
+  }
+  const outputShellHeight = (outputWinWidth - 2) / outputAspectValue
+  const previewFrameWidth = `${outputFullImageWidth}px`
+  const outputOriginalFrameWidth = outputBaseWidth - 2
+  const outpaintGuideInsetX = (outputFullImageWidth - outputOriginalFrameWidth) / 2
+  const outpaintGuideInsetY = outpaintGuideInsetX / outputAspectValue
+  const outpaintGuideInset = `${outpaintGuideInsetY}px ${outpaintGuideInsetX}px`
+  const outputPixelSize = isUpscaleMode ? 0 : 3
+  const upscalePixelReveal = Math.max(0.001, 1 - upscaleSplit)
+
+  const drawUpscalePixelCanvas = useCallback(() => {
+    const cv = upscaleCanvasRef.current, pv = previewRef.current
+    if (!cv || !pv || !pv.offsetWidth) return
+    cv.width = pv.offsetWidth
+    cv.height = pv.offsetHeight
+    const img = getAiImage(curImgIdx.current)
+    if (img.complete && img.naturalWidth > 0) {
+      drawToCanvas(cv, img, 1, 3)
+      return
+    }
+    ensureLoaded(img, AI_SRCS[curImgIdx.current]).then(loaded => {
+      const c2 = upscaleCanvasRef.current, p2 = previewRef.current
+      if (c2 && p2 && p2.offsetWidth) {
+        c2.width = p2.offsetWidth
+        c2.height = p2.offsetHeight
+        drawToCanvas(c2, loaded, 1, 3)
+      }
+    })
+  }, [])
+
+  const setUpscaleSplitFromClientX = useCallback((clientX: number) => {
+    const el = previewRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    setUpscaleSplit(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)))
+  }, [])
+
+  const cancelUpscaleIntro = useCallback(() => {
+    if (upscaleIntroRafRef.current) {
+      cancelAnimationFrame(upscaleIntroRafRef.current)
+      upscaleIntroRafRef.current = 0
+    }
+    setUpscaleIntroActive(false)
+  }, [])
+
+  const endUpscaleDrag = useCallback(() => {
+    if (upscaleDragCleanupRef.current) {
+      upscaleDragCleanupRef.current()
+      upscaleDragCleanupRef.current = null
+    }
+    setUpscaleDragging(false)
+    setUpscaleHandleHovered(false)
+  }, [])
+
+  const beginUpscaleDrag = useCallback((clientX: number) => {
+    cancelUpscaleIntro()
+    if (upscaleDragCleanupRef.current) upscaleDragCleanupRef.current()
+    setUpscaleDragging(true)
+    setUpscaleHandleHovered(true)
+    setUpscaleSplitFromClientX(clientX)
+    const move = (event: PointerEvent) => setUpscaleSplitFromClientX(event.clientX)
+    const mouseMove = (event: MouseEvent) => setUpscaleSplitFromClientX(event.clientX)
+    const end = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      window.removeEventListener('mousemove', mouseMove)
+      window.removeEventListener('mouseup', end)
+      upscaleDragCleanupRef.current = null
+      setUpscaleDragging(false)
+      setUpscaleHandleHovered(false)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+    window.addEventListener('mousemove', mouseMove)
+    window.addEventListener('mouseup', end)
+    upscaleDragCleanupRef.current = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      window.removeEventListener('mousemove', mouseMove)
+      window.removeEventListener('mouseup', end)
+    }
+  }, [cancelUpscaleIntro, setUpscaleSplitFromClientX])
+
+  useEffect(() => () => {
+    if (upscaleDragCleanupRef.current) upscaleDragCleanupRef.current()
+    if (upscaleIntroRafRef.current) cancelAnimationFrame(upscaleIntroRafRef.current)
+    if (outpaintGuideTimerRef.current) clearTimeout(outpaintGuideTimerRef.current)
+    if (videoFakeLoadTimerRef.current) clearTimeout(videoFakeLoadTimerRef.current)
+  }, [])
+
+  useEffect(() => {
+    if (outpaintGuideTimerRef.current) {
+      clearTimeout(outpaintGuideTimerRef.current)
+      outpaintGuideTimerRef.current = null
+    }
+
+    if (isOutpaintMode) {
+      setOutpaintGuideVisible(true)
+      return
+    }
+
+    if (!outpaintGuideVisible) return
+
+    outpaintGuideTimerRef.current = setTimeout(() => {
+      outpaintGuideTimerRef.current = null
+      setOutpaintGuideVisible(false)
+    }, OUTPAINT_EXIT_MS)
+
+    return () => {
+      if (outpaintGuideTimerRef.current) {
+        clearTimeout(outpaintGuideTimerRef.current)
+        outpaintGuideTimerRef.current = null
+      }
+    }
+  }, [isOutpaintMode, outpaintGuideVisible])
+
+  useEffect(() => {
+    if (!isUpscaleMode) {
+      cancelUpscaleIntro()
+      return
+    }
+
+    if (upscaleIntroRafRef.current) cancelAnimationFrame(upscaleIntroRafRef.current)
+    const start = 0.035
+    const end = 0.5
+    const duration = 780
+    let startedAt: number | null = null
+
+    setUpscaleSplit(start)
+    setUpscaleIntroActive(true)
+
+    const tick = (now: number) => {
+      if (startedAt === null) startedAt = now
+      const t = Math.min(1, (now - startedAt) / duration)
+      const eased = Math.log1p(9 * t) / Math.log1p(9)
+      setUpscaleSplit(start + (end - start) * eased)
+
+      if (t < 1) {
+        upscaleIntroRafRef.current = requestAnimationFrame(tick)
+        return
+      }
+
+      upscaleIntroRafRef.current = 0
+      setUpscaleSplit(end)
+      setUpscaleIntroActive(false)
+    }
+
+    upscaleIntroRafRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (upscaleIntroRafRef.current) {
+        cancelAnimationFrame(upscaleIntroRafRef.current)
+        upscaleIntroRafRef.current = 0
+      }
+    }
+  }, [cancelUpscaleIntro, isUpscaleMode])
+
+  useEffect(() => {
+    if (videoFakeLoadTimerRef.current) {
+      clearTimeout(videoFakeLoadTimerRef.current)
+      videoFakeLoadTimerRef.current = null
+    }
+
+    if (!isVideoMode) {
+      setVideoReady(false)
+      return
+    }
+
+    setVideoReady(false)
+    videoFakeLoadTimerRef.current = setTimeout(() => {
+      videoFakeLoadTimerRef.current = null
+      setVideoReady(true)
+    }, VIDEO_FAKE_LOAD_MS)
+
+    return () => {
+      if (videoFakeLoadTimerRef.current) {
+        clearTimeout(videoFakeLoadTimerRef.current)
+        videoFakeLoadTimerRef.current = null
+      }
+    }
+  }, [isVideoMode])
 
   useEffect(() => {
     const initFrame = requestAnimationFrame(() => {
@@ -434,6 +768,49 @@ export function AISection() {
   }, [mounted])
 
   useEffect(() => {
+    if (!mounted) return
+    if (initialImageDrawnRef.current) return
+    initialImageDrawnRef.current = true
+    curImgIdx.current = INITIAL_AI_IMAGE_INDEX
+    shuffledQueue.current = []
+
+    let cancelled = false
+    let frame = 0
+    const timers: ReturnType<typeof setTimeout>[] = []
+
+    const drawInitialImage = () => {
+      if (cancelled) return
+      const cv = canvasRef.current, pv = previewRef.current
+      if (!cv || !pv || !pv.offsetWidth) return
+      cv.width = pv.offsetWidth
+      cv.height = pv.offsetHeight
+      const img = getAiImage(INITIAL_AI_IMAGE_INDEX)
+      if (img.complete && img.naturalWidth > 0) {
+        drawToCanvas(cv, img, 1, 3)
+        return
+      }
+      ensureLoaded(img, AI_SRCS[INITIAL_AI_IMAGE_INDEX]).then(loaded => {
+        if (cancelled) return
+        const c2 = canvasRef.current, p2 = previewRef.current
+        if (c2 && p2 && p2.offsetWidth) {
+          c2.width = p2.offsetWidth
+          c2.height = p2.offsetHeight
+          drawToCanvas(c2, loaded, 1, 3)
+        }
+      })
+    }
+
+    frame = requestAnimationFrame(() => requestAnimationFrame(drawInitialImage))
+    timers.push(setTimeout(drawInitialImage, 120), setTimeout(drawInitialImage, 500))
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frame)
+      timers.forEach(clearTimeout)
+    }
+  }, [mounted])
+
+  useEffect(() => {
     if (!nearViewport) return
     const timers = AI_SRCS.map((_, index) => window.setTimeout(() => {
       getAiImage(index)
@@ -447,20 +824,27 @@ export function AISection() {
       const cv = canvasRef.current, pv = previewRef.current
       if (!cv || !pv || !pv.offsetWidth) return
       cv.width = pv.offsetWidth; cv.height = pv.offsetHeight
-      const img = getAiImage(0)
+      const img = getAiImage(curImgIdx.current)
       if (img.complete && img.naturalWidth > 0) {
-        drawToCanvas(cv, img, 1, 1)
+        drawToCanvas(cv, img, 1, outputPixelSize)
       } else {
-        ensureLoaded(img, AI_SRCS[0]).then(loaded => {
+        ensureLoaded(img, AI_SRCS[curImgIdx.current]).then(loaded => {
           const c2 = canvasRef.current, p2 = previewRef.current
-          if (c2 && p2 && p2.offsetWidth) { c2.width = p2.offsetWidth; c2.height = p2.offsetHeight; drawToCanvas(c2, loaded, 1, 1) }
+          if (c2 && p2 && p2.offsetWidth) { c2.width = p2.offsetWidth; c2.height = p2.offsetHeight; drawToCanvas(c2, loaded, 1, outputPixelSize) }
         })
       }
     }
     const t1 = setTimeout(tryDraw, 80)
     const t2 = setTimeout(tryDraw, 500)
     return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [mounted, nearViewport])
+  }, [mounted, nearViewport, outputAspect, outputModes, outputPixelSize])
+
+  useEffect(() => {
+    if (!isUpscaleMode) return
+    const t1 = setTimeout(drawUpscalePixelCanvas, 80)
+    const t2 = setTimeout(drawUpscalePixelCanvas, 360)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [drawUpscalePixelCanvas, outputAspect, isUpscaleMode, phase])
 
   useEffect(() => {
     const el = outerRef.current; if (!el) return
@@ -478,11 +862,55 @@ export function AISection() {
   }, [])
 
   const onFocus = useCallback((id: string) => {
-    setZOrders(p => { const max = Math.max(...Object.values(p))+1; return {...p,[id]:max} })
+    setZOrders(p => {
+      const ordered = Object.entries(p)
+        .filter(([key]) => key !== id)
+        .sort((a, b) => a[1] - b[1])
+      const next: Record<string, number> = {}
+      ordered.forEach(([key], index) => { next[key] = NODE_Z_BASE + index })
+      next[id] = NODE_Z_CLICK
+      return next
+    })
   }, [])
+
+  const onExpandChange = useCallback((id: string, open: boolean) => {
+    setExpandedNode(current => open ? id : current === id ? null : current)
+  }, [])
+
+  const toggleOutputMode = useCallback((mode: OutputMode) => {
+    if (isActive) return
+    if (mode === 'VIDEO') {
+      setOutpaintGuideVisible(false)
+      cancelUpscaleIntro()
+      endUpscaleDrag()
+    } else {
+      setVideoReady(false)
+    }
+    setOutputModes(current => {
+      if (mode === 'VIDEO') return current.includes('VIDEO') ? [] : ['VIDEO']
+      const imageModes = current.filter(item => item !== 'VIDEO')
+      return imageModes.includes(mode) ? imageModes.filter(item => item !== mode) : [...imageModes, mode]
+    })
+  }, [cancelUpscaleIntro, endUpscaleDrag, isActive])
+
+  const onPromptExpandChange = useCallback((open: boolean) => onExpandChange('prompt', open), [onExpandChange])
+  const onWorkflowExpandChange = useCallback((open: boolean) => onExpandChange('erfahrung', open), [onExpandChange])
+  const onDirectionExpandChange = useCallback((open: boolean) => onExpandChange('vision', open), [onExpandChange])
+
+  useEffect(() => {
+    document.body.classList.toggle('ai-expand-hover', expandedNode !== null)
+    return () => document.body.classList.remove('ai-expand-hover')
+  }, [expandedNode])
 
   const generate = useCallback(() => {
     if (isActive) return
+    const generationPixelSize = 3
+    setOutputFormat(pendingOutputFormat)
+    setOutputModes([])
+    setVideoReady(false)
+    setOutpaintGuideVisible(false)
+    cancelUpscaleIntro()
+    endUpscaleDrag()
     if (shuffledQueue.current.length === 0) {
       const indices = Array.from({length: AI_SRCS.length}, (_, i) => i).filter(i => i !== curImgIdx.current)
       for (let k = indices.length - 1; k > 0; k--) {
@@ -493,10 +921,9 @@ export function AISection() {
     }
     const nextIdx = shuffledQueue.current.pop()!
     curImgIdx.current = nextIdx
-    setSeed(Math.floor(Math.random() * 999999))
     setIsActive(true); setPhase(0)
 
-    const TOTAL = 5000
+    const TOTAL = GENERATION_SIM_MS
     let t0: number | null = null, lastPhaseSet = 0
 
     const cv = canvasRef.current, pv = previewRef.current
@@ -521,9 +948,9 @@ export function AISection() {
           canvas.width = pvEl.offsetWidth || 470; canvas.height = pvEl.offsetHeight || 470
         }
         if (canvas.width > 0 && canvas.height > 0) {
-          // Quadratic pixel decay: chunky most of the time, fast sharp at end
+          // Quadratic pixel decay: chunky most of the time, then lands on the selected output quality.
           const tShift = Math.max(0, (0.96 - t) / 0.96)
-          const pixelSize = Math.max(1, 40 * Math.pow(tShift, 1.4))
+          const pixelSize = Math.max(generationPixelSize, 40 * Math.pow(tShift, 1.4))
           const opacity = t
           if (img.complete && img.naturalWidth > 0) {
             drawToCanvas(canvas, img, opacity, pixelSize)
@@ -537,43 +964,38 @@ export function AISection() {
         const cv2 = canvasRef.current, pv2 = previewRef.current
         if (cv2 && pv2) {
           cv2.width = pv2.offsetWidth||470; cv2.height = pv2.offsetHeight||470
-          if (img.complete && img.naturalWidth > 0) { drawToCanvas(cv2, img, 1, 1) }
-          else { img.onload = () => { const c=canvasRef.current,p=previewRef.current; if(c&&p){c.width=p.offsetWidth||470;c.height=p.offsetHeight||470;drawToCanvas(c,img,1,1)} } }
+          if (img.complete && img.naturalWidth > 0) { drawToCanvas(cv2, img, 1, generationPixelSize) }
+          else { img.onload = () => { const c=canvasRef.current,p=previewRef.current; if(c&&p){c.width=p.offsetWidth||470;c.height=p.offsetHeight||470;drawToCanvas(c,img,1,generationPixelSize)} } }
         }
         setPhase(0); setIsActive(false)
       }
     }
     rafRef.current = requestAnimationFrame(tick)
-  }, [isActive])
+  }, [cancelUpscaleIntro, endUpscaleDrag, isActive, pendingOutputFormat])
 
-  // Auto-generate after 10 seconds of inactivity
   useEffect(() => {
-    if (!mounted || !nearViewport) return
-
-    const startAutoTimer = () => {
-      if (autoGenerateTimerRef.current) {
-        clearTimeout(autoGenerateTimerRef.current)
-      }
-      autoGenerateTimerRef.current = setTimeout(() => {
-        if (!isActive) {
-          generate()
-        }
-      }, 10000)
+    if (autoGenerateTimerRef.current) {
+      clearTimeout(autoGenerateTimerRef.current)
+      autoGenerateTimerRef.current = null
     }
+    if (!mounted || !nearViewport || isActive || outputModes.length > 0) return
 
-    // Start timer on mount and after each generation completes
-    if (!isActive) {
-      startAutoTimer()
-    }
+    autoGenerateTimerRef.current = setTimeout(() => {
+      autoGenerateTimerRef.current = null
+      generate()
+    }, 10000)
 
     return () => {
       if (autoGenerateTimerRef.current) {
         clearTimeout(autoGenerateTimerRef.current)
+        autoGenerateTimerRef.current = null
       }
     }
-  }, [mounted, nearViewport, isActive, generate])
+  }, [generate, isActive, mounted, nearViewport, outputModes.length])
 
   const wLit = (seg: number) => isActive && phase >= seg / SEG_N
+  const currentStage = STAGES.find(s => phase >= s.start && phase < s.end)
+  const activeStageLabel = currentStage?.label === 'MODES' && outputModes.length === 0 ? 'OUTPUT REVIEW' : currentStage?.label ?? 'OUTPUT READY'
 
   // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
@@ -602,7 +1024,7 @@ export function AISection() {
         <div style={{ position:'relative', zIndex:3, height:'100%', boxSizing:'border-box', padding:'20vw 5vw 5vw', display:'flex', flexDirection:'column', justifyContent:'space-between', gap: 12, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
           <NeonHeading/>
           
-          {/* ═══ AI GENERATOR INTERFACE ═══ */}
+          {/* ═══ ARTISTIC INTELLIGENCE INTERFACE ═══ */}
           <div style={{ position: 'relative', background: '#111', border: '1px solid rgba(57,255,20,0.3)', overflow: 'hidden' }}>
             
             {/* Terminal Background Layer */}
@@ -639,19 +1061,6 @@ export function AISection() {
             }}>
               <canvas ref={canvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }}/>
               
-              {/* Scanlines overlay */}
-              <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'repeating-linear-gradient(0deg,rgba(0,0,0,0.08) 0px,rgba(0,0,0,0.08) 1px,transparent 1px,transparent 3px)', zIndex:3 }}/>
-              
-              {/* Corner brackets */}
-              {([{top:8,left:8},{top:8,right:8},{bottom:8,left:8},{bottom:8,right:8}] as const).map((s,i) => (
-                <div key={i} style={{ position:'absolute', ...s, width:16, height:16,
-                  borderTop:   i<2  ? `2px solid ${isActive ? '#39ff14' : 'rgba(57,255,20,0.4)'}` : 'none',
-                  borderBottom:i>=2 ? `2px solid ${isActive ? '#39ff14' : 'rgba(57,255,20,0.4)'}` : 'none',
-                  borderLeft:  i%2===0 ? `2px solid ${isActive ? '#39ff14' : 'rgba(57,255,20,0.4)'}` : 'none',
-                  borderRight: i%2===1 ? `2px solid ${isActive ? '#39ff14' : 'rgba(57,255,20,0.4)'}` : 'none',
-                  zIndex:4, transition: 'border-color 0.3s' }}/>
-              ))}
-              
               {/* Progress ring overlay when generating */}
               {isActive && (
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 5 }}>
@@ -666,27 +1075,9 @@ export function AISection() {
                 </div>
               )}
               
-              {/* Status bar */}
-              <div style={{ 
-                position: 'absolute', 
-                bottom: 0, 
-                left: 0, 
-                right: 0, 
-                padding: '8px 12px',
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                zIndex: 4 
-              }}>
-                <span style={{ color: isActive ? '#39ff14' : 'rgba(255,255,255,0.5)', fontSize: 9, fontFamily: MONO }}>
-                  {isActive ? `► ${STAGES.find(s=>phase>=s.start&&phase<s.end)?.label ?? 'COMPLETE'}` : 'READY'}
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontFamily: MONO }}>SEED:{seed}</span>
-              </div>
             </div>
             
-            {/* Generate Button */}
+            {/* Workflow Button */}
             <button onClick={() => generate()} disabled={isActive}
               style={{ 
                 display: 'block',
@@ -703,14 +1094,14 @@ export function AISection() {
                 textTransform: 'uppercase',
                 transition: 'all 0.3s'
               }}>
-              {isActive ? '◈ GENERATING...' : '[ GENERATE ]'}
+              {isActive ? '◈ GENERATING' : '[ GENERATE ]'}
             </button>
           </div>
           
           {/* ═══ INFO CARDS ═══ */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             
-            {/* ERFAHRUNG Card */}
+            {/* WORKFLOW Card */}
             <div style={{ background: '#0d0d0d', border: '1px solid rgba(57,255,20,0.2)' }}>
               <div style={{ 
                 padding: '7px 10px', 
@@ -721,7 +1112,7 @@ export function AISection() {
               }}>
                 <span style={{ color: '#39ff14', fontSize: 10 }}>◈</span>
                 <span style={{ color: '#fff', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: BORNA, fontWeight: 600 }}>
-                  {lang==='de'?'ERFAHRUNG':'EXPERIENCE'}
+                  {lang==='de'?'WORKFLOW':'WORKFLOW'}
                 </span>
               </div>
               <div style={{ padding: '8px 10px' }}>
@@ -731,7 +1122,7 @@ export function AISection() {
                     :'I constantly test the latest tools like Sora and Kling, building my own local workflows. Using ComfyUI, N8N and targeted LoRA training, I create image and video.'}
                 </p>
                 <div style={{ display: 'none', flexWrap: 'wrap', gap: 6 }}>
-                  {['ComfyUI','LoRA','N8N','Sora','Kling','Deepfakes'].map((t,i) => (
+                  {['ComfyUI','LoRA','N8N','Sora','Kling','Synthetic Media'].map((t,i) => (
                     <span key={i} style={{ 
                       background: 'rgba(57,255,20,0.1)', 
                       border: '1px solid rgba(57,255,20,0.3)', 
@@ -775,32 +1166,36 @@ export function AISection() {
 
   // ── Desktop ───────────────────────────────────────────────────────────────
   const cs: React.CSSProperties = { padding:'10px 12px', color:'#111', fontSize:11, lineHeight:1.6, fontFamily:BORNA, fontWeight:500 }
+  const controlNodeWidth = 192
+  const controlButtonBase: React.CSSProperties = { height:30, padding:'0 10px', border:'1px solid rgba(0,0,0,0.18)', fontFamily:BORNA, fontSize:10, lineHeight:1, fontWeight:800, letterSpacing:'0.08em', textAlign:'left', cursor:'pointer', textTransform:'uppercase' }
 
   // ─── Fenster-Positionen ────────────────────────────────────────────────────
   // VW/VH = section.offsetWidth/Height (gemessen, nicht window)
   // Spalten X: VW * 0.XX | Zeilen Y: VH * 0.XX
   // +0.01 ≈ +14px rechts (bei 1440px) / +9px unten (bei 900px)
-  const C1 = Math.round(VW * 0.106)   // GENERATE + LATENT SAMPLER
-  const C2 = Math.round(VW * 0.284)   // ERFAHRUNG + VISION
-  const C3 = Math.round(VW * 0.541)   // UPSCALE + DENOISE
-  const C4 = Math.round(VW * 0.489)   // TERMINAL
-  const C5 = Math.round(VW * 0.784)   // PIPELINE STATUS
+  const C1 = Math.round(VW * 0.088)   // GENERATE + PROMPT DESIGN
+  const C2 = Math.round(VW * 0.286)   // WORKFLOW + VISION
+  const C3 = Math.round(VW * 0.494)   // FORMAT + MODES
+  const C4 = Math.round(VW * 0.494)   // TERMINAL
+  const C5 = Math.round(VW * 0.764)   // PROGRESS
 
-  const TERM_TOP   = Math.round(VH * 0.152)  // TERMINAL + PIPELINE + SPINNER (oben)
-  const PROMPT_TOP = Math.round(VH * 0.502)  // LATENT SAMPLER
-  const GEN_TOP    = Math.round(VH * 0.611)  // GENERATE
-  const ERF_TOP    = Math.round(VH * 0.469)  // ERFAHRUNG
-  const VIS_TOP    = Math.round(VH * 0.589)  // VISION
-  const UPS_TOP    = Math.round(VH * 0.493)  // UPSCALE
-  const DEN_TOP    = Math.round(VH * 0.574)  // DENOISE
-  const SPIN_TOP   = Math.round(VH * 0.686)  // PROZESSOR
-  const PREV_TOP   = Math.round(VH * 0.328)  // PREVIEW
+  const TERM_TOP     = Math.round(VH * 0.151)  // TERMINAL + PIPELINE (oben)
+  const PROGRESS_TOP = Math.round(VH * 0.214)  // PROGRESS
+  const GEN_TOP      = Math.round(VH * 0.532)  // GENERATE
+  const PROMPT_TOP   = Math.max(Math.round(VH * 0.680), GEN_TOP + 126)  // PROMPT DESIGN
+  const ERF_TOP      = Math.round(VH * 0.521)  // WORKFLOW
+  const VIS_TOP      = Math.max(Math.round(VH * 0.661), ERF_TOP + 118)  // VISION
+  const UPS_TOP      = Math.round(VH * 0.495)  // FORMAT
+  const MODES_TOP    = Math.max(Math.round(VH * 0.702), UPS_TOP + 171)  // MODES
+  const PREV_TOP   = Math.round(VH * 0.328)  // OUTPUT
+  const PREV_LEFT  = Math.max(Math.round(VW * 0.638), C3 + controlNodeWidth + 6)
 
   return (
     <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:40, height:'240vh', marginTop:'-420vh' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes scanln{0%{top:-2px}100%{top:100%}}
+        @keyframes aiOutpaintGrow{0%{inset:44px;opacity:0.35}45%{opacity:0.85}100%{inset:9px;opacity:1}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes spinReverse{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}
         @font-face{font-family:'Borna';src:url('/fonts/Borna-Medium.otf') format('opentype');font-weight:500;font-display:swap}
@@ -809,13 +1204,16 @@ export function AISection() {
         .ai-gen-btn:active{transform:scale(0.91)!important;transition:transform 0.07s}
         .ai-gen-btn:hover{transform:scale(0.96);transition:transform 0.12s}
         .ai-gen-btn-active{transform:none}
-        .ai-open-btn:active{transform:scale(0.88)!important;transition:transform 0.07s}
-        .ai-open-btn:hover{transform:scale(0.93);transition:transform 0.12s}
+        .ai-format-btn,.ai-mode-btn{transition:background-color 0.16s ease,color 0.16s ease,border-color 0.16s ease,transform 0.12s ease,box-shadow 0.16s ease;transform-origin:center}
+        .ai-format-btn:hover,.ai-mode-btn:hover{transform:scale(0.96);border-color:rgba(0,0,0,0.48)!important;box-shadow:none}
+        .ai-format-btn:active,.ai-mode-btn:active{transform:scale(0.91)!important;box-shadow:none;transition:transform 0.07s}
+        .ai-mode-btn:disabled,.ai-mode-btn:disabled:hover,.ai-mode-btn:disabled:active{transform:none!important;box-shadow:none!important;cursor:default!important}
+        body.ai-expand-hover .custom-cursor{display:none!important;opacity:0!important;visibility:hidden!important}
       `}</style>
 
       <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', overflow:'hidden', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box' }}>
         <GridBg/>
-        <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP}/>
+        <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP} modeSelected={outputModes.length > 0}/>
 
         <div style={{ position:'absolute', inset:0, zIndex:5, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
 
@@ -823,9 +1221,11 @@ export function AISection() {
             <NeonHeading/>
           </div>
 
-          {/* LATENT SAMPLER */}
-          <Win id="prompt" title="LATENT SAMPLER" width={215} initPos={{x:C1, y:PROMPT_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.prompt} lit={wLit(0)}>
-            <div style={{...cs}}><div>SEED: <b>{seed}</b></div><div>CFG: <b>7.5</b> | STEPS: <b>{steps}</b></div></div>
+          {/* PROMPT DESIGN */}
+          <Win id="prompt" title="PROMPT DESIGN" width={245} initPos={{x:C1, y:PROMPT_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={expandedNode==='prompt'?NODE_Z_EXPANDED:zOrders.prompt} lit={wLit(0)} freezePortY>
+            <ExpandCard hint={lang==='de'?'Aus einer Idee wird eine steuerbare Bildwelt.':'An idea becomes a controllable visual world.'}
+              text={lang==='de'?'Ich verstehe Prompt Design als gestalterische Regie: Ziele, Markenhaltung, Stilreferenzen und Grenzen werden so präzise formuliert, dass KI nicht zufällig wirkt, sondern bewusst in eine visuelle Richtung geführt wird. Gute Prompts sind für mich kein Trick, sondern ein kompaktes Creative-Briefing.':'I understand prompt design as creative direction: goals, brand attitude, style references and constraints are formulated precisely enough that AI does not feel random, but is guided into a deliberate visual direction. Good prompts are not a trick to me, but a compact creative briefing.'}
+              onOpenChange={onPromptExpandChange}/>
           </Win>
 
           {/* GENERATE */}
@@ -839,61 +1239,126 @@ export function AISection() {
             </div>
           </Win>
 
-          {/* ERFAHRUNG */}
-          <Win id="erfahrung" title={lang==='de'?'ERFAHRUNG':'EXPERIENCE'} width={265} initPos={{x:C2, y:ERF_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.erfahrung} lit={wLit(1)}>
-            <ExpandCard lang={lang} hint="ComfyUI · LoRA · Sora · Deepfakes..."
-              text={lang==='de'?'Ich teste stets die neuesten Tools wie Sora oder Kling und baue daraus eigene lokale Workflows. Mit ComfyUI, N8N und gezieltem LoRA-Training erschaffe ich Bild und Video. Auch Deepfakes nutze ich vielseitig für neue Dimensionen der digitalen Inszenierung. Technik und Ästhetik verschmelzen hier zu meiner eigenen Sprache.':'I constantly test the latest tools like Sora and Kling, building my own local workflows. Using ComfyUI, N8N and targeted LoRA training, I create image and video. I also use deepfakes for new dimensions of digital staging. Technology and aesthetics merge into my own language.'}
-              tags={['ComfyUI','LoRA-Training','N8N','Sora','Kling','Deepfakes','Python','Next.js','Automatisierung','Postproduktion']}/>
+          {/* WORKFLOW */}
+          <Win id="erfahrung" title="WORKFLOW" width={265} initPos={{x:C2, y:ERF_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={expandedNode==='erfahrung'?NODE_Z_EXPANDED:zOrders.erfahrung} lit={wLit(1)} freezePortY>
+            <ExpandCard hint={lang==='de'?'Tools werden zu einem wiederholbaren Produktionssystem.':'Tools become a repeatable production system.'}
+              text={lang==='de'?'Ich teste stets die neuesten Tools wie Sora oder Kling und baue daraus eigene lokale Workflows. Mit ComfyUI, N8N und gezieltem LoRA-Training erschaffe ich Bild und Video. Auch Synthetic-Media-Workflows nutze ich vielseitig für neue Dimensionen der digitalen Inszenierung. Technik und Ästhetik verschmelzen hier zu meiner eigenen Sprache.':'I constantly test the latest tools like Sora and Kling, building my own local workflows. Using ComfyUI, N8N and targeted LoRA training, I create image and video. I also use synthetic media workflows for new dimensions of digital staging. Technology and aesthetics merge into my own language.'}
+              onOpenChange={onWorkflowExpandChange}/>
           </Win>
 
           {/* VISION */}
-          <Win id="vision" title="VISION" width={250} initPos={{x:C2, y:VIS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.vision} lit={wLit(1)}>
-            <ExpandCard lang={lang} hint={lang==='de'?'KI als neues Medium...':'AI as a new medium...'}
-              text={lang==='de'?'KI ist für mich kein bloßes Werkzeug, sondern ein neues Medium der Inspiration. Als Pionier der ersten Stunde nutze ich die generative Kraft, um meine künstlerische Ausdruckskraft zu schärfen und Visionen präziser greifbar zu machen. Es ist die Suche nach der perfekten Symbiose aus Mensch und Maschine.':'AI is not merely a tool for me, but a new medium of inspiration. As an early adopter, I use generative power to sharpen my artistic expression and make visions more precisely tangible. It is the search for the perfect symbiosis of human and machine.'}/>
+          <Win id="vision" title="VISION" width={250} initPos={{x:C2, y:VIS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={expandedNode==='vision'?NODE_Z_EXPANDED:zOrders.vision} lit={wLit(1)} freezePortY>
+            <ExpandCard hint={lang==='de'?'KI erweitert meine Handschrift, sie ersetzt sie nicht.':'AI extends my voice; it does not replace it.'}
+              text={lang==='de'?'KI ist für mich kein bloßes Werkzeug, sondern ein neues Medium der Inspiration. Als Pionier der ersten Stunde nutze ich die generative Kraft, um meine künstlerische Ausdruckskraft zu schärfen und Visionen präziser greifbar zu machen. Es ist die Suche nach der perfekten Symbiose aus Mensch und Maschine.':'AI is not merely a tool for me, but a new medium of inspiration. As an early adopter, I use generative power to sharpen my artistic expression and make visions more precisely tangible. It is the search for the perfect symbiosis of human and machine.'} onOpenChange={onDirectionExpandChange}/>
           </Win>
 
-          {/* UPSCALE */}
-          <Win id="upscale" title="UPSCALE 4x" width={160} initPos={{x:C3, y:UPS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.upscale} lit={wLit(2)}>
-            <div style={{...cs}}><div style={{whiteSpace:'nowrap'}}>REALESRGAN v3.2</div></div>
+          {/* FORMAT */}
+          <Win id="upscale" title="FORMAT" width={controlNodeWidth} initPos={{x:C3, y:UPS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={Math.max(zOrders.upscale, NODE_Z_CONTROL)} lit={wLit(2)}>
+            <div style={{...cs, display:'grid', gridTemplateColumns:'1fr', gap:6}}>
+              {FORMAT_OPTIONS.map(ratio => (
+                <button
+                  key={ratio}
+                  type="button"
+                  className="ai-format-btn"
+                  aria-pressed={pendingOutputFormat===ratio}
+                  onPointerEnter={() => setHoveredControl(`format-${ratio}`)}
+                  onPointerLeave={() => setHoveredControl(null)}
+                  onMouseOver={() => setHoveredControl(`format-${ratio}`)}
+                  onMouseEnter={() => setHoveredControl(`format-${ratio}`)}
+                  onMouseLeave={() => setHoveredControl(null)}
+                  onClick={() => setPendingOutputFormat(ratio)}
+                  style={{ ...controlButtonBase, background:pendingOutputFormat===ratio?'#000':'rgba(0,0,0,0.08)', color:pendingOutputFormat===ratio?'#fff':'#111', borderColor:hoveredControl===`format-${ratio}`?'rgba(0,0,0,0.48)':'rgba(0,0,0,0.18)', transform:hoveredControl===`format-${ratio}`?'scale(0.96)':'none' }}
+                >{ratio}</button>
+              ))}
+            </div>
           </Win>
 
-          {/* DENOISE */}
-          <Win id="denoise" title="DENOISE" width={160} initPos={{x:C3, y:DEN_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.denoise} lit={wLit(3)}>
-            <div style={{...cs}}><div style={{whiteSpace:'nowrap'}}>DPM++ · σ=0.{isActive?Math.round(phase*99).toString().padStart(2,'0'):'00'}</div></div>
-          </Win>
-
-          {/* SPINNER – top row, same height as terminal */}
-          <Win id="spinner" title="POZESSOR" width={165} initPos={{x:Math.round(VW*0.582), y:SPIN_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.spinner} lit={wLit(3)}>
-            <SpinnerContent isActive={isActive&&wLit(3)} phase={phase}/>
+          {/* MODES */}
+          <Win id="modes" title="MODES" width={controlNodeWidth} initPos={{x:C3, y:MODES_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={Math.max(zOrders.modes, NODE_Z_CONTROL_LOW)} lit={outputModes.length > 0 && wLit(3)}>
+            <div style={{...cs, display:'grid', gridTemplateColumns:'1fr', gap:6}}>
+              {OUTPUT_MODE_OPTIONS.map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  className="ai-mode-btn"
+                  aria-pressed={outputModes.includes(mode)}
+                  aria-disabled={isActive}
+                  disabled={isActive}
+                  onPointerEnter={() => setHoveredControl(`mode-${mode}`)}
+                  onPointerLeave={() => setHoveredControl(null)}
+                  onMouseOver={() => setHoveredControl(`mode-${mode}`)}
+                  onMouseEnter={() => setHoveredControl(`mode-${mode}`)}
+                  onMouseLeave={() => setHoveredControl(null)}
+                  onClick={() => toggleOutputMode(mode)}
+                  style={{ ...controlButtonBase, background:outputModes.includes(mode)?'#000':'rgba(0,0,0,0.08)', color:outputModes.includes(mode)?'#fff':'#111', borderColor:hoveredControl===`mode-${mode}`?'rgba(0,0,0,0.48)':'rgba(0,0,0,0.18)', cursor:isActive?'default':'pointer', opacity:isActive?0.42:1, transform:hoveredControl===`mode-${mode}` && !isActive?'scale(0.96)':'none' }}
+                >{mode}</button>
+              ))}
+            </div>
           </Win>
 
           {/* TERMINAL */}
-          <Win id="terminal" title="TERMINAL" width={390} initPos={{x:C4, y:TERM_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.terminal} lit={wLit(4)} minH={250}>
+          <Win id="terminal" title="WORKFLOW LOG" width={390} initPos={{x:C4, y:TERM_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.terminal} lit={wLit(4)} minH={250}>
             <div style={{ height:238, background:'#0d0d0d', overflow:'hidden' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang}/></div>
           </Win>
 
           {/* PROGRESS */}
-          <Win id="progress" title="PIPELINE STATUS" width={255} initPos={{x:C5, y:TERM_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.progress} lit={wLit(5)} minH={255}>
-            <div style={{ height:243, background:'#0d0d0d' }}><ProgressTerm phase={phase} isActive={isActive}/></div>
+          <Win id="progress" title="PROGRESS" width={205} initPos={{x:C5, y:PROGRESS_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.progress} lit={wLit(5)}>
+            <div style={{ height:42, background:'#0d0d0d' }}><ProgressTerm phase={phase} isActive={isActive}/></div>
           </Win>
 
-          {/* PREVIEW */}
-          <Win id="preview" title="PREVIEW" width={470} initPos={{x:Math.round(VW*0.644), y:PREV_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.preview} lit={wLit(6)}>
-            <div ref={previewRef} style={{ width:'100%', aspectRatio:'1/1', position:'relative', overflow:'hidden', background:'#111' }}>
-              <canvas ref={canvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }}/>
-              <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'repeating-linear-gradient(0deg,rgba(0,0,0,0.07) 0px,rgba(0,0,0,0.07) 1px,transparent 1px,transparent 3px)', zIndex:2 }}/>
-              {([{top:6,left:6},{top:6,right:6},{bottom:6,left:6},{bottom:6,right:6}] as const).map((s,i) => (
-                <div key={i} style={{ position:'absolute', ...s, width:14, height:14,
-                  borderTop:   i<2  ? '2px solid rgba(57,255,20,0.6)' : 'none',
-                  borderBottom:i>=2 ? '2px solid rgba(57,255,20,0.6)' : 'none',
-                  borderLeft:  i%2===0 ? '2px solid rgba(57,255,20,0.6)' : 'none',
-                  borderRight: i%2===1 ? '2px solid rgba(57,255,20,0.6)' : 'none',
-                  zIndex:3 }}/>
-              ))}
-              <div style={{ position:'absolute', bottom:6, left:10, right:10, display:'flex', justifyContent:'space-between', color:'rgba(255,255,255,0.4)', fontSize:9, fontFamily:MONO, zIndex:4 }}>
-                <span>{isActive ? '▓ ДЕКОДИРОВАНИЕ...' : 'NIKITA AI — COMFYUI v3'}</span>
-                <span>SEED:{seed}</span>
+          {/* OUTPUT */}
+          <Win id="preview" title="OUTPUT" width={outputWinWidth} initPos={{x:PREV_LEFT, y:PREV_TOP}} offset={outputWindowOffset} animateLayout onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.preview} lit={wLit(6)}>
+            <div style={{ width:'100%', height:outputShellHeight, position:'relative', overflow:'hidden', background:'#111', transition:'height 0.28s ease', boxSizing:'border-box' }}>
+              <div ref={previewRef} style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:previewFrameWidth, aspectRatio:outputAspect, overflow:'hidden', background:'#111' }}>
+                <canvas ref={canvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }}/>
+                {outpaintGuideVisible && <div data-ai-outpaint-guide style={{ position:'absolute', inset:outpaintGuideInset, border:'1px dashed rgba(255,255,255,0.76)', zIndex:5, pointerEvents:'none' }}/>} 
+              {isUpscaleMode && <>
+                  <div data-ai-mode-effect="upscale" style={{ position:'absolute', left:`${upscaleSplit*100}%`, right:0, top:0, bottom:0, overflow:'hidden', zIndex:3, pointerEvents:'none' }}>
+                    <canvas ref={upscaleCanvasRef} style={{ position:'absolute', right:0, top:0, width:`${100 / upscalePixelReveal}%`, height:'100%', display:'block', imageRendering:'pixelated' }}/>
+                  </div>
+                  <div
+                    data-ai-upscale-track
+                    role="slider"
+                    aria-label="Upscale comparison split"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(upscaleSplit * 100)}
+                    tabIndex={0}
+                    onPointerDown={(e) => { e.stopPropagation(); beginUpscaleDrag(e.clientX) }}
+                    onPointerMove={(e) => { if (e.buttons !== 1) return; setUpscaleSplitFromClientX(e.clientX) }}
+                    onPointerUp={endUpscaleDrag}
+                    onPointerCancel={endUpscaleDrag}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    style={{ position:'absolute', inset:0, zIndex:4, cursor:upscaleIntroActive?'default':'ew-resize', pointerEvents:upscaleIntroActive?'none':'auto', touchAction:'none', background:'transparent', outline:'none' }}
+                  />
+                  <div
+                    data-ai-upscale-line
+                    style={{ position:'absolute', left:`calc(${upscaleSplit*100}% - 13px)`, top:0, bottom:0, width:26, zIndex:5, pointerEvents:'none' }}
+                  >
+                    <div style={{ position:'absolute', left:12, top:0, bottom:0, width:2, background:'#fff' }}/>
+                    <div style={{ position:'absolute', left:4, top:'50%', transform:`translateY(-50%) scale(${upscaleDragging ? 1.14 : upscaleHandleHovered ? 1.08 : 1})`, width:18, height:38, background: upscaleDragging || upscaleHandleHovered ? 'rgba(57,255,20,0.16)' : 'rgba(0,0,0,0.62)', border:`1px solid ${upscaleDragging || upscaleHandleHovered ? 'rgba(57,255,20,0.92)' : 'rgba(255,255,255,0.62)'}`, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontFamily:MONO, fontSize:10, fontWeight:800, transition:'transform 0.16s ease,background 0.16s ease,border-color 0.16s ease' }}>||</div>
+                  </div>
+              </>} 
               </div>
+              {isVideoMode && <div data-ai-mode-effect="video" style={{ position:'absolute', inset:0, zIndex:6, pointerEvents:'none' }}>
+                {!videoReady ? (
+                  <div data-ai-video-loading style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:62, height:62, borderRadius:'50%', background:'rgba(0,0,0,0.52)', border:'1px solid rgba(255,255,255,0.34)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <div style={{ width:34, height:34, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.24)', borderTopColor:'#fff', animation:'spin 0.78s linear infinite' }}/>
+                  </div>
+                ) : <>
+                  <div data-ai-video-play style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:54, height:54, borderRadius:'50%', background:'rgba(0,0,0,0.62)', border:'1px solid rgba(255,255,255,0.68)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 18px rgba(0,0,0,0.55)' }}>
+                    <div style={{ width:0, height:0, borderTop:'10px solid transparent', borderBottom:'10px solid transparent', borderLeft:'16px solid #fff', marginLeft:4 }}/>
+                  </div>
+                  <div data-ai-video-timeline style={{ position:'absolute', left:12, right:12, bottom:12, height:36, background:'rgba(0,0,0,0.72)', border:'1px solid rgba(255,255,255,0.24)', display:'flex', alignItems:'center', gap:7, padding:'0 9px' }}>
+                    <div style={{ width:8, height:8, borderRadius:'50%', background:'#39ff14', boxShadow:'0 0 10px rgba(57,255,20,0.65)' }}/>
+                    <div style={{ flex:1, height:5, background:'rgba(255,255,255,0.2)', position:'relative', overflow:'hidden' }}>
+                      <div style={{ position:'absolute', left:0, top:0, bottom:0, width:'38%', background:'#fff' }}/>
+                      <div style={{ position:'absolute', left:'38%', top:-4, width:2, height:13, background:'#39ff14' }}/>
+                    </div>
+                    <div style={{ color:'#fff', fontFamily:MONO, fontSize:9, fontWeight:700 }}>00:04</div>
+                  </div>
+                </>}
+              </div>}
             </div>
           </Win>
 

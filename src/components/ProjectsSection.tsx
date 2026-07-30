@@ -15,19 +15,63 @@ const ALL_PROJECTS = [
 
 // Archive – nicht in der Fullscreen-Vorschau, aber Daten bleiben erhalten
 const ARCHIVED_PROJECTS = [
-  { id:4, title:{de:'Lebara',en:'Lebara'}, field:{de:'Social Media\nMarketing',en:'Social Media\nMarketing'}, description:{de:'Social Media Content, Community Management und Memes für den Mobilfunkanbieter Lebara. Vom Briefing bis zum Performance Review. Umgesetzt im Rahmen meines Praktikums bei Graco in Berlin.',en:'Social media content, community management and memes for mobile provider Lebara. From briefing to performance review. Realised during my internship at Graco in Berlin.'}, image:'/images/lebara.png', images:['/images/lebara.png','/images/lebara.png'], tags:{de:['Praktikum','Content Creation','Memes','TikTok'],en:['Internship','Content Creation','Memes','TikTok']}, youtube: null, logo: '/icons/lebara-projekt.png' },
-  { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'Konzeption und Gestaltung einer Broschüre als Abgabe in Kommunikationsdesign. Von der Fotografie über das Texten bis zum Layout stammt alles aus meiner Hand. Als visuelle Inspiration diente meine Reise nach Thailand.',en:'Concept and design of a brochure as a submission in communication design. From photography to copywriting to layout, everything came from my own hand. My journey to Thailand served as visual inspiration.'}, image:'/images/ganbatte.jpg', images:['/images/ganbatte.jpg','/images/ganbatte.jpg'], tags:{de:['Broschüre','Fotografie','Layout','Thailand'],en:['Brochure','Photography','Layout','Thailand']}, youtube: null },
+  { id:4, title:{de:'Lebara',en:'Lebara'}, field:{de:'Social Media\nMarketing',en:'Social Media\nMarketing'}, description:{de:'Social Media Content, Community Management und Memes für den Mobilfunkanbieter Lebara. Vom Briefing bis zum Performance Review. Umgesetzt im Rahmen meines Praktikums bei Graco in Berlin.',en:'Social media content, community management and memes for mobile provider Lebara. From briefing to performance review. Realised during my internship at Graco in Berlin.'}, image:'/images/lebara-projekt.png', images:['/images/lebara-projekt.png'], tags:{de:['Praktikum','Content Creation','Memes','TikTok'],en:['Internship','Content Creation','Memes','TikTok']}, youtube: null, logo: '/icons/lebara-projekt.png' },
+  { id:5, title:{de:'Ganbatte',en:'Ganbatte'}, field:{de:'Visuelle\nKommunikation',en:'Visual\nCommunication'}, description:{de:'Konzeption und Gestaltung einer Broschüre als Abgabe in Kommunikationsdesign. Von der Fotografie über das Texten bis zum Layout stammt alles aus meiner Hand. Als visuelle Inspiration diente meine Reise nach Thailand.',en:'Concept and design of a brochure as a submission in communication design. From photography to copywriting to layout, everything came from my own hand. My journey to Thailand served as visual inspiration.'}, image:'/images/ganbatte-projekt.jpg', images:['/images/ganbatte-projekt.jpg','/images/ganbatte.jpg'], tags:{de:['Broschüre','Fotografie','Layout','Thailand'],en:['Brochure','Photography','Layout','Thailand']}, youtube: null },
   { id:6, title:{de:'Cavallo',en:'Cavallo'}, field:{de:'UX & Web\nDesign',en:'UX & Web\nDesign'}, description:{de:'Entwicklung einer interaktiven Kommunikationskampagne für eine Eventlocation, inklusive Flowchart, Website-Layout und Mockups.',en:'Development of an interactive communication campaign for an event location, including flowchart, website layout and mockups.'}, image:'/images/cavallo.jpg', images:['/images/cavallo.jpg','/images/cavallo.jpg'], tags:{de:['UX','UI','Web Design','Mockup'],en:['UX','UI','Web Design','Mockup']}, youtube: null },
-  { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Corporate Branding für die Agentur Bold. Entwicklung einer konsistenten Markenidentität mit Logogestaltung, Typografie und Farbwelt. Motion Design und Postproduktion bringen die Benefits der Marke visuell auf den Punkt.',en:'Corporate branding for the agency Bold. Development of a consistent brand identity including logo design, typography and colour world. Motion design and post-production bring the brand benefits to the point visually.'}, image:'/images/bold.jpg', images:['/images/bold.jpg','/images/bold.jpg'], tags:{de:['Corporate Branding','Logo','Motion Design','Agentur'],en:['Corporate Branding','Logo','Motion Design','Agency']}, youtube: null },
-  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Corporate Brand Communication für die kreative Agentur Pocoloco. Von der Markenstimme über das visuelle System bis zur digitalen Umsetzung mit Next.js und prozeduralen Scroll-Animationen.',en:'Corporate brand communication for the creative agency Pocoloco. From brand voice and visual system through to digital implementation with Next.js and procedural scroll animations.'}, image:'/images/pocoloco.jpg', images:['/images/pocoloco.jpg'], tags:{de:['Corporate Brand','Next.js','Animation','Agentur'],en:['Corporate Brand','Next.js','Animation','Agency']}, youtube: null },
-  { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Fotografie mit Technik sowie Pre- und Post-Production einer Arztpraxis im Auftrag für die Agentur Webdynamics. Professionelle Bildsprache, die Vertrauen und moderne Ästhetik verbindet.',en:'Photography with technique as well as pre- and post-production of a medical practice commissioned for the agency Webdynamics. Professional visual language combining trust and modern aesthetics.'}, image:'/images/weros.jpg', images:['/images/weros.jpg'], tags:{de:['Fotografie','Pre-Production','Post-Production','Arztpraxis'],en:['Photography','Pre-Production','Post-Production','Medical']}, youtube: null },
+  { id:7, title:{de:'Bold.',en:'Bold.'}, field:{de:'Brand\nDesign',en:'Brand\nDesign'}, description:{de:'Corporate Branding für die Agentur Bold. Entwicklung einer konsistenten Markenidentität mit Logogestaltung, Typografie und Farbwelt. Motion Design und Postproduktion bringen die Benefits der Marke visuell auf den Punkt.',en:'Corporate branding for the agency Bold. Development of a consistent brand identity including logo design, typography and colour world. Motion design and post-production bring the brand benefits to the point visually.'}, image:'/images/bold-projekt.jpg', images:['/images/bold-projekt.jpg'], tags:{de:['Corporate Branding','Logo','Motion Design','Agentur'],en:['Corporate Branding','Logo','Motion Design','Agency']}, youtube: null },
+  { id:8, title:{de:'pocoloco',en:'pocoloco'}, field:{de:'Corporate\nDesign',en:'Corporate\nDesign'}, description:{de:'Corporate Brand Communication für die kreative Agentur Pocoloco. Von der Markenstimme über das visuelle System bis zur digitalen Umsetzung mit Next.js und prozeduralen Scroll-Animationen.',en:'Corporate brand communication for the creative agency Pocoloco. From brand voice and visual system through to digital implementation with Next.js and procedural scroll animations.'}, image:'/images/pocoloco-projekt.jpg', images:['/images/pocoloco-projekt.jpg'], tags:{de:['Corporate Brand','Next.js','Animation','Agentur'],en:['Corporate Brand','Next.js','Animation','Agency']}, youtube: null },
+  { id:12, title:{de:'Weros\nWebdynamics',en:'Weros\nWebdynamics'}, field:{de:'Fotografie',en:'Photography'}, description:{de:'Fotografie mit Technik sowie Pre- und Post-Production einer Arztpraxis im Auftrag für die Agentur Webdynamics. Professionelle Bildsprache, die Vertrauen und moderne Ästhetik verbindet.',en:'Photography with technique as well as pre- and post-production of a medical practice commissioned for the agency Webdynamics. Professional visual language combining trust and modern aesthetics.'}, image:'/images/weros-projekt.jpg', images:['/images/weros-projekt.jpg'], tags:{de:['Fotografie','Pre-Production','Post-Production','Arztpraxis'],en:['Photography','Pre-Production','Post-Production','Medical']}, youtube: null },
+  { id:11, title:{de:'Media\nProjekt',en:'Media\nProject'}, field:{de:'Multimedia\nProjekt',en:'Multimedia\nProject'}, description:{de:'Multimediaprojekt an der Hochschule gegen übermäßigen Social-Media-Konsum und digitale Abhängigkeit. Die Arbeit macht Suchtmechaniken sichtbar und übersetzt Aufklärung in eine interaktive Medienerfahrung.',en:'University multimedia project against excessive social media consumption and digital dependency. The work exposes addictive mechanics and turns awareness into an interactive media experience.'}, image:'/images/media-projekt.jpg', images:['/images/media-projekt.jpg'], tags:{de:['Multimedia','Hochschule','Awareness','Social Media'],en:['Multimedia','University','Awareness','Social Media']}, youtube: null },
+  { id:13, title:{de:'Doc\nMartens',en:'Doc\nMartens'}, field:{de:'Fashion\nKampagne',en:'Fashion\nCampaign'}, description:{de:'Kampagnenkonzept für Doc Martens mit Fokus auf Millennials. Die Idee verbindet Haltung, Individualität und kulturelle Relevanz zu einer zeitgemäßen Markenansprache.',en:'Campaign concept for Doc Martens focused on millennials. The idea connects attitude, individuality and cultural relevance into a contemporary brand approach.'}, image:'/images/docmartens-projekt.jpg', images:['/images/docmartens-projekt.jpg'], tags:{de:['Kampagne','Fashion','Millennials','Brand'],en:['Campaign','Fashion','Millennials','Brand']}, youtube: null },
+  { id:14, title:{de:'Reise\nCollage',en:'Travel\nCollage'}, field:{de:'Collage\nProjekt',en:'Collage\nProject'}, description:{de:'Eine Collage als Beispiel für meine persönliche Reisedokumentation. Auf Reisen sammle ich Fotos und Videos, um sie später in Collagen oder Filmen zu verdichten. Dabei ist mir besonders wichtig, den Vibe, das Gefühl und die Atmosphäre eines Ortes zu bewahren.',en:'A collage as an example of my personal travel documentation. While travelling, I collect photos and videos and later translate them into collages or films. Preserving the vibe, feeling and atmosphere of a place is especially important to me.'}, image:'/images/collage-projekt.jpg', images:['/images/collage-projekt.jpg'], tags:{de:['Collage','Reisen','Fotografie','Film'],en:['Collage','Travel','Photography','Film']}, youtube: null },
 ]
 
 const PROJECTS = ALL_PROJECTS
 type Project = (typeof PROJECTS)[number]
 type InfoProject = (typeof ALL_PROJECTS)[number] | (typeof ARCHIVED_PROJECTS)[number]
 const INFO_PROJECTS: InfoProject[] = [...ALL_PROJECTS, ...ARCHIVED_PROJECTS]
+const MINI_PROJECTS: InfoProject[] = [...ARCHIVED_PROJECTS, ...ALL_PROJECTS].filter(project => project.id !== 6)
 type Lang = 'de'|'en'
+
+function seededShuffle<T>(arr: T[], seed: number) {
+  const shuffled = [...arr]
+  let state = seed % 2147483647
+  if (state <= 0) state += 2147483646
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    state = state * 16807 % 2147483647
+    const j = state % (i + 1)
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
+function makeDerangedMiniRow(projects: MiniProject[], blockers: MiniProject[][]) {
+  const row = [...projects]
+  const conflictsAt = (project: MiniProject, index: number) => blockers.some(blocker => blocker[index]?.id === project.id)
+
+  for (let index = 0; index < row.length; index++) {
+    if (!conflictsAt(row[index], index)) continue
+
+    const swapIndex = row.findIndex((candidate, candidateIndex) => (
+      candidateIndex > index &&
+      !conflictsAt(candidate, index) &&
+      !conflictsAt(row[index], candidateIndex)
+    ))
+
+    if (swapIndex >= 0) {
+      ;[row[index], row[swapIndex]] = [row[swapIndex], row[index]]
+    }
+  }
+
+  return row
+}
+
+function createMiniProjectRows(projects: MiniProject[]) {
+  const row1 = seededShuffle(projects, 19)
+  const row2 = makeDerangedMiniRow(seededShuffle(projects, 71), [row1])
+  const row3 = makeDerangedMiniRow(seededShuffle(projects, 131), [row1, row2])
+  return [row1, row2, row3] as const
+}
 
 const activeViewCursorIds = new Set<string>()
 
@@ -1215,78 +1259,179 @@ function TagPill({ label, isMobile }: { label: string; isMobile?: boolean }) {
 }
 
 // ─── Mini projects band: continuous left/right marquee, fixed in place ────────
-type MiniProject = (typeof ARCHIVED_PROJECTS)[number] | (typeof ALL_PROJECTS)[number]
+type MiniProject = InfoProject
 type MiniPointer = { x: number; y: number; active: boolean }
+
+function MiniProjectsRow({ projects, direction, startOffset, autoSpeed, lang, pointer, isMobile, vw, onOpenProject }: {
+  projects: MiniProject[]
+  direction: 'left' | 'right'
+  startOffset: number
+  autoSpeed: number
+  lang: Lang
+  pointer: MiniPointer
+  isMobile: boolean
+  vw: number
+  onOpenProject: (project: MiniProject, rect: { x: number; y: number; w: number; h: number }) => void
+}) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef(0)
+  const lastFrameRef = useRef(0)
+  const offsetRef = useRef(0)
+  const releaseVelocityRef = useRef(0)
+  const dragRef = useRef({ active: false, moved: false, pointerId: -1, startX: 0, lastX: 0, lastTime: 0 })
+  const suppressOpenRef = useRef(false)
+  const [dragging, setDragging] = useState(false)
+  const cardW = isMobile ? Math.min(460, Math.max(300, Math.round(vw * 0.9))) : 384
+  const cardH = Math.round(cardW * 9 / 16)
+  const gap = isMobile ? 18 : 32
+  const duration = isMobile ? Math.round(autoSpeed * 1.2) : autoSpeed
+  const cycleWidth = Math.max(1, projects.length * (cardW + gap))
+  const loop = [...projects, ...projects]
+
+  const normalize = useCallback((value: number) => {
+    let next = value
+    while (next <= -cycleWidth) next += cycleWidth
+    while (next > 0) next -= cycleWidth
+    return next
+  }, [cycleWidth])
+
+  useEffect(() => {
+    offsetRef.current = direction === 'left' ? 0 : -cycleWidth
+    releaseVelocityRef.current = 0
+    const track = trackRef.current
+    if (track) track.style.transform = `translate3d(${offsetRef.current}px,0,0)`
+  }, [cycleWidth, direction])
+
+  useEffect(() => {
+    const tick = (now: number) => {
+      const last = lastFrameRef.current || now
+      const dt = Math.min(0.05, (now - last) / 1000)
+      lastFrameRef.current = now
+
+      if (!dragRef.current.active) {
+        const autoVelocity = (direction === 'left' ? -1 : 1) * (cycleWidth / duration)
+        const releaseVelocity = releaseVelocityRef.current
+        offsetRef.current = normalize(offsetRef.current + (autoVelocity + releaseVelocity) * dt)
+        releaseVelocityRef.current = Math.abs(releaseVelocity) < 4 ? 0 : releaseVelocity * Math.pow(0.91, dt * 60)
+      }
+
+      const track = trackRef.current
+      if (track) track.style.transform = `translate3d(${offsetRef.current}px,0,0)`
+      rafRef.current = requestAnimationFrame(tick)
+    }
+
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [cycleWidth, direction, duration, normalize])
+
+  const endDrag = useCallback((event?: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    if (!drag.active) return
+    try {
+      if (event?.currentTarget.hasPointerCapture(drag.pointerId)) {
+        event.currentTarget.releasePointerCapture(drag.pointerId)
+      }
+    } catch {
+      // Pointer capture can be unavailable for synthetic events.
+    }
+    drag.active = false
+    setDragging(false)
+
+    if (drag.moved) {
+      suppressOpenRef.current = true
+      window.setTimeout(() => { suppressOpenRef.current = false }, 260)
+    } else {
+      releaseVelocityRef.current = 0
+    }
+  }, [])
+
+  const handlePointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    dragRef.current = { active: true, moved: false, pointerId: event.pointerId, startX: event.clientX, lastX: event.clientX, lastTime: performance.now() }
+    releaseVelocityRef.current = 0
+    setDragging(true)
+  }, [])
+
+  const handlePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    if (!drag.active || drag.pointerId !== event.pointerId) return
+    const now = performance.now()
+    const dx = event.clientX - drag.lastX
+    const totalDx = event.clientX - drag.startX
+    const dt = Math.max(16, now - drag.lastTime)
+
+    if (Math.abs(totalDx) > 7 && !drag.moved) {
+      drag.moved = true
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Pointer capture can be unavailable for synthetic events.
+      }
+    }
+    offsetRef.current = normalize(offsetRef.current + dx)
+    releaseVelocityRef.current = (dx / dt) * 1000
+    drag.lastX = event.clientX
+    drag.lastTime = now
+  }, [normalize])
+
+  const openFromRow = useCallback((project: MiniProject, rect: { x: number; y: number; w: number; h: number }) => {
+    if (suppressOpenRef.current) return
+    onOpenProject(project, rect)
+  }, [onOpenProject])
+
+  return (
+    <div
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      style={{ overflow: 'visible', width: '100%', padding: isMobile ? '10px 0' : '18px 0', cursor: dragging ? 'grabbing' : 'grab', touchAction: 'pan-y' }}
+    >
+      <div style={{ transform: `translateX(${startOffset}%)`, willChange: 'transform' }}>
+        <div
+          ref={trackRef}
+          style={{
+            display: 'flex', gap: `${gap}px`, whiteSpace: 'nowrap', width: 'max-content',
+            willChange: 'transform', touchAction: 'pan-y', userSelect: dragging ? 'none' : 'auto',
+          }}
+        >
+          {loop.map((project, index) => (
+            <MiniProjectCard
+              key={`${project.id}-${index}`}
+              project={project}
+              lang={lang}
+              width={cardW}
+              height={cardH}
+              pointer={pointer}
+              isMobile={isMobile}
+              onOpen={(rect) => openFromRow(project, rect)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function ProjectsMarquee({ embedded = false, statProgress = 0, onHoverCards }: { embedded?: boolean; statProgress?: number; onHoverCards?: (hover: boolean) => void }) {
   const { language } = useLanguage()
   const { vw, isMobile } = useScroll()
   const lang = language as Lang
-  const items: MiniProject[] = [...ARCHIVED_PROJECTS, ...ALL_PROJECTS]
+  const items: MiniProject[] = MINI_PROJECTS
   const [openIdx, setOpenIdx] = useState<number | null>(null)
   const [openRect, setOpenRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const [closeCursorVisible, setCloseCursorVisible] = useState(false)
   const [pointer, setPointer] = useState<MiniPointer>({ x: 0, y: 0, active: false })
 
-  // Deterministic shuffle per row
-  const shuffle = (arr: MiniProject[], seed: number) => {
-    const a = [...arr]
-    for (let i = a.length - 1; i > 0; i--) {
-      seed = (seed * 16807 + 0) % 2147483647
-      const j = seed % (i + 1)
-      ;[a[i], a[j]] = [a[j], a[i]]
-    }
-    return a
-  }
-  const row1 = shuffle(items, 1)
-  const row2 = shuffle(items, 7)
-  const row3 = shuffle(items, 13)
+  const [row1, row2, row3] = createMiniProjectRows(items)
 
   const openProject = useCallback((project: MiniProject, rect: { x: number; y: number; w: number; h: number }) => {
-    const idx = INFO_PROJECTS.findIndex(p => p.id === project.id)
+    const idx = MINI_PROJECTS.findIndex(p => p.id === project.id)
     onHoverCards?.(false)
     setOpenRect(rect)
+    setCloseCursorVisible(true)
     setOpenIdx(idx >= 0 ? idx : 0)
   }, [onHoverCards, setOpenIdx, setOpenRect])
-
-  const renderRow = (projects: MiniProject[], direction: 'left' | 'right', startOffset: number, autoSpeed: number) => {
-    const cardW = isMobile ? Math.min(460, Math.max(300, Math.round(vw * 0.9))) : 384
-    const cardH = Math.round(cardW * 9 / 16) // 16:9
-    const gap = isMobile ? 18 : 32
-    const loop = [...projects, ...projects]
-    const autoDir = direction === 'left' ? 'mpScrollL' : 'mpScrollR'
-    const duration = isMobile ? Math.round(autoSpeed * 1.2) : autoSpeed
-    return (
-      <div style={{ overflow: 'visible', width: '100%', padding: isMobile ? '10px 0' : '18px 0' }}>
-        <div style={{
-          transform: `translateX(${startOffset}%)`,
-          willChange: 'transform',
-        }}>
-          <div style={{
-            display: 'flex', gap: `${gap}px`, whiteSpace: 'nowrap', width: 'max-content',
-            animationName: autoDir,
-            animationDuration: `${duration}s`,
-            animationTimingFunction: 'linear',
-            animationIterationCount: 'infinite',
-            animationPlayState: 'running',
-            willChange: 'transform',
-          }}>
-            {loop.map((p, i) => (
-              <MiniProjectCard
-                key={`${p.id}-${i}`}
-                project={p}
-                lang={lang}
-                width={cardW}
-                height={cardH}
-                pointer={pointer}
-                isMobile={isMobile}
-                onOpen={(rect) => openProject(p, rect)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <section
@@ -1314,29 +1459,27 @@ export function ProjectsMarquee({ embedded = false, statProgress = 0, onHoverCar
           .mini-card:hover .mini-card-name { opacity: 0; transform: none; }
         }
         .mini-fs-overlay, .mini-fs-overlay * { cursor: none !important; }
-        @keyframes mpScrollL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @keyframes mpScrollR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
       `}</style>
-      {renderRow(row1, 'left', -6, 90)}
-      {renderRow(row2, 'right', -40, 110)}
-      {renderRow(row3, 'left', -10, 76)}
-      {openIdx !== null && <MiniProjectFullscreen project={INFO_PROJECTS[openIdx]} onClose={() => { setOpenIdx(null); setOpenRect(null) }} onNav={setOpenIdx} idx={openIdx} total={INFO_PROJECTS.length} originRect={openRect} />}
-      {openIdx !== null && <ViewCursor show={true} mode="close" />}
+      <MiniProjectsRow projects={row1} direction="left" startOffset={-6} autoSpeed={90} lang={lang} pointer={pointer} isMobile={isMobile} vw={vw} onOpenProject={openProject} />
+      <MiniProjectsRow projects={row2} direction="right" startOffset={-40} autoSpeed={110} lang={lang} pointer={pointer} isMobile={isMobile} vw={vw} onOpenProject={openProject} />
+      <MiniProjectsRow projects={row3} direction="left" startOffset={-10} autoSpeed={76} lang={lang} pointer={pointer} isMobile={isMobile} vw={vw} onOpenProject={openProject} />
+      {openIdx !== null && <MiniProjectFullscreen project={MINI_PROJECTS[openIdx]} projects={MINI_PROJECTS} onCloseStart={() => setCloseCursorVisible(false)} onClose={() => { setOpenIdx(null); setOpenRect(null) }} onNav={setOpenIdx} idx={openIdx} total={MINI_PROJECTS.length} originRect={openRect} />}
+      {openIdx !== null && <ViewCursor show={closeCursorVisible} mode="close" />}
     </section>
   )
 }
 
 // ─── MiniProjectFullscreen: fullscreen reveal overlay for mini-projects ────────
-function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect }: {
-  project: InfoProject; onClose: () => void; onNav: (i: number) => void; idx: number; total: number
+function MiniProjectFullscreen({ project, projects, onCloseStart, onClose, onNav, idx, total, originRect }: {
+  project: InfoProject; projects: InfoProject[]; onCloseStart: () => void; onClose: () => void; onNav: (i: number) => void; idx: number; total: number
   originRect?: { x: number; y: number; w: number; h: number } | null
 }) {
   const { language } = useLanguage()
   const lang = language as Lang
   const [phase, setPhase] = useState<'in' | 'open' | 'closing'>('in')
   const [slideDir, setSlideDir] = useState<'none' | 'left' | 'right'>('none')
+  const [baseProject, setBaseProject] = useState(project)
   const [displayProject, setDisplayProject] = useState(project)
-  const [prevProject, setPrevProject] = useState<InfoProject | null>(null)
   const [navKey, setNavKey] = useState(0)
   const [oldBlurActive, setOldBlurActive] = useState(false)
   const lockRef = useRef(false)
@@ -1356,38 +1499,47 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
     }
   }, [])
 
+  useEffect(() => {
+    if (slideDir !== 'none') return
+    setBaseProject(project)
+    setDisplayProject(project)
+  }, [project, slideDir])
+
   const activeProject = slideDir === 'none' ? project : displayProject
 
   const resetNavColor = useCallback(() => {
     document.body.classList.remove('x-cursor-open')
+    document.body.classList.remove('view-cursor-open')
+    document.body.classList.remove('hide-x-cursor')
     window.dispatchEvent(new Event('nav-mask-refresh'))
   }, [])
 
   const close = useCallback(() => {
     if (phase === 'closing') return
+    onCloseStart()
     resetNavColor()
     setPhase('closing')
     setTimeout(() => onClose(), 420)
-  }, [phase, onClose, resetNavColor])
+  }, [phase, onClose, onCloseStart, resetNavColor])
 
   const navigate = useCallback((dir: 'l' | 'r') => {
     if (lockRef.current) return
     lockRef.current = true
     const ni = dir === 'r' ? (idx + 1) % total : (idx - 1 + total) % total
     setOldBlurActive(false)
-    setPrevProject(displayProject)
+    setBaseProject(displayProject)
     onNav(ni)
-    setDisplayProject(INFO_PROJECTS[ni])
+    setDisplayProject(projects[ni])
     setSlideDir(dir === 'r' ? 'right' : 'left')
     setNavKey(k => k + 1)
     requestAnimationFrame(() => requestAnimationFrame(() => setOldBlurActive(true)))
     setTimeout(() => {
       setSlideDir('none')
-      setPrevProject(null)
+      setBaseProject(projects[ni])
       setOldBlurActive(false)
       lockRef.current = false
     }, 1320)
-  }, [displayProject, idx, total, onNav])
+  }, [displayProject, idx, total, onNav, projects])
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -1407,22 +1559,36 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
   const { disp: fieldDisp } = useScramble(fieldText)
   const { disp: descDisp } = useScramble(descText)
   const isOpen = phase === 'open'
-  const previousTitle = prevProject?.title[lang]
-  const previousField = prevProject?.field[lang]
-  const previousDesc = prevProject?.description[lang]
-  const previousTags = prevProject?.tags[lang]
+  const baseTitle = baseProject.title[lang]
+  const baseField = baseProject.field[lang]
+  const baseDesc = baseProject.description[lang]
+  const baseTags = baseProject.tags[lang]
 
   // Compute zoom-from-origin transform
   const originTransform = originRect
     ? `translate(${originRect.x + originRect.w / 2 - vw / 2}px, ${originRect.y + originRect.h / 2 - vh / 2}px) scale(${originRect.w / vw}, ${originRect.h / vh})`
     : 'scale(0.7)'
+  const incomingTransform = slideDir === 'right'
+    ? 'translate3d(115%,0,0)'
+    : slideDir === 'left'
+      ? 'translate3d(-115%,0,0)'
+      : 'translate3d(0,0,0)'
+  const incomingAnimation = slideDir === 'right'
+    ? 'miniFsSlideInRight 0.9s cubic-bezier(0.76,0,0.24,1) forwards'
+    : slideDir === 'left'
+      ? 'miniFsSlideInLeft 0.9s cubic-bezier(0.76,0,0.24,1) forwards'
+      : 'none'
 
   return (
     <>
-      <div className="mini-fs-overlay" data-textcolor="white" onPointerDown={resetNavColor} onClick={close} style={{
+      <style>{`
+        @keyframes miniFsSlideInRight { from { transform: translate3d(115%,0,0); } to { transform: translate3d(0,0,0); } }
+        @keyframes miniFsSlideInLeft { from { transform: translate3d(-115%,0,0); } to { transform: translate3d(0,0,0); } }
+      `}</style>
+      <div className="mini-fs-overlay" data-textcolor="white" onClick={close} style={{
         position: 'fixed', inset: 0, zIndex: 999999,
         backgroundColor: '#0a0a0a',
-        backgroundImage: `url(${displayProject.images[0]})`,
+        backgroundImage: phase === 'in' && slideDir === 'none' ? `url(${displayProject.images[0]})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         transform: phase === 'in' ? originTransform : phase === 'closing' ? 'scale(0.92)' : 'scale(1)',
@@ -1434,83 +1600,76 @@ function MiniProjectFullscreen({ project, onClose, onNav, idx, total, originRect
         cursor: 'none',
         overflow: 'hidden',
       }}>
-        {prevProject && slideDir !== 'none' && previousTitle && previousField && previousDesc && previousTags && (
-          <div style={{
+        <div style={{
+          position: 'absolute', inset: 0,
+          zIndex: 1,
+          transform: 'translate3d(0,0,0)',
+          filter: slideDir !== 'none' && oldBlurActive ? 'blur(9px)' : 'blur(0px)',
+          transition: slideDir !== 'none' ? 'filter 1.05s cubic-bezier(0.76,0,0.24,1)' : 'none',
+          willChange: slideDir !== 'none' ? 'filter' : 'auto',
+        }}>
+          <img src={baseProject.images[0]} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
             position: 'absolute', inset: 0,
-            zIndex: 1,
-            transform: 'translate3d(0,0,0)',
-            filter: oldBlurActive ? 'blur(9px)' : 'blur(0.25px)',
-            transition: 'filter 1.05s cubic-bezier(0.76,0,0.24,1)',
-            willChange: 'filter',
+            width: '100%', height: '100%', objectFit: 'cover',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 3,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.14) 70%, transparent 100%)',
+            opacity: 1,
+          }} />
+          <div style={{
+            position: 'absolute',
+            left: isMobile ? '6vw' : '8vw',
+            right: isMobile ? '6vw' : '34vw',
+            bottom: isMobile ? '9vh' : '12vh',
+            zIndex: 5, pointerEvents: 'none',
+            opacity: 1,
           }}>
-            <img src={prevProject.images[0]} alt="" loading="lazy" decoding="async" fetchPriority="auto" style={{
-              position: 'absolute', inset: 0,
-              width: '100%', height: '100%', objectFit: 'cover',
-            }} />
             <div style={{
-              position: 'absolute', inset: 0, zIndex: 3,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.14) 70%, transparent 100%)',
-              opacity: 1,
-            }} />
+              fontSize: isMobile ? '10vw' : 'clamp(40px,6vw,96px)',
+              fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
+              textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
+              textShadow: '0 12px 36px rgba(0,0,0,0.45)',
+            }}>{baseTitle}</div>
             <div style={{
-              position: 'absolute',
-              left: isMobile ? '6vw' : '8vw',
-              right: isMobile ? '6vw' : '34vw',
-              bottom: isMobile ? '9vh' : '12vh',
-              zIndex: 5, pointerEvents: 'none',
-              opacity: 1,
+              display: 'inline-block', marginTop: isMobile ? '0.5em' : '0.4em',
+              fontSize: isMobile ? '4.6vw' : 'clamp(20px,2.4vw,40px)',
+              fontWeight: 700, fontStyle: 'italic', lineHeight: 0.95, letterSpacing: '-0.6px',
+              textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
+              textShadow: '0 10px 24px rgba(0,0,0,0.4)',
+            }}>{baseField}</div>
+            <p style={{
+              marginTop: isMobile ? '1.1em' : '1em',
+              fontSize: isMobile ? '3.6vw' : 'clamp(14px,1.05vw,18px)',
+              fontWeight: 400, lineHeight: 1.45, color: 'rgba(255,255,255,0.96)',
+              maxWidth: isMobile ? '88vw' : '40vw',
+              textShadow: '0 6px 18px rgba(0,0,0,0.4)',
+            }}>{baseDesc}</p>
+            <div style={{
+              marginTop: isMobile ? '1.2em' : '1.1em',
+              display: 'flex', flexWrap: 'wrap', gap: '8px',
             }}>
-              <div style={{
-                fontSize: isMobile ? '10vw' : 'clamp(40px,6vw,96px)',
-                fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
-                textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
-                textShadow: '0 12px 36px rgba(0,0,0,0.45)',
-              }}>{previousTitle}</div>
-              <div style={{
-                display: 'inline-block', marginTop: isMobile ? '0.5em' : '0.4em',
-                fontSize: isMobile ? '4.6vw' : 'clamp(20px,2.4vw,40px)',
-                fontWeight: 700, fontStyle: 'italic', lineHeight: 0.95, letterSpacing: '-0.6px',
-                textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
-                textShadow: '0 10px 24px rgba(0,0,0,0.4)',
-              }}>{previousField}</div>
-              <p style={{
-                marginTop: isMobile ? '1.1em' : '1em',
-                fontSize: isMobile ? '3.6vw' : 'clamp(14px,1.05vw,18px)',
-                fontWeight: 400, lineHeight: 1.45, color: 'rgba(255,255,255,0.96)',
-                maxWidth: isMobile ? '88vw' : '40vw',
-                textShadow: '0 6px 18px rgba(0,0,0,0.4)',
-              }}>{previousDesc}</p>
-              <div style={{
-                marginTop: isMobile ? '1.2em' : '1.1em',
-                display: 'flex', flexWrap: 'wrap', gap: '8px',
-              }}>
-                {previousTags.map((t, ti) => (
-                  <span key={`${t}-${ti}`} style={{
-                    border: '1px solid rgba(255,255,255,0.4)',
-                    color: '#ffffff', fontSize: isMobile ? '3vw' : '11px',
-                    fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                    padding: '5px 10px', borderRadius: '999px',
-                  }}>{t}</span>
-                ))}
-              </div>
+              {baseTags.map((t, ti) => (
+                <span key={`${t}-${ti}`} style={{
+                  border: '1px solid rgba(255,255,255,0.4)',
+                  color: '#ffffff', fontSize: isMobile ? '3vw' : '11px',
+                  fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  padding: '5px 10px', borderRadius: '999px',
+                }}>{t}</span>
+              ))}
             </div>
           </div>
-        )}
+        </div>
 
         {/* Incoming slide: image, scrim and text move as one project */}
-        <div key={navKey} ref={(el) => {
-          if (!el || slideDir === 'none') return
-          el.style.transition = 'none'
-          el.style.transform = slideDir === 'right' ? 'translate3d(115%,0,0)' : 'translate3d(-115%,0,0)'
-          void el.offsetWidth
-          el.style.transition = 'transform 0.9s cubic-bezier(0.76,0,0.24,1)'
-          el.style.transform = 'translate3d(0,0,0)'
-        }} style={{
+        <div key={navKey} style={{
           position: 'absolute', inset: 0,
+          transform: incomingTransform,
+          animation: incomingAnimation,
           willChange: 'transform',
           zIndex: 2,
         }}>
-          <img src={displayProject.images[0]} alt="" loading="eager" decoding="async" fetchPriority="auto" style={{
+          <img src={displayProject.images[0]} alt="" loading="eager" decoding="async" fetchPriority="high" style={{
             position: 'absolute', inset: 0,
             width: '100%', height: '100%', objectFit: 'cover',
             transform: isOpen ? 'scale(1)' : 'scale(1.02)',
