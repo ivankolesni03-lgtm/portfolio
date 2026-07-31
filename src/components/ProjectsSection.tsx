@@ -1726,22 +1726,6 @@ function MiniProjectFullscreen({ project, projects, onCloseStart, onClose, onNav
             </div>
           </div>
         </div>
-
-        {/* Magnetic navigation arrows */}
-        <MagnetArrow
-          side="left"
-          mob={isMobile}
-          onClick={() => navigate('l')}
-          label="Previous"
-          visible={isOpen}
-        />
-        <MagnetArrow
-          side="right"
-          mob={isMobile}
-          onClick={() => navigate('r')}
-          label="Next"
-          visible={isOpen}
-        />
       </div>
     </>
   )

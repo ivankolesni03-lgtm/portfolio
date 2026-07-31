@@ -20,8 +20,9 @@ const ResumeTimeline = dynamic(() => import('@/components/ResumeTimeline').then(
 const ContactSection = dynamic(() => import('@/components/ContactSection').then((mod) => mod.ContactSection), { ssr: false })
 
 type HomePhase = 'locked' | 'preloading' | 'ready'
+type PortfolioAccess = 'default' | 'gme'
 
-function HomeContentInner() {
+function HomeContentInner({ access }: { access: PortfolioAccess }) {
   const { scrollY, vh } = useScroll()
   const headerVisible = scrollY > vh * 0.8
   const [overlayOpen, setOverlayOpen] = useState(false)
@@ -31,32 +32,34 @@ function HomeContentInner() {
       <main>
         <CustomCursor hidden={overlayOpen} />
         <Header isVisible={headerVisible} />
-        <Hero />
+        <Hero access={access} />
         <ProjectsSection onOverlayChange={setOverlayOpen} />
         <MiniProjekteSection />
         <AISection />
         <GWASection />
         <InteractiveDots />
-        <ResumeTimeline />
+        <ResumeTimeline access={access} />
         <ContactSection />
       </main>
     </>
   )
 }
 
-function HomeContent() {
+function HomeContent({ access }: { access: PortfolioAccess }) {
   return (
     <ScrollProvider>
-      <HomeContentInner />
+      <HomeContentInner access={access} />
     </ScrollProvider>
   )
 }
 
 export default function Home() {
   const [phase, setPhase] = useState<HomePhase>('locked')
+  const [access, setAccess] = useState<PortfolioAccess>('default')
 
   useEffect(() => {
     if (sessionStorage.getItem('unlocked') === 'true') {
+      setAccess(sessionStorage.getItem('portfolioAccess') === 'gme' ? 'gme' : 'default')
       requestAnimationFrame(() => setPhase('preloading'))
     }
   }, [])
@@ -64,7 +67,7 @@ export default function Home() {
   return (
     <MouseProvider>
       <LanguageProvider>
-        {phase === 'locked' && <PasswordGate onUnlock={() => setPhase('preloading')} />}
+        {phase === 'locked' && <PasswordGate onUnlock={(nextAccess) => { setAccess(nextAccess); setPhase('preloading') }} />}
         {phase === 'preloading' && <Preloader onComplete={() => setPhase('ready')} />}
         {phase !== 'locked' && (
           <div
@@ -76,7 +79,7 @@ export default function Home() {
               transition: 'opacity 220ms ease',
             }}
           >
-            <HomeContent />
+            <HomeContent access={access} />
           </div>
         )}
       </LanguageProvider>

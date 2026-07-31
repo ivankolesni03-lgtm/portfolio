@@ -3,6 +3,9 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 const PASSWORDS_ENV_NAME = 'PORTFOLIO_GATE_PASSWORDS'
+const APPLICATION_PASSWORD = 'GME'
+
+type PasswordAccess = 'default' | 'gme'
 
 function parsePasswords(value: string) {
   return value
@@ -46,6 +49,16 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const password = typeof body?.password === 'string' ? body.password : ''
+    const isApplicationPassword = password.trim().toUpperCase() === APPLICATION_PASSWORD
+
+    if (isApplicationPassword) {
+      return NextResponse.json({ success: true, access: 'gme' satisfies PasswordAccess }, {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      })
+    }
+
     const expectedPasswords = readGatePasswords()
 
     const isValid = expectedPasswords.some(expectedPassword => passwordsMatch(password, expectedPassword))
@@ -54,7 +67,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, code: 'invalid_password' }, { status: 401 })
     }
 
-    return NextResponse.json({ success: true }, {
+    return NextResponse.json({ success: true, access: 'default' satisfies PasswordAccess }, {
       headers: {
         'Cache-Control': 'no-store',
       },

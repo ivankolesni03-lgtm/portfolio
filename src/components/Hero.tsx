@@ -520,7 +520,43 @@ function BgImage() {
   )
 }
 
-export function Hero() {
+type HeroAccess = 'default' | 'gme'
+
+const GME_LETTER = [
+  'That is who I am, creating moments where classical communication merges with generative AI into something tangible. I am Ivan Kolesnikov, a 6th semester Integrated Media and Communication student from Germany\nand a proud GME holder.',
+  'I am applying for my mandatory internship because I see so much good in this company. Ryan Cohen as CEO is deeply inspiring to me. Having worked at established but rigid corporations like BMW and Continental,\nI believe GameStop offers a fresh environment where bold thinking is truly valued.',
+  'I was trained to think like a Creative Director, covering strategy, communication, branding, and design thinking. During my studies, I completed numerous real world projects and participated in the GWA Junior Agency Award. My corporate experience includes international marketing at the Continental headquarters in Hannover, and developing generative AI pipelines at the BMW headquarters in Munich, alongside work at GRACO in Berlin. Backed by my vocational training as a Design Technical Assistant, I deliver under pressure.\nI give 100%, and quitting is not in my vocabulary.',
+  'Fascinated by the potential of Generative AI, I blend cutting edge tech with my lifelong passion for film and professional video production to create campaigns that truly resonate.',
+  'To fulfill my 3 month mandatory internship, I am fully prepared to relocate from Germany to the US. I know my chances might seem slim, but giving up is not an option for me. I require J1 visa sponsorship support (I can handle the administrative workload) and a standard compensation to cover basic housing and food.',
+  'I have the conviction, the AI skillset, and the drive.',
+  'Enjoy my portfolio!',
+]
+
+function waveToTitleCase(word: string, waveProgress: number) {
+  const letters = word.split('')
+  const lowerCount = Math.floor(waveProgress * Math.max(0, letters.length - 1))
+  return letters.map((letter, index) => {
+    if (!/[A-Za-z]/.test(letter)) return letter
+    if (index === 0) return letter.toUpperCase()
+    return index <= lowerCount ? letter.toLowerCase() : letter.toUpperCase()
+  }).join('')
+}
+
+type GmeTextToken =
+  | { type: 'word'; value: string }
+  | { type: 'break' }
+
+function tokenizeGmeParagraph(paragraph: string): GmeTextToken[] {
+  return paragraph
+    .replace(/\\n/g, '\n')
+    .split(/(\n)/)
+    .flatMap((part): GmeTextToken[] => {
+      if (part === '\n') return [{ type: 'break' }]
+      return part.split(/\s+/).filter(Boolean).map((value) => ({ type: 'word', value }))
+    })
+}
+
+export function Hero({ access = 'default' }: { access?: HeroAccess }) {
   const { isMobile, width, height } = useMobile()
   const { language } = useLanguage()
   const { scrollY, vh } = useScroll()
@@ -531,6 +567,10 @@ export function Hero() {
   const lastPosRef = useRef({ x: 0, y: 0 })
   const imageIdRef = useRef(0)
   const [descFade, setDescFade] = useState(1)
+  const [gmeCaseProgress, setGmeCaseProgress] = useState(0)
+  const gmeCaseProgressRef = useRef(0)
+  const gmeCaseTargetRef = useRef(0)
+  const gmeCaseAnimRef = useRef<number | null>(null)
   const expScramble = useScramble('Process')
   const desScramble = useScramble('Designer')
   const expScrambleRef = useRef(expScramble.scrambleTo)
@@ -543,12 +583,16 @@ export function Hero() {
     expScrambleRef.current('Process')
     desScrambleRef.current('Designer')
   }, [])
+  const isGmeMode = access === 'gme'
   const heroProgress = vh > 0 ? Math.min(1, scrollY / (vh * 2.0)) : 0
   const rawHeroProgress = vh > 0 ? scrollY / (vh * 2.0) : 0
   const descriptor = language === 'de'
     ? 'Der zwischen dem Gewesenen und dem Werdenden Erlebnisse schafft, in denen Code fuehlbar wird und klassische Kommunikation mit KI zu etwas Besonderem verschmilzt'
     : 'Who creates moments between what was and what is becoming, in which code becomes tangible and classical communication merges with AI into something special'
+  const gmeLetter = GME_LETTER
   const descriptorWords = useMemo(() => [...descriptor.split(/\s+/).filter(Boolean), '.', '.', '.'], [descriptor])
+  const gmeLetterTokens = useMemo(() => gmeLetter.map(tokenizeGmeParagraph), [gmeLetter])
+  const gmeWordCount = useMemo(() => gmeLetterTokens.reduce((sum, tokens) => sum + tokens.filter(token => token.type === 'word').length, 0), [gmeLetterTokens])
   const [descriptorDisplayWords, setDescriptorDisplayWords] = useState<string[]>(descriptorWords)
   const prevLangRef = useRef(language)
   const scrambleCleanupRefs = useRef<((() => void) | null)[]>([])
@@ -572,6 +616,10 @@ export function Hero() {
     return () => { scrambleCleanupRefs.current.forEach(fn => fn?.()) }
   }, [language, descriptor, descriptorWords])
 
+  useEffect(() => {
+    gmeCaseProgressRef.current = gmeCaseProgress
+  }, [gmeCaseProgress])
+
   const revealEnd = 0.72
   const revealProgress = Math.max(0, Math.min(1, heroProgress / revealEnd))
   const blurStart = 0.76
@@ -585,6 +633,23 @@ export function Hero() {
   const descriptorTargetTop = height * (isMobile ? 0.18 : 0.2)
   const descriptorTop = descriptorStartTop + (descriptorTargetTop - descriptorStartTop) * descriptorMoveEase
   const visibleWords = Math.min(descriptorWords.length, Math.floor(revealProgress * (descriptorWords.length + 1)))
+  const visibleGmeWords = Math.min(gmeWordCount, Math.floor(revealProgress * (gmeWordCount + 1)))
+  const gmeTextComplete = isGmeMode && visibleGmeWords >= gmeWordCount
+  const gmeBodyFontPx = isMobile
+    ? Math.max(11.4, Math.min(12.8, width * 0.036))
+    : Math.max(13.2, Math.min(15.5, width * 0.0105))
+  const titleStartFontPx = isMobile
+    ? Math.max(20, Math.min(34, width * 0.064))
+    : Math.max(28, Math.min(46, width * 0.027))
+  const gmeTitleFontPx = titleStartFontPx + (gmeBodyFontPx - titleStartFontPx) * revealProgress
+  const gmeTitleWeight = Math.round(900 + (600 - 900) * revealProgress)
+  const gmeTitleLetterSpacing = -1 + revealProgress
+  const gmeTitleLineHeight = 1.12 + ((isMobile ? 1.2 : 1.34) - 1.12) * revealProgress
+  const gmeLetterEndGap = 0
+  const gmeLetterMarginTop = gmeLetterEndGap + ((isMobile ? 12 : 24) - gmeLetterEndGap) * (1 - revealProgress)
+  const gmeProcessDisplay = isGmeMode ? waveToTitleCase('Process', gmeCaseProgress) : expScramble.display
+  const gmeDesignerDisplay = isGmeMode ? waveToTitleCase('Designer', gmeCaseProgress) : desScramble.display
+  const gmeLogoBlend = Math.max(0, Math.min(1, (revealProgress - 0.32) / 0.42))
   const descriptorOpacity = descFade
   const trailBlur = blurProgress * 20
 
@@ -608,6 +673,43 @@ export function Hero() {
     }
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const nextTarget = isGmeMode && revealProgress >= 0.64 ? 1 : 0
+    if (gmeCaseTargetRef.current === nextTarget) return
+
+    gmeCaseTargetRef.current = nextTarget
+    if (gmeCaseAnimRef.current !== null) cancelAnimationFrame(gmeCaseAnimRef.current)
+
+    const from = gmeCaseProgressRef.current
+    const to = nextTarget
+    const duration = 210
+    let startTime: number | null = null
+
+    const animate = (time: number) => {
+      if (startTime === null) startTime = time
+      const t = Math.min(1, (time - startTime) / duration)
+      const eased = 1 - Math.pow(1 - t, 3)
+      const nextProgress = from + (to - from) * eased
+      gmeCaseProgressRef.current = nextProgress
+      setGmeCaseProgress(nextProgress)
+      if (t < 1) {
+        gmeCaseAnimRef.current = requestAnimationFrame(animate)
+      } else {
+        gmeCaseProgressRef.current = to
+        setGmeCaseProgress(to)
+        gmeCaseAnimRef.current = null
+      }
+    }
+
+    gmeCaseAnimRef.current = requestAnimationFrame(animate)
+  }, [isGmeMode, revealProgress])
+
+  useEffect(() => {
+    return () => {
+      if (gmeCaseAnimRef.current !== null) cancelAnimationFrame(gmeCaseAnimRef.current)
+    }
   }, [])
 
   const spawnImage = useCallback((x: number, y: number, mobile = false) => {
@@ -712,29 +814,117 @@ export function Hero() {
         >
           <div
             style={{
-              fontSize: isMobile ? 'clamp(20px, 6.4vw, 34px)' : 'clamp(28px, 2.7vw, 46px)',
+              fontSize: isGmeMode ? `${gmeTitleFontPx}px` : (isMobile ? 'clamp(20px, 6.4vw, 34px)' : 'clamp(28px, 2.7vw, 46px)'),
               lineHeight: 0.98,
               letterSpacing: '-0.6px',
               textShadow: 'none',
               whiteSpace: 'normal',
-              fontWeight: 700,
-              textTransform: 'uppercase',
+              fontWeight: isGmeMode ? gmeTitleWeight : 700,
+              textTransform: isGmeMode ? 'none' : 'uppercase',
             }}
           >
             <div
               onMouseEnter={handleHeaderHover}
               onTouchStart={handleHeaderHover}
               style={{
-              fontWeight: 900,
+              fontWeight: isGmeMode ? gmeTitleWeight : 900,
               color: '#ffffff',
-              letterSpacing: '-1px',
-              lineHeight: 1.12,
+              letterSpacing: isGmeMode ? `${gmeTitleLetterSpacing}px` : '-1px',
+              lineHeight: isGmeMode ? gmeTitleLineHeight : 1.12,
               pointerEvents: 'auto',
               cursor: 'default',
               display: 'inline-block',
             }}>
-              {expScramble.display}<br/>{desScramble.display}
+              {gmeProcessDisplay}<br/>{gmeDesignerDisplay}
             </div>
+            {isGmeMode ? (
+              <div
+                style={{
+                  marginTop: gmeLetterMarginTop,
+                  maxWidth: isMobile ? '88vw' : 'min(52vw, 760px)',
+                  display: 'grid',
+                  gap: isMobile ? 5 : 9,
+                  fontSize: `${gmeBodyFontPx}px`,
+                  lineHeight: isMobile ? 1.2 : 1.34,
+                  letterSpacing: 0,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                {(() => {
+                  let wordCursor = 0
+                  let gameStopLogoRendered = false
+                  return gmeLetterTokens.map((paragraphTokens, paragraphIndex) => (
+                    <p key={paragraphIndex} style={{ margin: 0 }}>
+                      {paragraphTokens.map((token, tokenIndex) => {
+                        if (token.type === 'break') {
+                          return <br key={`${paragraphIndex}-${tokenIndex}`} />
+                        }
+                        const word = token.value
+                        const currentWord = wordCursor++
+                        const cleanWord = word.replace(/[^A-Za-z]/g, '')
+                        const trailingPunctuation = word.slice(cleanWord.length)
+                        const shouldRenderGameStopLogo = cleanWord === 'GameStop' && !gameStopLogoRendered
+                        if (shouldRenderGameStopLogo) gameStopLogoRendered = true
+                        return (
+                          <span
+                            key={`${paragraphIndex}-${tokenIndex}`}
+                            style={{
+                              opacity: currentWord < visibleGmeWords ? 1 : 0,
+                              transition: 'opacity 0.2s linear',
+                            }}
+                          >
+                            {shouldRenderGameStopLogo ? (
+                              <>
+                                <span
+                                  aria-label="GameStop"
+                                  role="img"
+                                  style={{
+                                    position: 'relative',
+                                    display: 'inline-block',
+                                    height: '1em',
+                                    width: '4.98em',
+                                    verticalAlign: '-0.12em',
+                                  }}
+                                >
+                                  <img
+                                    src="/icons/gamestop-logo.png"
+                                    alt=""
+                                    aria-hidden="true"
+                                    style={{
+                                      position: 'absolute',
+                                      inset: 0,
+                                      height: '1em',
+                                      width: 'auto',
+                                      filter: 'invert(1)',
+                                      opacity: 1,
+                                    }}
+                                  />
+                                  <img
+                                    src="/icons/gamestop-logo2.png"
+                                    alt=""
+                                    aria-hidden="true"
+                                    style={{
+                                      position: 'absolute',
+                                      inset: 0,
+                                      height: '1em',
+                                      width: 'auto',
+                                      filter: 'invert(1)',
+                                      opacity: gmeLogoBlend,
+                                    }}
+                                  />
+                                </span>
+                                {trailingPunctuation}
+                              </>
+                            ) : word}{tokenIndex < paragraphTokens.length - 1 && paragraphTokens[tokenIndex + 1]?.type === 'word' ? ' ' : ''}
+                          </span>
+                        )
+                      })}
+                    </p>
+                  ))
+                })()}
+              </div>
+            ) : (<>
             {(() => {
               const lineSplits = language === 'en'
                 ? [3, 2, 4, 3, 2, 2, 2, 2, 3, 4]
@@ -815,8 +1005,30 @@ export function Hero() {
                 </div>
               ))
             })()}
+            </>)}
           </div>
         </div>
+        {isGmeMode && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'fixed',
+              left: '50%',
+              bottom: isMobile ? 2 : 4,
+              transform: gmeTextComplete ? 'translateX(-50%) scale(1)' : 'translate(-50%, -8px) scale(0.82)',
+              color: '#000000',
+              zIndex: 16,
+              pointerEvents: 'none',
+              opacity: gmeTextComplete ? descriptorOpacity : 0,
+              transition: 'opacity 0.24s ease, transform 0.32s ease',
+              lineHeight: 0,
+            }}
+          >
+            <svg width={isMobile ? 42 : 58} height={isMobile ? 54 : 74} viewBox="0 0 42 42" fill="none">
+              <polyline points="7,13 21,29 35,13" stroke="currentColor" strokeWidth="7" strokeLinecap="square" strokeLinejoin="miter"/>
+            </svg>
+          </div>
+        )}
       </section>
     </>
   )

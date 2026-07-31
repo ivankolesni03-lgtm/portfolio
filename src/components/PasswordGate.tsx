@@ -9,7 +9,7 @@ import { getIntroLayout } from '@/lib/intro-layout'
 type GateStatus = 'checking' | 'locked' | 'submitting' | 'unlocked'
 
 interface PasswordGateProps {
-  onUnlock: () => void
+  onUnlock: (access: 'default' | 'gme') => void
 }
 
 export function PasswordGate({ onUnlock }: PasswordGateProps) {
@@ -33,7 +33,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
     if (saved === 'true') {
       frame = requestAnimationFrame(() => {
         setStatus('unlocked')
-        onUnlock()
+        onUnlock(sessionStorage.getItem('portfolioAccess') === 'gme' ? 'gme' : 'default')
       })
       return () => { if (frame !== null) cancelAnimationFrame(frame) }
     }
@@ -64,10 +64,14 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
         return
       }
 
+      const result = await response.json() as { access?: 'default' | 'gme' }
+      const access = result.access === 'gme' ? 'gme' : 'default'
+
       sessionStorage.setItem('unlocked', 'true')
+      sessionStorage.setItem('portfolioAccess', access)
       setStatus('unlocked')
       setInput('')
-      onUnlock()
+      onUnlock(access)
     } catch {
       setStatus('locked')
       setErrorMessage(retryError)

@@ -7,6 +7,7 @@ import { useScroll } from '@/contexts/ScrollContext'
 import { runScramble } from '@/hooks/use-scramble'
 
 export type Lang = 'de' | 'en'
+export type PortfolioAccess = 'default' | 'gme'
 
 interface TimelineEntry {
   id: number
@@ -16,7 +17,7 @@ interface TimelineEntry {
   img: string
 }
 
-const entries: TimelineEntry[] = [
+const baseEntries: TimelineEntry[] = [
   { id:1, period:{de:'2023–2025',en:'2023–2025'}, title:{de:'Ausbildung GTA',en:'Apprenticeship'}, org:{de:'Gestaltungstechnischer Assistent',en:'Design Technical Assistant'}, img:'/icons/mmbbs.jpg' },
   { id:2, period:{de:'2023–HEUTE',en:'2023–NOW'}, title:{de:'Studium IMC',en:'IMC Student'}, org:{de:'Hochschule Hannover',en:'Hannover University'}, img:'/icons/hsh.jpg' },
   { id:3, period:{de:'2024',en:'2024'}, title:{de:'Graphic Design,\nOnline Marketing',en:'Graphic Design,\nOnline Marketing'}, org:{de:'Graco Berlin',en:'Graco Berlin'}, img:'/icons/graco.jpg' },
@@ -26,6 +27,18 @@ const entries: TimelineEntry[] = [
   { id:7, period:{de:'2026',en:'2026'}, title:{de:'Freelancer',en:'Freelancer'}, org:{de:'Selbstständig',en:'Self-employed'}, img:'/icons/freelancer.jpg' },
   { id:8, period:{de:'2026–HEUTE',en:'2026–NOW'}, title:{de:'Generative\nIntelligence',en:'Generative\nIntelligence'}, org:{de:'BMW Group',en:'BMW Group'}, img:'/icons/bmw.jpg' },
 ]
+
+const gmeEntry: TimelineEntry = {
+  id: 9,
+  period: { de: '', en: '' },
+  title: { de: 'COMMING\nSOON', en: 'COMMING\nSOON' },
+  org: { de: '', en: '' },
+  img: '/icons/gamestop.jpg',
+}
+
+function getEntries(access: PortfolioAccess) {
+  return access === 'gme' ? [...baseEntries, gmeEntry] : baseEntries
+}
 
 // proximity: 0 = far, 1 = centered
 function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: number; lang: Lang }) {
@@ -111,9 +124,11 @@ function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: 
         opacity: 0.3 + proximity * 0.7,
         transition: 'opacity 0.15s ease',
       }}>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: '#888', marginBottom: 6, fontFamily: 'monospace' }}>
-          {periodD}
-        </div>
+        {entry.period[lang] && (
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: '#888', marginBottom: 6, fontFamily: 'monospace' }}>
+            {periodD}
+          </div>
+        )}
         <h3 style={{
           margin: '0 0 5px', fontSize: 'clamp(13px,2.4vw,26px)', fontWeight: 900,
           textTransform: 'uppercase', letterSpacing: '-0.5px',
@@ -132,7 +147,7 @@ function Station({ entry, proximity, lang }: { entry: TimelineEntry; proximity: 
 }
 
 // ─── Mobile Timeline (Instagram Stories Style) ─────────────────────────────
-function MobileTimeline({ lang }: { lang: Lang }) {
+function MobileTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry[] }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const [activeIdx, setActiveIdx] = useState(0)
   const [exitP, setExitP] = useState(0)
@@ -427,16 +442,18 @@ function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }
 
       {/* Text info */}
       <div style={{ width: '100%', padding: '0 8px' }}>
-        <div style={{
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: '0.1em',
-          color: '#888',
-          marginBottom: 8,
-          fontFamily: 'monospace',
-        }}>
-          {periodD}
-        </div>
+        {entry.period[lang] && (
+          <div style={{
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: '0.1em',
+            color: '#888',
+            marginBottom: 8,
+            fontFamily: 'monospace',
+          }}>
+            {periodD}
+          </div>
+        )}
         
         <h3 style={{
           margin: '0 0 8px',
@@ -467,20 +484,21 @@ function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }
 }
 
 // ─── Desktop Timeline (Original) ────────────────────────────────────────────
-export function ResumeTimeline() {
+export function ResumeTimeline({ access = 'default' }: { access?: PortfolioAccess }) {
   const { isMobile } = useMobile()
   const { language } = useLanguage()
   const lang = language as Lang
+  const entries = getEntries(access)
 
   // Render mobile or desktop version
   if (isMobile) {
-    return <MobileTimeline lang={lang} />
+    return <MobileTimeline lang={lang} entries={entries} />
   }
 
-  return <DesktopTimeline lang={lang} />
+  return <DesktopTimeline lang={lang} entries={entries} />
 }
 
-function DesktopTimeline({ lang }: { lang: Lang }) {
+function DesktopTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry[] }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [exitP, setExitP] = useState(0)
