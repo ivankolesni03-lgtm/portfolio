@@ -26,6 +26,8 @@ const NODE_Z_CONTROL_LOW = 16
 const NODE_Z_CLICK = 30
 const NODE_Z_EXPANDED = 19
 const AI_HEADING_Z = 1000
+const AI_NODE_REFERENCE_W = 1183
+const AI_NODE_REFERENCE_H = 768
 const INITIAL_AI_Z_ORDERS: Record<string, number> = {
   generate: 5,
   prompt: 6,
@@ -405,7 +407,7 @@ const TOPO = [
   {from:'modes',     to:'preview',  seg:3, optionalMode:true},
   {from:'upscale',   to:'terminal', seg:4, cableZ:13},
   {from:'terminal',  to:'progress', seg:5},
-  {from:'progress',  to:'preview',  seg:6, useAltInp:true, cableZ:12.6},
+  {from:'progress',  to:'preview',  seg:6, useAltInp:true, cableZ:15},
 ]
 const SEG_N = 7
 const AI_NODE_DEPTH: Record<string, number> = {
@@ -429,8 +431,8 @@ function CablesLayer({ ports, phase, isActive, exitP, modeSelected, nodeZOrders,
     const redDepth = active ? 'rgba(255,74,58,0.56)' : 'rgba(255,74,58,0.34)'
     return (
       <g transform={`translate(${point.x},${point.y})`} opacity={active ? 1 : 0.92}>
-        <path d={`M${sideSign * -12},0 H${sideSign * -4}`} stroke="rgba(255,248,242,0.98)" strokeWidth={4.8} strokeLinecap="round" opacity={active ? 0.96 : 0.78}/>
-        <path d={`M${sideSign * -12},1.4 H${sideSign * -4}`} stroke={redDepth} strokeWidth={5.8} strokeLinecap="round" opacity={active ? 0.3 : 0.2}/>
+        <path d={`M${sideSign * -0.5},0 H${sideSign * 12}`} stroke="rgba(255,248,242,0.98)" strokeWidth={4.8} strokeLinecap="round" opacity={active ? 0.96 : 0.78}/>
+        <path d={`M${sideSign * -0.5},1.4 H${sideSign * 12}`} stroke={redDepth} strokeWidth={5.8} strokeLinecap="round" opacity={active ? 0.3 : 0.2}/>
         <rect x={outletX + 0.9} y={-3.2} width={10} height={8} rx={1} fill={redDepth} opacity={active ? 0.34 : 0.24}/>
         <rect x={outletX} y={-4.2} width={10} height={8} rx={1} fill="#030303" stroke={outletStroke} strokeWidth={0.9}/>
       </g>
@@ -457,15 +459,17 @@ function CablesLayer({ ports, phase, isActive, exitP, modeSelected, nodeZOrders,
         const ss = seg / SEG_N, se = (seg+1) / SEG_N
         const lit = isActive && phase >= ss && (!optionalMode || modeSelected)
         const pt  = !isActive ? 0 : phase >= se ? 1 : phase >= ss ? (phase-ss)/(se-ss) : 0
+          const f2 = { x: f.x + 10, y: f.y }
+          const t3 = { x: t2.x - 10, y: t2.y }
           // Each cable exits its port straight (horizontal tangent), then bends.
           // Tension scales with distance → short cables stiff, long cables sweeping.
-          const dist = Math.hypot(t2.x - f.x, t2.y - f.y)
+          const dist = Math.hypot(t3.x - f2.x, t3.y - f2.y)
           const tension = Math.max(88, dist * 0.48)
-          const c1x = f.x + tension, c1y = f.y          // exits right from out-port
-          const c2x = t2.x - tension, c2y = t2.y        // arrives from left at in-port
-          const d   = `M${f.x},${f.y} C${c1x},${c1y} ${c2x},${c2y} ${t2.x},${t2.y}`
-          const px_ = f.x*(1-pt)**3 + 3*c1x*(1-pt)**2*pt + 3*c2x*(1-pt)*pt**2 + t2.x*pt**3
-          const py_ = f.y*(1-pt)**3 + 3*c1y*(1-pt)**2*pt + 3*c2y*(1-pt)*pt**2 + t2.y*pt**3
+          const c1x = f2.x + tension, c1y = f2.y          // exits right from out-port
+          const c2x = t3.x - tension, c2y = t3.y          // arrives from left at in-port
+          const d   = `M${f2.x},${f2.y} C${c1x},${c1y} ${c2x},${c2y} ${t3.x},${t3.y}`
+          const px_ = f2.x*(1-pt)**3 + 3*c1x*(1-pt)**2*pt + 3*c2x*(1-pt)*pt**2 + t3.x*pt**3
+          const py_ = f2.y*(1-pt)**3 + 3*c1y*(1-pt)**2*pt + 3*c2y*(1-pt)*pt**2 + t3.y*pt**3
         const tubeDepth = lit ? 'rgba(12,0,0,0.34)' : 'rgba(0,0,0,0.22)'
         const tubeShadow = lit ? 'rgba(255,58,48,0.42)' : 'rgba(255,76,64,0.25)'
         const tubeBody = lit ? 'rgba(252,248,240,0.98)' : 'rgba(246,242,235,0.84)'
@@ -1573,6 +1577,11 @@ export function AISection() {
   // VW/VH = section.offsetWidth/Height (gemessen, nicht window)
   // Spalten X: VW * 0.XX | Zeilen Y: VH * 0.XX
   // +0.01 ≈ +14px rechts (bei 1440px) / +9px unten (bei 900px)
+  const NODE_STACK_Y_OFFSET = Math.max(
+    0,
+    Math.round((VW - AI_NODE_REFERENCE_W) * 0.14),
+    Math.round((VH - AI_NODE_REFERENCE_H) * 0.12)
+  )
   const C1 = Math.round(VW * 0.088)   // GENERATE + PROMPT DESIGN
   const C2 = Math.round(VW * 0.286)   // WORKFLOW + VISION
   const C3 = Math.round(VW * 0.495)   // MODES
@@ -1581,15 +1590,15 @@ export function AISection() {
   const C4 = Math.round(VW * 0.500)   // TERMINAL
   const C5 = Math.round(VW * 0.774)   // PROGRESS
 
-  const TERM_TOP     = Math.round(VH * 0.151)  // TERMINAL + PIPELINE (oben)
-  const PROGRESS_TOP = Math.round(VH * 0.214)  // PROGRESS
-  const GEN_TOP      = Math.round(VH * 0.532)  // GENERATE
-  const PROMPT_TOP   = Math.max(Math.round(VH * 0.680), GEN_TOP + 126)  // PROMPT DESIGN
-  const ERF_TOP      = Math.round(VH * 0.521)  // WORKFLOW
-  const VIS_TOP      = Math.max(Math.round(VH * 0.661), ERF_TOP + 118)  // VISION
-  const UPS_TOP      = Math.round(VH * 0.495)  // FORMAT
-  const MODES_TOP    = Math.max(Math.round(VH * 0.641), UPS_TOP + 10)  // MODES
-  const PREV_TOP   = Math.round(VH * 0.328)  // OUTPUT
+  const TERM_TOP     = Math.round(VH * 0.151) + NODE_STACK_Y_OFFSET  // TERMINAL + PIPELINE (oben)
+  const PROGRESS_TOP = Math.round(VH * 0.214) + NODE_STACK_Y_OFFSET  // PROGRESS
+  const GEN_TOP      = Math.round(VH * 0.532) + NODE_STACK_Y_OFFSET  // GENERATE
+  const PROMPT_TOP   = Math.max(Math.round(VH * 0.680) + NODE_STACK_Y_OFFSET, GEN_TOP + 126)  // PROMPT DESIGN
+  const ERF_TOP      = Math.round(VH * 0.521) + NODE_STACK_Y_OFFSET  // WORKFLOW
+  const VIS_TOP      = Math.max(Math.round(VH * 0.661) + NODE_STACK_Y_OFFSET, ERF_TOP + 118)  // VISION
+  const UPS_TOP      = Math.round(VH * 0.495) + NODE_STACK_Y_OFFSET  // FORMAT
+  const MODES_TOP    = Math.max(Math.round(VH * 0.641) + NODE_STACK_Y_OFFSET, UPS_TOP + 10)  // MODES
+  const PREV_TOP   = Math.round(VH * 0.328) + NODE_STACK_Y_OFFSET  // OUTPUT
   const PREV_LEFT  = Math.round(VW * 0.638)
 
   return (
