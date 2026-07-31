@@ -200,6 +200,21 @@ if (typeof window !== 'undefined') {
     const img = new window.Image()
     img.src = src
   })
+
+  ;['/icons/gamestop-logo.png', '/icons/gamestop-logo2.png'].forEach((href) => {
+    const existingPreload = document.querySelector(`link[rel="preload"][as="image"][href="${href}"]`)
+    if (existingPreload) return
+    const link = document.createElement('link')
+    link.rel = 'preload'
+    link.as = 'image'
+    link.href = href
+    link.setAttribute('fetchpriority', 'high')
+    document.head.appendChild(link)
+
+    const img = new window.Image()
+    img.fetchPriority = 'high'
+    img.src = href
+  })
 }
 
 function ScrambleText({ text, className }: { text: string; className?: string }) {
@@ -891,6 +906,9 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                                     src="/icons/gamestop-logo.png"
                                     alt=""
                                     aria-hidden="true"
+                                    loading="eager"
+                                    fetchPriority="high"
+                                    decoding="sync"
                                     style={{
                                       position: 'absolute',
                                       inset: 0,
@@ -904,6 +922,9 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                                     src="/icons/gamestop-logo2.png"
                                     alt=""
                                     aria-hidden="true"
+                                    loading="eager"
+                                    fetchPriority="high"
+                                    decoding="sync"
                                     style={{
                                       position: 'absolute',
                                       inset: 0,

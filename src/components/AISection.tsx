@@ -12,6 +12,8 @@ const FORMAT_OPTIONS = ['1:1','16:9','3:4'] as const
 type OutputFormat = typeof FORMAT_OPTIONS[number]
 const OUTPUT_MODE_OPTIONS = ['UPSCALE','OUTPAINT','VIDEO'] as const
 type OutputMode = typeof OUTPUT_MODE_OPTIONS[number]
+type AICursorMode = 'normal' | 'normalClick' | 'finger' | 'click' | 'fist'
+type AICursorEvent = React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
 const OUTPUT_MODE_LABELS: Record<OutputMode, string> = {
   UPSCALE: 'UPSCALE',
   OUTPAINT: 'OUTPAINTING',
@@ -51,6 +53,53 @@ const CRT_GREEN_DIM = 'rgba(117,255,96,0.38)'
 const CRT_GLOW = '0 0 5px rgba(215,255,190,0.9),0 0 14px rgba(57,255,20,0.62)'
 const CRT_BOX_GLOW = `0 0 5px rgba(215,255,190,0.72),0 0 18px rgba(57,255,20,0.46),0 0 36px rgba(57,255,20,0.2)`
 const CRT_DROP_GLOW = 'drop-shadow(0 0 5px rgba(215,255,190,0.72)) drop-shadow(0 0 18px rgba(57,255,20,0.46)) drop-shadow(0 0 36px rgba(57,255,20,0.2))'
+const AI_CURSOR_NORMAL = 'none'
+const AI_CURSOR_OPEN = 'none'
+const AI_CURSOR_FIST = 'none'
+const AI_CURSOR_VERSION = '20260731-open-up'
+const AI_CURSOR_ASSETS = ['/icons/pixelmaus-maus.png', '/icons/pixelmaus-maus1.png', '/icons/pixelmaus-finger.png', '/icons/pixelmaus-finger1.png', '/icons/pixelmaus-fist.png'].map((src) => `${src}?v=${AI_CURSOR_VERSION}`) as readonly string[]
+const AI_CURSOR_SRC: Record<AICursorMode, string> = {
+  normal: `/icons/pixelmaus-maus.png?v=${AI_CURSOR_VERSION}`,
+  normalClick: `/icons/pixelmaus-maus1.png?v=${AI_CURSOR_VERSION}`,
+  finger: `/icons/pixelmaus-finger.png?v=${AI_CURSOR_VERSION}`,
+  click: `/icons/pixelmaus-finger1.png?v=${AI_CURSOR_VERSION}`,
+  fist: `/icons/pixelmaus-fist.png?v=${AI_CURSOR_VERSION}`,
+}
+const AI_CURSOR_SIZE: Record<AICursorMode, { width: number; height: number }> = {
+  normal: { width: 64, height: 80 },
+  normalClick: { width: 64, height: 80 },
+  finger: { width: 64, height: 80 },
+  click: { width: 64, height: 80 },
+  fist: { width: 64, height: 80 },
+}
+const AI_CURSOR_HOTSPOT: Record<AICursorMode, { x: number; y: number }> = {
+  normal: { x: 3, y: 80 },
+  normalClick: { x: 3, y: 80 },
+  finger: { x: 10, y: 80 },
+  click: { x: 10, y: 80 },
+  fist: { x: 10, y: 80 },
+}
+const AI_CURSOR_HOLD_MS = 140
+const AI_CURSOR_RENDER_SCALE = 0.375
+const AI_CURSOR_RENDER_OFFSET_Y = 22
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  AI_CURSOR_ASSETS.forEach((href) => {
+    const existingPreload = document.querySelector(`link[rel="preload"][as="image"][href="${href}"]`)
+    if (!existingPreload) {
+      const link = document.createElement('link')
+      link.rel = 'preload'
+      link.as = 'image'
+      link.href = href
+      link.setAttribute('fetchpriority', 'high')
+      document.head.appendChild(link)
+    }
+
+    const img = new window.Image()
+    img.fetchPriority = 'high'
+    img.src = href
+  })
+}
 
 // ─── Neon Heading ─────────────────────────────────────────────────────────────
 function NeonHeading() {
@@ -422,13 +471,13 @@ const AI_NODE_DEPTH: Record<string, number> = {
   preview: 4,
 }
 
-function CablesLayer({ ports, phase, isActive, exitP, modeSelected, nodeZOrders, focusedNode }: { ports: PortMap; phase: number; isActive: boolean; exitP: number; modeSelected: boolean; nodeZOrders: Record<string, number>; focusedNode: string | null }) {
+function CablesLayer({ ports, phase, isActive, exitP, modeSelected, modeGlowStage, nodeZOrders, focusedNode }: { ports: PortMap; phase: number; isActive: boolean; exitP: number; modeSelected: boolean; modeGlowStage: number; nodeZOrders: Record<string, number>; focusedNode: string | null }) {
   const cableOpacity = Math.max(0, 1 - exitP * 2)
-  const renderCableCap = (point: Port, active: boolean, side: 'out' | 'in') => {
+  const renderCableCap = (point: Port, active: boolean, side: 'out' | 'in', green = false) => {
     const sideSign = side === 'out' ? 1 : -1
     const outletX = side === 'out' ? -0.5 : -9.5
-    const outletStroke = active ? 'rgba(255,245,240,0.82)' : 'rgba(238,232,225,0.62)'
-    const redDepth = active ? 'rgba(255,74,58,0.56)' : 'rgba(255,74,58,0.34)'
+    const outletStroke = green ? 'rgba(220,255,205,0.94)' : active ? 'rgba(255,245,240,0.82)' : 'rgba(238,232,225,0.62)'
+    const redDepth = green ? 'rgba(255,145,32,0.72)' : active ? 'rgba(255,74,58,0.56)' : 'rgba(255,74,58,0.34)'
     return (
       <g transform={`translate(${point.x},${point.y})`} opacity={active ? 1 : 0.92}>
         <path d={`M${sideSign * -0.5},0 H${sideSign * 12}`} stroke="rgba(255,248,242,0.98)" strokeWidth={4.8} strokeLinecap="round" opacity={active ? 0.96 : 0.78}/>
@@ -457,7 +506,8 @@ function CablesLayer({ ports, phase, isActive, exitP, modeSelected, nodeZOrders,
         const a = ports[from], b = ports[to]; if (!a || !b) return null
         const f = a.out, t2 = (useAltInp && b.inpAlt) ? b.inpAlt : b.inp
         const ss = seg / SEG_N, se = (seg+1) / SEG_N
-        const lit = isActive && phase >= ss && (!optionalMode || modeSelected)
+          const modeSimulation = Boolean(optionalMode && modeSelected && modeGlowStage >= 2)
+          const lit = (isActive && phase >= ss && (!optionalMode || modeSelected)) || modeSimulation
         const pt  = !isActive ? 0 : phase >= se ? 1 : phase >= ss ? (phase-ss)/(se-ss) : 0
           const f2 = { x: f.x + 10, y: f.y }
           const t3 = { x: t2.x - 10, y: t2.y }
@@ -470,22 +520,22 @@ function CablesLayer({ ports, phase, isActive, exitP, modeSelected, nodeZOrders,
           const d   = `M${f2.x},${f2.y} C${c1x},${c1y} ${c2x},${c2y} ${t3.x},${t3.y}`
           const px_ = f2.x*(1-pt)**3 + 3*c1x*(1-pt)**2*pt + 3*c2x*(1-pt)*pt**2 + t3.x*pt**3
           const py_ = f2.y*(1-pt)**3 + 3*c1y*(1-pt)**2*pt + 3*c2y*(1-pt)*pt**2 + t3.y*pt**3
-        const tubeDepth = lit ? 'rgba(12,0,0,0.34)' : 'rgba(0,0,0,0.22)'
-        const tubeShadow = lit ? 'rgba(255,58,48,0.42)' : 'rgba(255,76,64,0.25)'
+        const tubeDepth = modeSimulation ? 'rgba(74,29,0,0.5)' : lit ? 'rgba(12,0,0,0.34)' : 'rgba(0,0,0,0.22)'
+        const tubeShadow = modeSimulation ? 'rgba(255,145,32,0.74)' : lit ? 'rgba(255,58,48,0.42)' : 'rgba(255,76,64,0.25)'
         const tubeBody = lit ? 'rgba(252,248,240,0.98)' : 'rgba(246,242,235,0.84)'
         const tubeHighlight = lit ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.64)'
         return (
-          <g key={i} style={{ filter:lit ? 'drop-shadow(0 0 5px rgba(255,238,232,0.62)) drop-shadow(0 0 13px rgba(255,72,55,0.24))' : 'none' }}>
+          <g key={i} style={{ filter:modeSimulation ? 'drop-shadow(0 0 5px rgba(255,230,194,0.84)) drop-shadow(0 0 15px rgba(255,126,20,0.62))' : lit ? 'drop-shadow(0 0 5px rgba(255,238,232,0.62)) drop-shadow(0 0 13px rgba(255,72,55,0.24))' : 'none' }}>
             <path d={d} fill="none" stroke={tubeDepth} strokeWidth={lit ? 10.5 : 9.2} strokeLinecap="round" opacity={lit ? 0.42 : 0.28}/>
             <path d={d} fill="none" stroke={tubeShadow} strokeWidth={lit ? 8.8 : 7.8} strokeLinecap="round" opacity={lit ? 0.74 : 0.52}/>
             <path d={d} fill="none" stroke={tubeBody} strokeWidth={lit ? 5.2 : 4.8} strokeLinecap="round" opacity={lit ? 1 : 0.94}/>
             <path d={d} fill="none" stroke={tubeHighlight} strokeWidth={lit ? 1.55 : 1.35} strokeLinecap="round" opacity={lit ? 0.92 : 0.7}/>
             {lit && pt > 0.02 && pt < 0.98 && <>
               <circle cx={px_} cy={py_} r={4.2} fill="rgba(255,255,255,0.96)" opacity={0.95}/>
-              <circle cx={px_} cy={py_} r={10} fill="rgba(255,74,58,0.42)" opacity={0.36}/>
+              <circle cx={px_} cy={py_} r={10} fill={modeSimulation ? 'rgba(255,126,20,0.52)' : 'rgba(255,74,58,0.42)'} opacity={0.36}/>
             </>}
-            {renderCableCap(f, lit, 'out')}
-            {renderCableCap(t2, lit, 'in')}
+            {renderCableCap(f, lit, 'out', modeSimulation)}
+            {renderCableCap(t2, lit, 'in', modeSimulation)}
           </g>
         )})}
       </svg>
@@ -494,12 +544,12 @@ function CablesLayer({ ports, phase, isActive, exitP, modeSelected, nodeZOrders,
 }
 
 // ─── Draggable Window ─────────────────────────────────────────────────────────
-function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=false, minH, freezePortY=false, offset={x:0,y:0}, animateLayout=false, emitAltInp=false, altInpY=16, inpAtFrac=0.5, children }: {
+function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=false, glowTone='green', minH, freezePortY=false, offset={x:0,y:0}, animateLayout=false, emitAltInp=false, altInpY=16, inpAtFrac=0.5, children }: {
   id: string; title: string; width: number
   initPos: {x: number; y: number}
   onPortChange: (id: string, out: Port, inp: Port, inpAlt?: Port) => void
   onFocus: (id: string) => void
-  zIndex: number; lit?: boolean; minH?: number; freezePortY?: boolean
+  zIndex: number; lit?: boolean; glowTone?: 'green' | 'orange'; minH?: number; freezePortY?: boolean
   offset?: {x: number; y: number}; animateLayout?: boolean
   altInpY?: number
   emitAltInp?: boolean; inpAtFrac?: number
@@ -509,6 +559,9 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
   const domRef   = useRef<HTMLDivElement>(null)
   const dOff     = useRef({x:0, y:0})
   const dragging = useRef(false)
+  const dragStartRef = useRef({ x:0, y:0 })
+  const dragMovedRef = useRef(false)
+  const [isDragging, setIsDragging] = useState(false)
   const magRef = useRef({ x:0, y:0 })
   const targetMagRef = useRef({ x:0, y:0 })
   const magDirRef = useRef({ x:1, y:0 })
@@ -549,6 +602,11 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
   }, [emit])
 
   const onMD = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    if (e.target instanceof Element && e.target.closest('button, input, select, textarea, option, label, a, [role="button"], [data-ai-stop-drag]')) {
+      onFocus(id)
+      return
+    }
     e.preventDefault(); onFocus(id)
     const el = domRef.current
     if (el) {
@@ -565,7 +623,7 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
       el.style.setProperty('--ai-my', '0px')
       emit()
     }
-    dOff.current = {x: e.clientX-(pos.x+offset.x), y: e.clientY-(pos.y+offset.y)}; dragging.current = true
+    dOff.current = {x: e.clientX-(pos.x+offset.x), y: e.clientY-(pos.y+offset.y)}; dragStartRef.current = { x:e.clientX, y:e.clientY }; dragMovedRef.current = false; dragging.current = true; setIsDragging(true); document.body.classList.add('ai-node-dragging')
   }, [pos, offset.x, offset.y, id, onFocus])
 
   const finishMagReset = useCallback(() => {
@@ -671,10 +729,16 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
   }, [emit, startMagAnimation])
 
   useEffect(() => {
-    const move = (e: MouseEvent) => { if (!dragging.current) return; setPos({x:e.clientX-dOff.current.x-offset.x, y:e.clientY-dOff.current.y-offset.y}) }
+    const move = (e: MouseEvent) => {
+      if (!dragging.current) return
+      if (Math.hypot(e.clientX - dragStartRef.current.x, e.clientY - dragStartRef.current.y) > 3) dragMovedRef.current = true
+      setPos({x:e.clientX-dOff.current.x-offset.x, y:e.clientY-dOff.current.y-offset.y})
+    }
     const up   = () => {
       const wasDragging = dragging.current
       dragging.current = false
+      setIsDragging(false)
+      document.body.classList.remove('ai-node-dragging')
       if (wasDragging) emit()
     }
     window.addEventListener('mousemove', move); window.addEventListener('mouseup', up)
@@ -698,10 +762,15 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
       if (pointerRafRef.current) cancelAnimationFrame(pointerRafRef.current)
       if (magRafRef.current) cancelAnimationFrame(magRafRef.current)
       if (magResetTimerRef.current) clearTimeout(magResetTimerRef.current)
+      document.body.classList.remove('ai-node-dragging')
     }
   }, [])
 
   const visualDepth = AI_NODE_DEPTH[id] ?? 0
+  const orangeGlow = glowTone === 'orange'
+  const nodeGlow = orangeGlow
+    ? '0 0 5px rgba(255,226,188,0.78),0 0 18px rgba(255,145,32,0.56),0 0 36px rgba(255,106,0,0.26)'
+    : CRT_BOX_GLOW
   const depthShade = Math.min(0.22, visualDepth * 0.045)
   const surfaceTop = visualDepth >= 3 ? '#eeeeee' : visualDepth >= 2 ? '#f1f1f1' : '#f5f5f5'
   const surfaceMid = visualDepth >= 3 ? '#d8d8d8' : visualDepth >= 2 ? '#dedede' : '#e7e7e7'
@@ -713,19 +782,26 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
   const ambientShadow = `${-2 + visualDepth * 0.3}px ${5 + visualDepth * 2.4}px ${22 + visualDepth * 8}px rgba(0,0,0,${0.1 + visualDepth * 0.018})`
   const redDepthShadow = `${4 + visualDepth * 1.4}px ${6 + visualDepth * 1.8}px ${15 + visualDepth * 4}px rgba(255,72,55,${0.045 + visualDepth * 0.018})`
   const bevelShadow = `inset 1px 1px 0 rgba(255,255,255,${0.88 - depthShade}), inset -2px -2px 0 rgba(0,0,0,${0.13 + visualDepth * 0.028}), inset 0 -5px 9px rgba(0,0,0,${0.045 + visualDepth * 0.018})`
-  const outline = lit ? `1px solid ${CRT_GREEN}` : 'none'
-  const shadow  = lit ? `${CRT_BOX_GLOW}, ${nearShadow}, ${depthShadow}, ${ambientShadow}, ${redDepthShadow}, ${bevelShadow}, inset 0 0 13px rgba(57,255,20,0.13)` : `${nearShadow}, ${depthShadow}, ${ambientShadow}, ${redDepthShadow}, ${bevelShadow}`
+  const outline = lit ? `1px solid ${orangeGlow ? '#ff9d32' : CRT_GREEN}` : 'none'
+  const shadow  = lit ? `${nodeGlow}, ${nearShadow}, ${depthShadow}, ${ambientShadow}, ${redDepthShadow}, ${bevelShadow}, inset 0 0 13px ${orangeGlow ? 'rgba(255,126,20,0.16)' : 'rgba(57,255,20,0.13)'}` : `${nearShadow}, ${depthShadow}, ${ambientShadow}, ${redDepthShadow}, ${bevelShadow}`
   const nodeBackground = `linear-gradient(135deg, ${surfaceTop} 0%, ${surfaceMid} 48%, ${surfaceBottom} 100%)`
   const nodeBorder = visualDepth >= 3 ? '1px solid rgba(255,255,255,0.62)' : '1px solid rgba(255,255,255,0.46)'
   const headerBackground = `linear-gradient(180deg, ${headerTop} 0%, rgba(232,232,232,0.96) 38%, ${headerBottom} 100%)`
 
+  const stopDraggedClick = useCallback((event: React.MouseEvent) => {
+    if (!dragMovedRef.current) return
+    event.preventDefault()
+    event.stopPropagation()
+    dragMovedRef.current = false
+  }, [])
+
   return (
-    <div ref={domRef} data-ai-node={id} onMouseDown={() => onFocus(id)} style={{ position:'absolute', left:pos.x+offset.x, top:pos.y+offset.y, width, minHeight:minH, background:nodeBackground, border:nodeBorder, outline, boxShadow:shadow, zIndex, display:'flex', flexDirection:'column', transform:'translate3d(var(--ai-mx,0px),var(--ai-my,0px),0)', transition:animateLayout?'left 0.28s ease,top 0.28s ease,width 0.28s ease,outline 0.3s,box-shadow 0.3s,background 0.3s':'outline 0.3s,box-shadow 0.3s,background 0.3s', willChange:'transform', isolation:'isolate' }}>
-      <div onMouseDown={onMD} style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:headerBackground, borderBottom:'1px solid rgba(0,0,0,0.16)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -1px 0 rgba(0,0,0,0.08)', cursor:'grab', flexShrink:0, userSelect:'none' }}>
+    <div ref={domRef} data-ai-node={id} onMouseDown={onMD} onClickCapture={stopDraggedClick} style={{ position:'absolute', left:pos.x+offset.x, top:pos.y+offset.y, width, minHeight:minH, background:nodeBackground, border:nodeBorder, outline, boxShadow:shadow, zIndex, display:'flex', flexDirection:'column', transform:'translate3d(var(--ai-mx,0px),var(--ai-my,0px),0)', transition:animateLayout?'left 0.28s ease,top 0.28s ease,width 0.28s ease,outline 0.3s,box-shadow 0.3s,background 0.3s':'outline 0.3s,box-shadow 0.3s,background 0.3s', willChange:'transform', isolation:'isolate', cursor:isDragging ? AI_CURSOR_FIST : AI_CURSOR_OPEN }}>
+      <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:headerBackground, borderBottom:'1px solid rgba(0,0,0,0.16)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -1px 0 rgba(0,0,0,0.08)', cursor:isDragging ? AI_CURSOR_FIST : AI_CURSOR_OPEN, flexShrink:0, userSelect:'none' }}>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#27ca40', flexShrink:0}}/>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#ffbd2e', flexShrink:0}}/>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#ff5f56', flexShrink:0}}/>
-        <span onMouseEnter={scramble} style={{ marginLeft:6, color:'#111', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:BORNA, flex:1, cursor:'grab', fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{disp}</span>
+        <span onMouseEnter={scramble} style={{ marginLeft:6, color:'#111', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:BORNA, flex:1, cursor:isDragging ? AI_CURSOR_FIST : AI_CURSOR_OPEN, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{disp}</span>
       </div>
       <div style={{ position:'relative', zIndex:1, flex:1 }}>{children}</div>
     </div>
@@ -795,6 +871,7 @@ export function AISection() {
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('1:1')
   const [pendingOutputFormat, setPendingOutputFormat] = useState<OutputFormat>('1:1')
   const [outputModes, setOutputModes] = useState<OutputMode[]>([])
+  const [modeGlowStage, setModeGlowStage] = useState(0)
   const [hoveredControl, setHoveredControl] = useState<string | null>(null)
   const [upscaleSplit, setUpscaleSplit] = useState(0.5)
   const [upscaleHandleHovered, setUpscaleHandleHovered] = useState(false)
@@ -806,11 +883,36 @@ export function AISection() {
   const [videoCanPlay, setVideoCanPlay] = useState(false)
   const [videoLoadSimDone, setVideoLoadSimDone] = useState(false)
   const [videoPlaying, setVideoPlaying] = useState(false)
+  const aiCursorImgRef = useRef<HTMLImageElement>(null)
+  const aiCursorModeRef = useRef<AICursorMode>('normal')
+  const aiCursorPressedRef = useRef(false)
+  const aiCursorHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const aiCursorRafRef = useRef(0)
+  const aiCursorRectRef = useRef<DOMRect | null>(null)
+  const aiCursorPointRef = useRef({ x:-100, y:-100 })
+  const aiCursorClientRef = useRef({ x:0, y:0, active:false })
+  const aiCursorVisibleRef = useRef(false)
+  const aiCursorTargetRef = useRef<EventTarget | null>(null)
   // VW/VH measured from the actual section element – consistent across environments
   const [dims, setDims] = useState<{w:number,h:number}|null>(null)
   const [zOrders, setZOrders] = useState<Record<string,number>>(() => ({...INITIAL_AI_Z_ORDERS}))
   const { isMobile, width, visualHeight } = useMobile()
   const { scrollY, vh: scrollVh } = useScroll()
+
+  useEffect(() => {
+    if (outputModes.length === 0) {
+      setModeGlowStage(0)
+      return
+    }
+    setModeGlowStage(1)
+    const cableTimer = setTimeout(() => setModeGlowStage(2), 180)
+    const outputTimer = setTimeout(() => setModeGlowStage(3), 380)
+    return () => {
+      clearTimeout(cableTimer)
+      clearTimeout(outputTimer)
+    }
+  }, [outputModes])
+
   const isOutpaintMode = outputModes.includes('OUTPAINT')
   const isUpscaleMode = outputModes.includes('UPSCALE')
   const isVideoMode = outputModes.includes('VIDEO')
@@ -840,6 +942,127 @@ export function AISection() {
   const outpaintGuideOpacity = Math.min(1, Math.max(0, outpaintReveal * 1.35))
   const outputPixelSize = isUpscaleMode ? 0 : MIN_OUTPUT_PIXEL_SIZE
   const upscalePixelReveal = Math.max(0.001, 1 - upscaleSplit)
+
+  const applyAiCursorMode = useCallback((mode: AICursorMode) => {
+    if (aiCursorModeRef.current === mode) return
+    aiCursorModeRef.current = mode
+    const cursor = aiCursorImgRef.current ?? sectionRef.current?.querySelector<HTMLImageElement>('.ai-pixel-cursor')
+    if (!cursor) return
+    const hotspot = AI_CURSOR_HOTSPOT[mode]
+    const size = AI_CURSOR_SIZE[mode]
+    cursor.src = AI_CURSOR_SRC[mode]
+    cursor.style.width = `${size.width * AI_CURSOR_RENDER_SCALE}px`
+    cursor.style.height = 'auto'
+    cursor.style.setProperty('--ai-cursor-hotspot-x', `${hotspot.x * AI_CURSOR_RENDER_SCALE}px`)
+    cursor.style.setProperty('--ai-cursor-hotspot-y', `${hotspot.y * AI_CURSOR_RENDER_SCALE}px`)
+  }, [])
+
+  const getAiCursorMode = useCallback((target: EventTarget | null): AICursorMode => {
+    return target instanceof Element && target.closest('[data-ai-node]') ? 'finger' : 'normal'
+  }, [])
+
+  const clearAiCursorHold = useCallback(() => {
+    if (!aiCursorHoldTimerRef.current) return
+    clearTimeout(aiCursorHoldTimerRef.current)
+    aiCursorHoldTimerRef.current = null
+  }, [])
+
+  const updateAiCursorPosition = useCallback((clientX: number, clientY: number, forceMeasure = false, eventSection?: HTMLElement) => {
+    const section = sectionRef.current ?? eventSection
+    if (!section) return
+    aiCursorClientRef.current = { x: clientX, y: clientY, active: true }
+    if (forceMeasure || !aiCursorRectRef.current) aiCursorRectRef.current = section.getBoundingClientRect()
+    const rect = aiCursorRectRef.current
+    aiCursorPointRef.current = { x: clientX - rect.left, y: clientY - rect.top }
+    const activeCursor = aiCursorImgRef.current ?? section.querySelector<HTMLImageElement>('.ai-pixel-cursor')
+    if (activeCursor && !aiCursorVisibleRef.current) {
+      aiCursorVisibleRef.current = true
+      activeCursor.style.opacity = '1'
+    }
+    if (aiCursorRafRef.current) return
+    aiCursorRafRef.current = requestAnimationFrame(() => {
+      aiCursorRafRef.current = 0
+      const currentSection = sectionRef.current
+      if (!currentSection) return
+      const cursor = aiCursorImgRef.current ?? currentSection.querySelector<HTMLImageElement>('.ai-pixel-cursor')
+      if (!cursor) return
+      currentSection.style.setProperty('--ai-cursor-x', `${aiCursorPointRef.current.x}px`)
+      currentSection.style.setProperty('--ai-cursor-y', `${aiCursorPointRef.current.y}px`)
+    })
+  }, [])
+
+  const moveAiCursor = useCallback((event: AICursorEvent) => {
+    updateAiCursorPosition(event.clientX, event.clientY, event.type === 'mouseenter' || event.type === 'pointerenter', event.currentTarget)
+    if (!aiCursorPressedRef.current && aiCursorTargetRef.current !== event.target) {
+      aiCursorTargetRef.current = event.target
+      applyAiCursorMode(getAiCursorMode(event.target))
+    }
+    if (!document.body.classList.contains('ai-section-cursor-active')) document.body.classList.add('ai-section-cursor-active')
+  }, [applyAiCursorMode, getAiCursorMode, updateAiCursorPosition])
+
+  const pressAiCursor = useCallback((event: AICursorEvent) => {
+    updateAiCursorPosition(event.clientX, event.clientY, true, event.currentTarget)
+    if (!document.body.classList.contains('ai-section-cursor-active')) document.body.classList.add('ai-section-cursor-active')
+    aiCursorPressedRef.current = true
+    clearAiCursorHold()
+    if (!(event.target instanceof Element) || !event.target.closest('[data-ai-node]')) {
+      applyAiCursorMode('normalClick')
+      return
+    }
+    applyAiCursorMode('click')
+    aiCursorHoldTimerRef.current = setTimeout(() => {
+      aiCursorHoldTimerRef.current = null
+      if (aiCursorPressedRef.current) applyAiCursorMode('fist')
+    }, AI_CURSOR_HOLD_MS)
+  }, [applyAiCursorMode, clearAiCursorHold, updateAiCursorPosition])
+
+  const releaseAiCursor = useCallback((event: AICursorEvent) => {
+    clearAiCursorHold()
+    aiCursorPressedRef.current = false
+    updateAiCursorPosition(event.clientX, event.clientY, false, event.currentTarget)
+    applyAiCursorMode(getAiCursorMode(event.target))
+  }, [applyAiCursorMode, clearAiCursorHold, getAiCursorMode, updateAiCursorPosition])
+
+  const hideAiCursor = useCallback(() => {
+    clearAiCursorHold()
+    aiCursorPressedRef.current = false
+    aiCursorClientRef.current.active = false
+    if (aiCursorRafRef.current) {
+      cancelAnimationFrame(aiCursorRafRef.current)
+      aiCursorRafRef.current = 0
+    }
+    aiCursorRectRef.current = null
+    aiCursorTargetRef.current = null
+    const cursor = aiCursorImgRef.current ?? sectionRef.current?.querySelector<HTMLImageElement>('.ai-pixel-cursor')
+    aiCursorVisibleRef.current = false
+    if (cursor) cursor.style.opacity = '0'
+    applyAiCursorMode('normal')
+    document.body.classList.remove('ai-section-cursor-active')
+  }, [applyAiCursorMode, clearAiCursorHold])
+
+  useEffect(() => {
+    const onWindowMouseUp = (event: MouseEvent) => {
+      if (!aiCursorPressedRef.current) return
+      clearAiCursorHold()
+      aiCursorPressedRef.current = false
+      const section = sectionRef.current
+      const target = document.elementFromPoint(event.clientX, event.clientY)
+      if (section && target && section.contains(target)) {
+        updateAiCursorPosition(event.clientX, event.clientY)
+        applyAiCursorMode(getAiCursorMode(target))
+        return
+      }
+      hideAiCursor()
+    }
+    window.addEventListener('mouseup', onWindowMouseUp)
+    return () => window.removeEventListener('mouseup', onWindowMouseUp)
+  }, [applyAiCursorMode, clearAiCursorHold, getAiCursorMode, hideAiCursor, updateAiCursorPosition])
+
+  useEffect(() => {
+    if (!aiCursorVisibleRef.current || !aiCursorClientRef.current.active) return
+    const { x, y } = aiCursorClientRef.current
+    updateAiCursorPosition(x, y, true)
+  }, [scrollY, width, visualHeight, updateAiCursorPosition])
 
   const drawUpscalePixelCanvas = useCallback(() => {
     const cv = upscaleCanvasRef.current, pv = previewRef.current
@@ -924,6 +1147,9 @@ export function AISection() {
     if (outpaintGuideTimerRef.current) clearTimeout(outpaintGuideTimerRef.current)
     if (videoPixelRafRef.current) cancelAnimationFrame(videoPixelRafRef.current)
     if (videoLoadSimTimerRef.current) clearTimeout(videoLoadSimTimerRef.current)
+    if (aiCursorHoldTimerRef.current) clearTimeout(aiCursorHoldTimerRef.current)
+    if (aiCursorRafRef.current) cancelAnimationFrame(aiCursorRafRef.current)
+    document.body.classList.remove('ai-section-cursor-active')
   }, [])
 
   useEffect(() => {
@@ -1415,8 +1641,22 @@ export function AISection() {
         @font-face{font-family:'Borna';src:url('/fonts/Borna-Medium.otf') format('opentype');font-weight:500;font-display:swap}
         @font-face{font-family:'Borna';src:url('/fonts/Borna-Bold.otf') format('opentype');font-weight:700;font-display:swap}
         @font-face{font-family:'Borna';src:url('/fonts/Borna-SemiBold.otf') format('opentype');font-weight:600;font-display:swap}
+        body.ai-section-cursor-active .custom-cursor{display:none!important;opacity:0!important;visibility:hidden!important}
+        #ki,#ki *{cursor:none!important}
+        body:has(#ki:hover) .custom-cursor{display:none!important;opacity:0!important;visibility:hidden!important}
+        .ai-pixel-cursor{image-rendering:pixelated;image-rendering:crisp-edges}
+        #ki:hover .ai-pixel-cursor,body.ai-section-cursor-active #ki .ai-pixel-cursor{opacity:1!important}
       `}</style>
-      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box', overflow:'hidden' }}>
+      <section
+        ref={sectionRef}
+        id="ki"
+        onPointerEnter={moveAiCursor}
+        onPointerMove={moveAiCursor}
+        onPointerLeave={hideAiCursor}
+        onPointerDownCapture={pressAiCursor}
+        onPointerUpCapture={releaseAiCursor}
+        style={{ position:'sticky', top:0, backgroundColor:'#000', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box', overflow:'hidden', cursor:AI_CURSOR_NORMAL }}
+      >
         <GridBg/>
         <div style={{ position:'relative', zIndex:3, height:'100%', boxSizing:'border-box', padding:'20vw 5vw 5vw', display:'flex', flexDirection:'column', justifyContent:'space-between', gap: 12, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
           <NeonHeading/>
@@ -1564,6 +1804,41 @@ export function AISection() {
             
           </div>
         </div>
+        <img
+          ref={aiCursorImgRef}
+          className="ai-pixel-cursor"
+          src={AI_CURSOR_SRC.normal}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          style={{
+            position:'absolute',
+            left:0,
+            top:0,
+            width:AI_CURSOR_SIZE.normal.width * AI_CURSOR_RENDER_SCALE,
+            height:'auto',
+            opacity:0,
+            pointerEvents:'none',
+            zIndex:2000000,
+            transform:`translate3d(calc(var(--ai-cursor-x, -100px) - var(--ai-cursor-hotspot-x, ${AI_CURSOR_HOTSPOT.normal.x * AI_CURSOR_RENDER_SCALE}px)), calc(var(--ai-cursor-y, -100px) - var(--ai-cursor-hotspot-y, ${AI_CURSOR_HOTSPOT.normal.y * AI_CURSOR_RENDER_SCALE}px) + ${AI_CURSOR_RENDER_OFFSET_Y}px), 0)`,
+            transformOrigin:'top left',
+            transition:'opacity 60ms linear',
+            userSelect:'none',
+            willChange:'transform,opacity',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position:'absolute',
+            inset:0,
+            // The vignette sits above the artwork so its edge falloff also
+            // shades the cursor, nodes, and cables consistently.
+            zIndex:2000001,
+            pointerEvents:'none',
+            background:'radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,0.025) 56%, rgba(0,0,0,0.08) 67%, rgba(0,0,0,0.22) 77%, rgba(0,0,0,0.5) 88%, rgba(0,0,0,0.82) 95%, rgba(0,0,0,0.98) 100%)',
+          }}
+        />
       </section>
     </div>
   )
@@ -1581,7 +1856,7 @@ export function AISection() {
     0,
     Math.round((VW - AI_NODE_REFERENCE_W) * 0.14),
     Math.round((VH - AI_NODE_REFERENCE_H) * 0.12)
-  )
+  ) - 24
   const C1 = Math.round(VW * 0.088)   // GENERATE + PROMPT DESIGN
   const C2 = Math.round(VW * 0.286)   // WORKFLOW + VISION
   const C3 = Math.round(VW * 0.495)   // MODES
@@ -1623,13 +1898,32 @@ export function AISection() {
         .ai-video-control:hover{opacity:1}
         .ai-video-control:active{opacity:1}
         body.ai-expand-hover .custom-cursor{display:none!important;opacity:0!important;visibility:hidden!important}
+        body.ai-section-cursor-active .custom-cursor{display:none!important;opacity:0!important;visibility:hidden!important}
+        #ki{cursor:${AI_CURSOR_NORMAL}}
+        #ki,#ki *{cursor:none!important}
+        #ki section{cursor:${AI_CURSOR_NORMAL}}
+        #ki [data-ai-node],#ki [data-ai-node] *{cursor:${AI_CURSOR_OPEN}!important}
+        #ki [data-ai-node]:active,#ki [data-ai-node]:active *{cursor:${AI_CURSOR_FIST}!important}
+        body.ai-node-dragging #ki,body.ai-node-dragging #ki *{cursor:${AI_CURSOR_FIST}!important}
+        body:has(#ki:hover) .custom-cursor{display:none!important;opacity:0!important;visibility:hidden!important}
+        .ai-pixel-cursor{image-rendering:pixelated;image-rendering:crisp-edges}
+        #ki:hover .ai-pixel-cursor,body.ai-section-cursor-active #ki .ai-pixel-cursor{opacity:1!important}
       `}</style>
 
-      <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', overflow:'hidden', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box' }}>
+      <section
+        ref={sectionRef}
+        id="ki"
+        onPointerEnter={moveAiCursor}
+        onPointerMove={moveAiCursor}
+        onPointerLeave={hideAiCursor}
+        onPointerDownCapture={pressAiCursor}
+        onPointerUpCapture={releaseAiCursor}
+        style={{ position:'sticky', top:0, backgroundColor:'#000', overflow:'hidden', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box', cursor:AI_CURSOR_NORMAL }}
+      >
         <GridBg/>
 
         <div style={{ position:'absolute', inset:0, zIndex:5, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
-          <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP} modeSelected={outputModes.length > 0} nodeZOrders={zOrders} focusedNode={focusedNode}/>
+          <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP} modeSelected={outputModes.length > 0} modeGlowStage={modeGlowStage} nodeZOrders={zOrders} focusedNode={focusedNode}/>
 
           <div style={{ position:'absolute', top:'9vw', left:'9vw', zIndex:AI_HEADING_Z, pointerEvents:'none' }}>
             <NeonHeading/>
@@ -1675,11 +1969,10 @@ export function AISection() {
                   type="button"
                   className="ai-format-btn"
                   aria-pressed={pendingOutputFormat===ratio}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onMouseDown={(event) => event.stopPropagation()}
                   onPointerEnter={() => setHoveredControl(`format-${ratio}`)}
                   onPointerLeave={() => setHoveredControl(null)}
-                  onMouseOver={() => setHoveredControl(`format-${ratio}`)}
-                  onMouseEnter={() => setHoveredControl(`format-${ratio}`)}
-                  onMouseLeave={() => setHoveredControl(null)}
                   onClick={() => setPendingOutputFormat(ratio)}
                   style={{ ...controlButtonBase, width:46, height:46, padding:0, display:'inline-flex', alignItems:'center', justifyContent:'center', textAlign:'center', letterSpacing:'0.03em', background:pendingOutputFormat===ratio?'#000':'rgba(0,0,0,0.08)', color:pendingOutputFormat===ratio?'#fff':'#111', borderColor:hoveredControl===`format-${ratio}`?'rgba(0,0,0,0.48)':'rgba(0,0,0,0.18)', transform:hoveredControl===`format-${ratio}`?'scale(0.96)':'none' }}
                 >{ratio}</button>
@@ -1688,7 +1981,7 @@ export function AISection() {
           </Win>
 
           {/* MODES */}
-          <Win id="modes" title="MODES" width={controlNodeWidth} initPos={{x:C3, y:MODES_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.modes} lit={outputModes.length > 0 && wLit(3)}>
+          <Win id="modes" title="MODES" width={controlNodeWidth} initPos={{x:C3, y:MODES_TOP}} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.modes} lit={modeGlowStage >= 1} glowTone="orange">
             <div style={{...cs, display:'grid', gridTemplateColumns:'1fr', gap:6}}>
               {OUTPUT_MODE_OPTIONS.map(mode => (
                 <button
@@ -1698,11 +1991,10 @@ export function AISection() {
                   aria-pressed={outputModes.includes(mode)}
                   aria-disabled={isActive}
                   disabled={isActive}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onMouseDown={(event) => event.stopPropagation()}
                   onPointerEnter={() => setHoveredControl(`mode-${mode}`)}
                   onPointerLeave={() => setHoveredControl(null)}
-                  onMouseOver={() => setHoveredControl(`mode-${mode}`)}
-                  onMouseEnter={() => setHoveredControl(`mode-${mode}`)}
-                  onMouseLeave={() => setHoveredControl(null)}
                   onClick={() => toggleOutputMode(mode)}
                   style={{ ...controlButtonBase, display:'flex', alignItems:'center', gap:6, background:outputModes.includes(mode)?'#000':'rgba(0,0,0,0.08)', color:outputModes.includes(mode)?'#fff':'#111', borderColor:hoveredControl===`mode-${mode}`?'rgba(0,0,0,0.48)':'rgba(0,0,0,0.18)', cursor:isActive?'default':'pointer', opacity:isActive?0.42:1, transform:hoveredControl===`mode-${mode}` && !isActive?'scale(0.96)':'none' }}
                 >
@@ -1725,7 +2017,7 @@ export function AISection() {
           </Win>
 
           {/* OUTPUT */}
-          <Win id="preview" title="OUTPUT" width={outputWinWidth} initPos={{x:PREV_LEFT, y:PREV_TOP}} offset={outputWindowOffset} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.preview} lit={wLit(6)} emitAltInp altInpY={52} inpAtFrac={0.91}>
+          <Win id="preview" title="OUTPUT" width={outputWinWidth} initPos={{x:PREV_LEFT, y:PREV_TOP}} offset={outputWindowOffset} onPortChange={onPortChange} zIndex={zOrders.preview} onFocus={onFocus} lit={wLit(6) || modeGlowStage >= 3} glowTone={modeGlowStage > 0 ? 'orange' : 'green'} emitAltInp altInpY={52} inpAtFrac={0.91}>
             <div style={{ width:'100%', height:outputShellHeight, position:'relative', overflow:'hidden', background:'#111', transition:'none', boxSizing:'border-box' }}>
               <div ref={previewRef} style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:previewFrameWidth, aspectRatio:outputAspect, overflow:'hidden', background:'#111' }}>
                 <canvas ref={canvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }}/>
@@ -1753,8 +2045,7 @@ export function AISection() {
                     data-ai-upscale-line
                     style={{ position:'absolute', left:`calc(${upscaleSplit*100}% - 13px)`, top:0, bottom:0, width:26, zIndex:5, pointerEvents:'none' }}
                   >
-                    <div style={{ position:'absolute', left:12, top:0, bottom:0, width:2, background:'#fff' }}/>
-                    <div style={{ position:'absolute', left:4, top:'50%', transform:`translateY(-50%) scale(${upscaleDragging ? 1.14 : upscaleHandleHovered ? 1.08 : 1})`, width:18, height:38, background: upscaleDragging || upscaleHandleHovered ? 'rgba(57,255,20,0.16)' : 'rgba(0,0,0,0.62)', border:`1px solid ${upscaleDragging || upscaleHandleHovered ? CRT_GREEN : 'rgba(255,255,255,0.62)'}`, boxShadow:upscaleDragging || upscaleHandleHovered ? `${CRT_BOX_GLOW}, inset 0 0 10px rgba(57,255,20,0.14)` : 'none', display:'flex', alignItems:'center', justifyContent:'center', color:upscaleDragging || upscaleHandleHovered ? CRT_GREEN : '#fff', textShadow:upscaleDragging || upscaleHandleHovered ? CRT_GLOW : 'none', fontFamily:MONO, fontSize:10, fontWeight:800, transition:'transform 0.16s ease,background 0.16s ease,border-color 0.16s ease,box-shadow 0.16s ease,color 0.16s ease' }}>||</div>
+                    <div style={{ position:'absolute', left:12, top:0, bottom:0, width:3, background:'#fff' }}/>
                   </div>
               </>} 
               {isVideoMode && <div data-ai-mode-effect="video" style={{ position:'absolute', inset:0, zIndex:6, pointerEvents:'none' }}>
@@ -1805,6 +2096,41 @@ export function AISection() {
           </Win>
 
         </div>
+        <img
+          ref={aiCursorImgRef}
+          className="ai-pixel-cursor"
+          src={AI_CURSOR_SRC.normal}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          style={{
+            position:'absolute',
+            left:0,
+            top:0,
+            width:AI_CURSOR_SIZE.normal.width * AI_CURSOR_RENDER_SCALE,
+            height:'auto',
+            opacity:0,
+            pointerEvents:'none',
+            zIndex:2000000,
+            transform:`translate3d(calc(var(--ai-cursor-x, -100px) - var(--ai-cursor-hotspot-x, ${AI_CURSOR_HOTSPOT.normal.x * AI_CURSOR_RENDER_SCALE}px)), calc(var(--ai-cursor-y, -100px) - var(--ai-cursor-hotspot-y, ${AI_CURSOR_HOTSPOT.normal.y * AI_CURSOR_RENDER_SCALE}px) + ${AI_CURSOR_RENDER_OFFSET_Y}px), 0)`,
+            transformOrigin:'top left',
+            transition:'opacity 60ms linear',
+            userSelect:'none',
+            willChange:'transform,opacity',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position:'absolute',
+            inset:0,
+            // The vignette sits above the artwork so its edge falloff also
+            // shades the cursor, nodes, and cables consistently.
+            zIndex:2000001,
+            pointerEvents:'none',
+            background:'radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,0.025) 56%, rgba(0,0,0,0.08) 67%, rgba(0,0,0,0.22) 77%, rgba(0,0,0,0.5) 88%, rgba(0,0,0,0.82) 95%, rgba(0,0,0,0.98) 100%)',
+          }}
+        />
       </section>
     </div>
   )
