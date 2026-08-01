@@ -12,7 +12,7 @@ const FORMAT_OPTIONS = ['1:1','16:9','3:4'] as const
 type OutputFormat = typeof FORMAT_OPTIONS[number]
 const OUTPUT_MODE_OPTIONS = ['UPSCALE','OUTPAINT','VIDEO'] as const
 type OutputMode = typeof OUTPUT_MODE_OPTIONS[number]
-type AICursorMode = 'normal' | 'normalClick' | 'finger' | 'click' | 'fist'
+type AICursorMode = 'normal' | 'normalClick' | 'finger' | 'click' | 'hand' | 'fist'
 type AICursorEvent = React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
 const OUTPUT_MODE_LABELS: Record<OutputMode, string> = {
   UPSCALE: 'UPSCALE',
@@ -44,6 +44,7 @@ const INITIAL_AI_Z_ORDERS: Record<string, number> = {
 const OUTPAINT_EXIT_MS = 300
 const OUTPAINT_GROW_MS = 520
 const VIDEO_LOAD_SIM_MS = 850
+const IMAGE_MODE_LOAD_SIM_MS = 420
 const GENERATION_SIM_MS = 3000
 const MIN_OUTPUT_PIXEL_SIZE = 2
 const VIDEO_PIXEL_DECAY_POWER = 2.7
@@ -56,13 +57,14 @@ const CRT_DROP_GLOW = 'drop-shadow(0 0 5px rgba(215,255,190,0.72)) drop-shadow(0
 const AI_CURSOR_NORMAL = 'none'
 const AI_CURSOR_OPEN = 'none'
 const AI_CURSOR_FIST = 'none'
-const AI_CURSOR_VERSION = '20260731-open-up'
-const AI_CURSOR_ASSETS = ['/icons/pixelmaus-maus.png', '/icons/pixelmaus-maus1.png', '/icons/pixelmaus-finger.png', '/icons/pixelmaus-finger1.png', '/icons/pixelmaus-fist.png'].map((src) => `${src}?v=${AI_CURSOR_VERSION}`) as readonly string[]
+const AI_CURSOR_VERSION = '20260801-hand-reload-2'
+const AI_CURSOR_ASSETS = ['/icons/pixelmaus-maus.png', '/icons/pixelmaus-maus1.png', '/icons/pixelmaus-finger.png', '/icons/pixelmaus-finger1.png', '/icons/pixelmaus-hand.png', '/icons/pixelmaus-fist.png'].map((src) => `${src}?v=${AI_CURSOR_VERSION}`) as readonly string[]
 const AI_CURSOR_SRC: Record<AICursorMode, string> = {
   normal: `/icons/pixelmaus-maus.png?v=${AI_CURSOR_VERSION}`,
   normalClick: `/icons/pixelmaus-maus1.png?v=${AI_CURSOR_VERSION}`,
   finger: `/icons/pixelmaus-finger.png?v=${AI_CURSOR_VERSION}`,
   click: `/icons/pixelmaus-finger1.png?v=${AI_CURSOR_VERSION}`,
+  hand: `/icons/pixelmaus-hand.png?v=${AI_CURSOR_VERSION}`,
   fist: `/icons/pixelmaus-fist.png?v=${AI_CURSOR_VERSION}`,
 }
 const AI_CURSOR_SIZE: Record<AICursorMode, { width: number; height: number }> = {
@@ -70,6 +72,7 @@ const AI_CURSOR_SIZE: Record<AICursorMode, { width: number; height: number }> = 
   normalClick: { width: 64, height: 80 },
   finger: { width: 64, height: 80 },
   click: { width: 64, height: 80 },
+  hand: { width: 64, height: 80 },
   fist: { width: 64, height: 80 },
 }
 const AI_CURSOR_HOTSPOT: Record<AICursorMode, { x: number; y: number }> = {
@@ -77,9 +80,9 @@ const AI_CURSOR_HOTSPOT: Record<AICursorMode, { x: number; y: number }> = {
   normalClick: { x: 3, y: 80 },
   finger: { x: 10, y: 80 },
   click: { x: 10, y: 80 },
+  hand: { x: 10, y: 80 },
   fist: { x: 10, y: 80 },
 }
-const AI_CURSOR_HOLD_MS = 140
 const AI_CURSOR_RENDER_SCALE = 0.375
 const AI_CURSOR_RENDER_OFFSET_Y = 22
 
@@ -361,6 +364,14 @@ function ProgressTerm({ phase, isActive }: { phase: number; isActive: boolean })
       <div style={{ padding:'8px 10px', width:'100%', position:'relative', zIndex:1 }}>
         <div style={{ color:isActive?CRT_GREEN:CRT_GREEN_SOFT, fontSize:12, background:'rgba(0,18,3,0.86)', padding:'4px 7px', whiteSpace:'nowrap', textShadow:isActive?CRT_GLOW:`0 0 5px ${CRT_GREEN_DIM}`, boxShadow:'inset 0 0 10px rgba(57,255,20,0.16)' }}>[{bar}] {pct}%</div>
       </div>
+    </div>
+  )
+}
+
+function ModeLoadingIndicator() {
+  return (
+    <div data-ai-mode-loading style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center', filter:'drop-shadow(0 1px 6px rgba(0,0,0,0.82))', zIndex:3 }}>
+      <div style={{ width:34, height:34, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.28)', borderTopColor:'#fff', animation:'spin 0.82s linear infinite' }}/>
     </div>
   )
 }
@@ -855,6 +866,8 @@ export function AISection() {
   const outpaintRevealRef = useRef(0)
   const outpaintGuideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoLoadSimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const imageModeLoadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingImageModeRef = useRef<OutputMode | null>(null)
   const autoGenerateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const curImgIdx  = useRef(INITIAL_AI_IMAGE_INDEX)
   const initialImageDrawnRef = useRef(false)
@@ -883,6 +896,7 @@ export function AISection() {
   const [videoCanPlay, setVideoCanPlay] = useState(false)
   const [videoLoadSimDone, setVideoLoadSimDone] = useState(false)
   const [videoPlaying, setVideoPlaying] = useState(false)
+  const [imageModeLoading, setImageModeLoading] = useState(false)
   const aiCursorImgRef = useRef<HTMLImageElement>(null)
   const aiCursorModeRef = useRef<AICursorMode>('normal')
   const aiCursorPressedRef = useRef(false)
@@ -958,7 +972,9 @@ export function AISection() {
   }, [])
 
   const getAiCursorMode = useCallback((target: EventTarget | null): AICursorMode => {
-    return target instanceof Element && target.closest('[data-ai-node]') ? 'finger' : 'normal'
+    if (!(target instanceof Element)) return 'normal'
+    if (target.closest('button, input, select, textarea, [role="button"], [data-ai-upscale-track]')) return 'finger'
+    return target.closest('[data-ai-node]') ? 'hand' : 'normal'
   }, [])
 
   const clearAiCursorHold = useCallback(() => {
@@ -1005,15 +1021,19 @@ export function AISection() {
     if (!document.body.classList.contains('ai-section-cursor-active')) document.body.classList.add('ai-section-cursor-active')
     aiCursorPressedRef.current = true
     clearAiCursorHold()
-    if (!(event.target instanceof Element) || !event.target.closest('[data-ai-node]')) {
+    if (!(event.target instanceof Element)) {
       applyAiCursorMode('normalClick')
       return
     }
-    applyAiCursorMode('click')
-    aiCursorHoldTimerRef.current = setTimeout(() => {
-      aiCursorHoldTimerRef.current = null
-      if (aiCursorPressedRef.current) applyAiCursorMode('fist')
-    }, AI_CURSOR_HOLD_MS)
+    if (event.target.closest('button, input, select, textarea, [role="button"], [data-ai-upscale-track]')) {
+      applyAiCursorMode('click')
+      return
+    }
+    if (!event.target.closest('[data-ai-node]')) {
+      applyAiCursorMode('normalClick')
+      return
+    }
+    applyAiCursorMode('fist')
   }, [applyAiCursorMode, clearAiCursorHold, updateAiCursorPosition])
 
   const releaseAiCursor = useCallback((event: AICursorEvent) => {
@@ -1147,6 +1167,8 @@ export function AISection() {
     if (outpaintGuideTimerRef.current) clearTimeout(outpaintGuideTimerRef.current)
     if (videoPixelRafRef.current) cancelAnimationFrame(videoPixelRafRef.current)
     if (videoLoadSimTimerRef.current) clearTimeout(videoLoadSimTimerRef.current)
+    if (imageModeLoadTimerRef.current) clearTimeout(imageModeLoadTimerRef.current)
+    pendingImageModeRef.current = null
     if (aiCursorHoldTimerRef.current) clearTimeout(aiCursorHoldTimerRef.current)
     if (aiCursorRafRef.current) cancelAnimationFrame(aiCursorRafRef.current)
     document.body.classList.remove('ai-section-cursor-active')
@@ -1495,20 +1517,41 @@ export function AISection() {
 
   const toggleOutputMode = useCallback((mode: OutputMode) => {
     if (isActive) return
+
+    if (imageModeLoadTimerRef.current) {
+      clearTimeout(imageModeLoadTimerRef.current)
+      imageModeLoadTimerRef.current = null
+    }
+    pendingImageModeRef.current = null
+
     if (mode === 'VIDEO') {
       setOutpaintGuideVisible(false)
       cancelUpscaleIntro()
       endUpscaleDrag()
-    } else {
-      setVideoReady(false)
-      setVideoPlaying(false)
+      setImageModeLoading(false)
+      setOutputModes(current => current.includes('VIDEO') ? [] : ['VIDEO'])
+      return
     }
-    setOutputModes(current => {
-      if (mode === 'VIDEO') return current.includes('VIDEO') ? [] : ['VIDEO']
-      const imageModes = current.filter(item => item !== 'VIDEO')
-      return imageModes.includes(mode) ? imageModes.filter(item => item !== mode) : [...imageModes, mode]
-    })
-  }, [cancelUpscaleIntro, endUpscaleDrag, isActive])
+
+    setVideoReady(false)
+    setVideoPlaying(false)
+
+    if (outputModes.includes(mode)) {
+      setImageModeLoading(false)
+      setOutputModes(current => current.filter(item => item !== mode))
+      return
+    }
+
+    pendingImageModeRef.current = mode
+    setImageModeLoading(true)
+    imageModeLoadTimerRef.current = setTimeout(() => {
+      imageModeLoadTimerRef.current = null
+      if (pendingImageModeRef.current !== mode) return
+      pendingImageModeRef.current = null
+      setImageModeLoading(false)
+      setOutputModes(current => [...current.filter(item => item !== 'VIDEO'), mode])
+    }, IMAGE_MODE_LOAD_SIM_MS)
+  }, [cancelUpscaleIntro, endUpscaleDrag, isActive, outputModes])
 
   const onPromptExpandChange = useCallback((open: boolean) => onExpandChange('prompt', open), [onExpandChange])
   const onWorkflowExpandChange = useCallback((open: boolean) => onExpandChange('erfahrung', open), [onExpandChange])
@@ -1521,6 +1564,12 @@ export function AISection() {
 
   const generate = useCallback(() => {
     if (isActive) return
+    if (imageModeLoadTimerRef.current) {
+      clearTimeout(imageModeLoadTimerRef.current)
+      imageModeLoadTimerRef.current = null
+    }
+    pendingImageModeRef.current = null
+    setImageModeLoading(false)
     const generationPixelSize = MIN_OUTPUT_PIXEL_SIZE
     setOutputFormat(pendingOutputFormat)
     setOutputModes([])
@@ -1823,8 +1872,9 @@ export function AISection() {
             transform:`translate3d(calc(var(--ai-cursor-x, -100px) - var(--ai-cursor-hotspot-x, ${AI_CURSOR_HOTSPOT.normal.x * AI_CURSOR_RENDER_SCALE}px)), calc(var(--ai-cursor-y, -100px) - var(--ai-cursor-hotspot-y, ${AI_CURSOR_HOTSPOT.normal.y * AI_CURSOR_RENDER_SCALE}px) + ${AI_CURSOR_RENDER_OFFSET_Y}px), 0)`,
             transformOrigin:'top left',
             transition:'opacity 60ms linear',
+            filter:exitP>0.02?`blur(${exitP*18}px)`:'none',
             userSelect:'none',
-            willChange:'transform,opacity',
+            willChange:'transform,opacity,filter',
           }}
         />
         <div
@@ -2063,9 +2113,7 @@ export function AISection() {
                 />}
                 <canvas ref={videoCanvasRef} style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block', opacity:videoReady ? 1 : 0, transition:'opacity 0.18s ease', zIndex:2 }}/>
                 {!videoReady ? (
-                  <div data-ai-video-loading style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center', filter:'drop-shadow(0 1px 6px rgba(0,0,0,0.82))', zIndex:3 }}>
-                    <div style={{ width:34, height:34, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.28)', borderTopColor:'#fff', animation:'spin 0.82s linear infinite' }}/>
-                  </div>
+                  <ModeLoadingIndicator />
                 ) : <>
                   <button
                     type="button"
@@ -2091,6 +2139,7 @@ export function AISection() {
                   </button>
                 </>}
               </div>}
+              {imageModeLoading && !isVideoMode && <div data-ai-image-mode-loading style={{ position:'absolute', inset:0, zIndex:7, pointerEvents:'none' }}><ModeLoadingIndicator /></div>}
               </div>
             </div>
           </Win>
@@ -2115,8 +2164,9 @@ export function AISection() {
             transform:`translate3d(calc(var(--ai-cursor-x, -100px) - var(--ai-cursor-hotspot-x, ${AI_CURSOR_HOTSPOT.normal.x * AI_CURSOR_RENDER_SCALE}px)), calc(var(--ai-cursor-y, -100px) - var(--ai-cursor-hotspot-y, ${AI_CURSOR_HOTSPOT.normal.y * AI_CURSOR_RENDER_SCALE}px) + ${AI_CURSOR_RENDER_OFFSET_Y}px), 0)`,
             transformOrigin:'top left',
             transition:'opacity 60ms linear',
+            filter:exitP>0.02?`blur(${exitP*18}px)`:'none',
             userSelect:'none',
-            willChange:'transform,opacity',
+            willChange:'transform,opacity,filter',
           }}
         />
         <div

@@ -158,6 +158,11 @@ body > * {
   cursor: none !important;
 }
 
+body.ai-section-cursor-active,
+body.ai-section-cursor-active * {
+  cursor: none !important;
+}
+
 .legal-page,
 .legal-page * {
   cursor: auto !important;
