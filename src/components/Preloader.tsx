@@ -321,7 +321,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
           fontSize: isMobile ? Math.min(34, Math.max(20, 6.4 * vw)) : Math.min(46, Math.max(28, 2.7 * vw)),
         }}
       >
-        Process<br />Designer
+        Experience<br />Designer
       </div>
     </div>
   )

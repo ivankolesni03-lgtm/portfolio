@@ -23,6 +23,8 @@ Required variables for `src/app/api/contact/route.ts`:
 Additional variable for `src/app/api/password/route.ts`:
 
 - `PORTFOLIO_GATE_PASSWORDS`: list of allowed passwords, separated by commas, semicolons, or new lines
+- `GME_SHARE_TOKEN`: a long, randomly generated token for the password-free GME share link. After deployment, share `https://your-domain.com/gme/<GME_SHARE_TOKEN>`; URLs with a different token return a 404 page.
+- `NEXT_PUBLIC_SITE_URL`: absolute live URL of the portfolio (for canonical URL, `robots.txt`, `sitemap.xml`, Open Graph and JSON-LD), for example `https://ivan-kolesnikov.com`
 
 ## ✨ Technology Stack
 

@@ -22,6 +22,11 @@ const ContactSection = dynamic(() => import('@/components/ContactSection').then(
 type HomePhase = 'locked' | 'preloading' | 'ready'
 type PortfolioAccess = 'default' | 'gme'
 
+interface HomeProps {
+  initialAccess?: PortfolioAccess
+  bypassPasswordGate?: boolean
+}
+
 function HomeContentInner({ access }: { access: PortfolioAccess }) {
   const { scrollY, vh } = useScroll()
   const headerVisible = scrollY > vh * 0.8
@@ -53,16 +58,22 @@ function HomeContent({ access }: { access: PortfolioAccess }) {
   )
 }
 
-export default function Home() {
-  const [phase, setPhase] = useState<HomePhase>('locked')
-  const [access, setAccess] = useState<PortfolioAccess>('default')
+export default function Home({ initialAccess = 'default', bypassPasswordGate = false }: HomeProps) {
+  const [phase, setPhase] = useState<HomePhase>(bypassPasswordGate ? 'preloading' : 'locked')
+  const [access, setAccess] = useState<PortfolioAccess>(initialAccess)
 
   useEffect(() => {
+    if (bypassPasswordGate) return
+
     if (sessionStorage.getItem('unlocked') === 'true') {
-      setAccess(sessionStorage.getItem('portfolioAccess') === 'gme' ? 'gme' : 'default')
-      requestAnimationFrame(() => setPhase('preloading'))
+      const frame = requestAnimationFrame(() => {
+        setAccess(sessionStorage.getItem('portfolioAccess') === 'gme' ? 'gme' : 'default')
+        setPhase('preloading')
+      })
+
+      return () => cancelAnimationFrame(frame)
     }
-  }, [])
+  }, [bypassPasswordGate])
 
   return (
     <MouseProvider>

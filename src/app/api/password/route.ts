@@ -3,7 +3,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
 const PASSWORDS_ENV_NAME = 'PORTFOLIO_GATE_PASSWORDS'
-const APPLICATION_PASSWORD = 'GME'
+const APPLICATION_PASSWORD = 'GME2027'
 
 type PasswordAccess = 'default' | 'gme'
 

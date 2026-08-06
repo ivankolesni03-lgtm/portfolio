@@ -538,13 +538,12 @@ function BgImage() {
 type HeroAccess = 'default' | 'gme'
 
 const GME_LETTER = [
-  'That is who I am, creating moments where classical communication merges with generative AI into something tangible. I am Ivan Kolesnikov, a 6th semester Integrated Media and Communication student from Germany\nand a proud GME holder.',
-  'I am applying for my mandatory internship because I see so much good in this company. Ryan Cohen as CEO is deeply inspiring to me. Having worked at established but rigid corporations like BMW and Continental,\nI believe GameStop offers a fresh environment where bold thinking is truly valued.',
-  'I was trained to think like a Creative Director, covering strategy, communication, branding, and design thinking. During my studies, I completed numerous real world projects and participated in the GWA Junior Agency Award. My corporate experience includes international marketing at the Continental headquarters in Hannover, and developing generative AI pipelines at the BMW headquarters in Munich, alongside work at GRACO in Berlin. Backed by my vocational training as a Design Technical Assistant, I deliver under pressure.\nI give 100%, and quitting is not in my vocabulary.',
-  'Fascinated by the potential of Generative AI, I blend cutting edge tech with my lifelong passion for film and professional video production to create campaigns that truly resonate.',
-  'To fulfill my 3 month mandatory internship, I am fully prepared to relocate from Germany to the US. I know my chances might seem slim, but giving up is not an option for me. I require J1 visa sponsorship support (I can handle the administrative workload) and a standard compensation to cover basic housing and food.',
-  'I have the conviction, the AI skillset, and the drive.',
-  'Enjoy my portfolio!',
+  'That is who I am, creating moments where classical communication\nmerges with generative AI into something tangible.\nI am Ivan Kolesnikov, a 7th semester dual Integrated Media and Communications student at the University of Hannover in Germany and a GME shareholder.',
+  'Ever since I was a young boy, I loved GameStop.\nIt was a physical place where the digital video game world came to life. Since the rebranding and bold reorientation, I see a modern and courageous brand.\nI see a unique chance to learn from you. It is a give and take. I stand for these values and see a clear perspective in this journey. I am not a hollow man and\nRyan Cohen as CEO is deeply inspiring to me.',
+  'My studies push me to think outside the box in every direction. I use design thinking to craft multimedia experiences, fueled by constant creative explosions in my head. I bring experience from corporate marketing at Continental HQ, creative agency work at GRACO in Berlin, and startup branding, alongside real world projects and the GWA Junior Agency Award.',
+  'My interest in artificial intelligence is vast, but my focus lies in Generative AI. Currently, I am building generative AI workflows at the BMW HQ in Munich.\nI blend this cutting edge tech with my lifelong passion for film and photography to create content which is product accurate.',
+  'To fulfill my 3 month mandatory internship from early June to early September 2027, I am fully prepared to relocate from Germany to the US. I am fascinated by travel, nature, and culture, seeking an environment that inspires me with new impressions. I know my chances might seem slim, but giving up is not an option for me. For this transatlantic move, I require a standard compensation\nto cover basic housing and food.',
+  'I just try to do my best...',
 ]
 
 function waveToTitleCase(word: string, waveProgress: number) {
@@ -586,7 +585,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
   const gmeCaseProgressRef = useRef(0)
   const gmeCaseTargetRef = useRef(0)
   const gmeCaseAnimRef = useRef<number | null>(null)
-  const expScramble = useScramble('Process')
+  const expScramble = useScramble('Experience')
   const desScramble = useScramble('Designer')
   const expScrambleRef = useRef(expScramble.scrambleTo)
   const desScrambleRef = useRef(desScramble.scrambleTo)
@@ -595,7 +594,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
     desScrambleRef.current = desScramble.scrambleTo
   }, [desScramble.scrambleTo, expScramble.scrambleTo])
   const handleHeaderHover = useCallback(() => {
-    expScrambleRef.current('Process')
+    expScrambleRef.current('Experience')
     desScrambleRef.current('Designer')
   }, [])
   const isGmeMode = access === 'gme'
@@ -662,7 +661,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
   const gmeTitleLineHeight = 1.12 + ((isMobile ? 1.2 : 1.34) - 1.12) * revealProgress
   const gmeLetterEndGap = 0
   const gmeLetterMarginTop = gmeLetterEndGap + ((isMobile ? 12 : 24) - gmeLetterEndGap) * (1 - revealProgress)
-  const gmeProcessDisplay = isGmeMode ? waveToTitleCase('Process', gmeCaseProgress) : expScramble.display
+  const gmeProcessDisplay = isGmeMode ? waveToTitleCase('Experience', gmeCaseProgress) : expScramble.display
   const gmeDesignerDisplay = isGmeMode ? waveToTitleCase('Designer', gmeCaseProgress) : desScramble.display
   const gmeLogoBlend = Math.max(0, Math.min(1, (revealProgress - 0.32) / 0.42))
   const descriptorOpacity = descFade
@@ -887,6 +886,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                             style={{
                               opacity: currentWord < visibleGmeWords ? 1 : 0,
                               transition: 'opacity 0.2s linear',
+                              fontWeight: cleanWord === 'June' || cleanWord === 'September' ? 800 : undefined,
                             }}
                           >
                             {shouldRenderGameStopLogo ? (

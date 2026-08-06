@@ -3,6 +3,35 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react";
+import { getSiteUrl } from "@/lib/seo";
+
+const siteUrl = getSiteUrl();
+const personName = "Ivan Kolesnikov";
+const pageTitle = "Ivan Kolesnikov | Experience Designer Portfolio";
+const pageDescription = "Official portfolio of Ivan Kolesnikov, Experience Designer focused on generative AI, communication, multimedia storytelling, and strategy.";
+const ogImage = `${siteUrl}/logos/apple-touch-icon.png`;
+
+const personSchema = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: personName,
+  url: siteUrl,
+  image: ogImage,
+  jobTitle: "Experience Designer",
+  alumniOf: {
+    "@type": "CollegeOrUniversity",
+    name: "University of Hannover",
+  },
+  sameAs: [],
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: personName,
+  url: siteUrl,
+  inLanguage: ["en", "de"],
+};
 
 const borna = localFont({
   src: [
@@ -51,19 +80,57 @@ const borna = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "IVAN KOLESNIKOV | PORTFOLIO",
-  description: "Creative portfolio by Ivan Kolesnikov.",
-  keywords: ["portfolio", "creative", "design", "communication", "Ivan Kolesnikov"],
-  authors: [{ name: "Ivan Kolesnikov" }],
+  metadataBase: new URL(siteUrl),
+  title: pageTitle,
+  description: pageDescription,
+  applicationName: personName,
+  keywords: [
+    "Ivan Kolesnikov",
+    "Ivan Kolesnikov portfolio",
+    "Experience Designer",
+    "Generative AI",
+    "Integrated Media and Communication",
+    "Creative communication",
+    "Portfolio Germany",
+  ],
+  authors: [{ name: personName, url: siteUrl }],
+  creator: personName,
+  publisher: personName,
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
-    title: "IVAN KOLESNIKOV | PORTFOLIO",
-    description: "Creative portfolio by Ivan Kolesnikov.",
+    title: pageTitle,
+    description: pageDescription,
+    url: siteUrl,
+    siteName: personName,
+    locale: "en_US",
     type: "website",
+    images: [
+      {
+        url: ogImage,
+        width: 180,
+        height: 180,
+        alt: `${personName} portfolio icon`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "IVAN KOLESNIKOV | PORTFOLIO",
-    description: "Creative portfolio by Ivan Kolesnikov.",
+    title: pageTitle,
+    description: pageDescription,
+    images: [ogImage],
   },
 };
 
@@ -79,6 +146,14 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/logos/apple-touch-icon.png" />
       </head>
       <body className={borna.className} style={{ overflowX: 'hidden', maxWidth: '100vw' }}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
         {children}
         <Toaster />
         <Analytics />
