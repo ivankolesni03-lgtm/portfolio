@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Hero } from '@/components/Hero'
 import { ProjectsSection } from '@/components/ProjectsSection'
 import { CustomCursor } from '@/components/CustomCursor'
@@ -62,6 +62,12 @@ export default function Home({ initialAccess = 'default', bypassPasswordGate = f
   const [phase, setPhase] = useState<HomePhase>(bypassPasswordGate ? 'preloading' : 'locked')
   const [access, setAccess] = useState<PortfolioAccess>(initialAccess)
 
+  const syncViewportState = useCallback(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    window.dispatchEvent(new Event('scroll'))
+    window.dispatchEvent(new Event('resize'))
+  }, [])
+
   useEffect(() => {
     if (bypassPasswordGate) return
 
@@ -75,11 +81,40 @@ export default function Home({ initialAccess = 'default', bypassPasswordGate = f
     }
   }, [bypassPasswordGate])
 
+  useEffect(() => {
+    if (!bypassPasswordGate) return
+
+    const previous = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+
+    const frame1 = requestAnimationFrame(() => {
+      syncViewportState()
+    })
+    const frame2 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        syncViewportState()
+      })
+    })
+
+    return () => {
+      cancelAnimationFrame(frame1)
+      cancelAnimationFrame(frame2)
+      window.history.scrollRestoration = previous
+    }
+  }, [bypassPasswordGate, syncViewportState])
+
+  const handlePreloaderComplete = useCallback(() => {
+    requestAnimationFrame(() => {
+      syncViewportState()
+      setPhase('ready')
+    })
+  }, [syncViewportState])
+
   return (
     <MouseProvider>
       <LanguageProvider>
         {phase === 'locked' && <PasswordGate onUnlock={(nextAccess) => { setAccess(nextAccess); setPhase('preloading') }} />}
-        {phase === 'preloading' && <Preloader onComplete={() => setPhase('ready')} />}
+        {phase === 'preloading' && <Preloader onComplete={handlePreloaderComplete} />}
         {phase !== 'locked' && (
           <div
             aria-hidden={phase !== 'ready'}
