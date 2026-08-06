@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { Hero } from '@/components/Hero'
 import { ProjectsSection } from '@/components/ProjectsSection'
 import { CustomCursor } from '@/components/CustomCursor'
@@ -81,7 +81,7 @@ export default function Home({ initialAccess = 'default', bypassPasswordGate = f
     }
   }, [bypassPasswordGate])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!bypassPasswordGate) return
 
     const previous = window.history.scrollRestoration
@@ -115,19 +115,7 @@ export default function Home({ initialAccess = 'default', bypassPasswordGate = f
       <LanguageProvider>
         {phase === 'locked' && <PasswordGate onUnlock={(nextAccess) => { setAccess(nextAccess); setPhase('preloading') }} />}
         {phase === 'preloading' && <Preloader onComplete={handlePreloaderComplete} />}
-        {phase !== 'locked' && (
-          <div
-            aria-hidden={phase !== 'ready'}
-            style={{
-              opacity: phase === 'ready' ? 1 : 0,
-              visibility: phase === 'ready' ? 'visible' : 'hidden',
-              pointerEvents: phase === 'ready' ? 'auto' : 'none',
-              transition: 'opacity 220ms ease',
-            }}
-          >
-            <HomeContent access={access} />
-          </div>
-        )}
+        {phase === 'ready' && <HomeContent access={access} />}
       </LanguageProvider>
     </MouseProvider>
   )
