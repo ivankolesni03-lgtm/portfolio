@@ -28,7 +28,7 @@ export function getIntroLayout({ isMobile, width, height }: IntroLayoutInput) {
     nameTop,
     nameFontSize,
     nameLineHeight,
-    experienceLeft: nameLeft + (isMobile ? 3 : 6),
+    experienceLeft: nameLeft,
     experienceTop: nameTop + nameBlockHeight + experienceGap,
   }
 }
