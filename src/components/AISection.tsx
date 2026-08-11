@@ -105,7 +105,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 }
 
 // ─── Neon Heading ─────────────────────────────────────────────────────────────
-function NeonHeading() {
+function NeonHeading({ showCopy = true }: { showCopy?: boolean }) {
   const { isMobile } = useMobile()
   const { language } = useLanguage()
   const [flickerLevels, setFlickerLevels] = useState<Record<string, number>>({})
@@ -113,7 +113,7 @@ function NeonHeading() {
   const { disp: d2, scramble: s2 } = useScramble('INTELLIGENCE')
   const headingCopy = language === 'de'
     ? 'Ich sehe KI nicht als Ersatz für Gestaltung, sondern als kreatives Betriebssystem: ein Werkzeug, um Ideen schneller zu testen, Bildwelten präziser zu steuern und aus Experimenten markentaugliche Kommunikation zu formen.'
-    : 'I see AI not as a replacement for design, but as a creative operating system: a way to test ideas faster, direct visual worlds more precisely and turn experiments into brand-ready communication.'
+    : 'I see AI not as a replacement for design, but as a creative operating system: a way to test ideas faster, direct visual worlds more precisely\nand turn experiments into\nbrand-ready communication.'
   const { disp: copyDisp, scramble: copyScramble } = useScramble(headingCopy)
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = []
@@ -170,13 +170,13 @@ function NeonHeading() {
     )
   })
   return (
-    <div onMouseEnter={() => { s1(); s2(); copyScramble() }} style={{ cursor:'default', userSelect:'none' }}>
-      <div style={{ fontSize: isMobile ? '10vw' : '8vw', fontWeight:900, lineHeight:0.88, letterSpacing:'-2px', textTransform:'uppercase', color:'#fff', textShadow:glow, fontFamily:BORNA }}>
+    <div onMouseEnter={() => { s1(); s2(); if (showCopy) copyScramble() }} style={{ cursor:'default', userSelect:'none' }}>
+      <div style={{ fontSize: isMobile ? 'var(--mobile-heading-size)' : '8vw', fontWeight:900, lineHeight:0.88, letterSpacing:'-2px', textTransform:'uppercase', color:'#fff', textShadow:glow, fontFamily:BORNA }}>
         <div>{renderFlickerText(d1, 'a')}</div><div style={{ display:'inline-block', transform:`scaleX(${isMobile ? 0.94 : 0.9})`, transformOrigin:'left center' }}>{renderFlickerText(d2, 'b')}</div>
       </div>
-      <p style={{ margin:isMobile?'34px 0 0':'8px 0 0', maxWidth:isMobile?'76vw':470, color:'rgba(255,255,255,0.8)', fontFamily:BORNA, fontSize:isMobile?13:15, lineHeight:1.45, fontWeight:500, letterSpacing:0, textShadow:'0 0 4px rgba(255,255,255,0.75),0 0 14px rgba(255,255,255,0.28),0 0 28px rgba(255,255,255,0.16),0 0 20px rgba(0,0,0,0.9)' }}>
-        {copyDisp}
-      </p>
+      {showCopy && <div style={{ margin:isMobile?'14px 0 0':'8px 0 0', maxWidth:isMobile?'64vw':470, color:'rgba(255,255,255,0.8)', fontFamily:BORNA, fontSize:isMobile?13:15, lineHeight:1.45, fontWeight:500, letterSpacing:0, textShadow:'0 0 4px rgba(255,255,255,0.75),0 0 14px rgba(255,255,255,0.28),0 0 28px rgba(0,0,0,0.16),0 0 20px rgba(0,0,0,0.9)' }}>
+        {copyDisp.split('\n').map((line, i) => <div key={i}>{line}</div>)}
+      </div>}
     </div>
   )
 }
@@ -482,7 +482,7 @@ const AI_NODE_DEPTH: Record<string, number> = {
   preview: 4,
 }
 
-function CablesLayer({ ports, phase, isActive, exitP, modeSelected, modeGlowStage, nodeZOrders, focusedNode }: { ports: PortMap; phase: number; isActive: boolean; exitP: number; modeSelected: boolean; modeGlowStage: number; nodeZOrders: Record<string, number>; focusedNode: string | null }) {
+function CablesLayer({ ports, phase, isActive, exitP, modeSelected, modeGlowStage, nodeZOrders, focusedNode, extraConnections = [] }: { ports: PortMap; phase: number; isActive: boolean; exitP: number; modeSelected: boolean; modeGlowStage: number; nodeZOrders: Record<string, number>; focusedNode: string | null; extraConnections?: Array<{ from: string; to: string; seg: number; optionalMode?: boolean; useAltInp?: boolean; cableZ?: number }> }) {
   const cableOpacity = Math.max(0, 1 - exitP * 2)
   const renderCableCap = (point: Port, active: boolean, side: 'out' | 'in', green = false) => {
     const sideSign = side === 'out' ? 1 : -1
@@ -499,8 +499,8 @@ function CablesLayer({ ports, phase, isActive, exitP, modeSelected, modeGlowStag
     )
   }
   const svgBase: React.CSSProperties = { position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', overflow:'visible', opacity:cableOpacity, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', transition:'none', willChange:'opacity' }
-  const groups = new Map<number, typeof TOPO>()
-  TOPO.forEach(e => {
+  const groups = new Map<number, Array<{ from: string; to: string; seg: number; optionalMode?: boolean; useAltInp?: boolean; cableZ?: number }>>()
+  ;[...TOPO, ...extraConnections].forEach(e => {
     const staticZ = (e as {cableZ?:number}).cableZ ?? 4
     const z = e.from === 'upscale' && e.to === 'terminal'
       ? focusedNode === 'preview'
@@ -555,7 +555,7 @@ function CablesLayer({ ports, phase, isActive, exitP, modeSelected, modeGlowStag
 }
 
 // ─── Draggable Window ─────────────────────────────────────────────────────────
-function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=false, glowTone='green', minH, freezePortY=false, offset={x:0,y:0}, animateLayout=false, emitAltInp=false, altInpY=16, inpAtFrac=0.5, children }: {
+function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=false, glowTone='green', minH, freezePortY=false, offset={x:0,y:0}, animateLayout=false, emitAltInp=false, altInpY=16, inpAtFrac=0.5, showHeader=true, children }: {
   id: string; title: string; width: number
   initPos: {x: number; y: number}
   onPortChange: (id: string, out: Port, inp: Port, inpAlt?: Port) => void
@@ -564,6 +564,7 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
   offset?: {x: number; y: number}; animateLayout?: boolean
   altInpY?: number
   emitAltInp?: boolean; inpAtFrac?: number
+  showHeader?: boolean
   children: React.ReactNode
 }) {
   const [pos, setPos] = useState(initPos)
@@ -808,12 +809,12 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
 
   return (
     <div ref={domRef} data-ai-node={id} onMouseDown={onMD} onClickCapture={stopDraggedClick} style={{ position:'absolute', left:pos.x+offset.x, top:pos.y+offset.y, width, minHeight:minH, background:nodeBackground, border:nodeBorder, outline, boxShadow:shadow, zIndex, display:'flex', flexDirection:'column', transform:'translate3d(var(--ai-mx,0px),var(--ai-my,0px),0)', transition:animateLayout?'left 0.28s ease,top 0.28s ease,width 0.28s ease,outline 0.3s,box-shadow 0.3s,background 0.3s':'outline 0.3s,box-shadow 0.3s,background 0.3s', willChange:'transform', isolation:'isolate', cursor:isDragging ? AI_CURSOR_FIST : AI_CURSOR_OPEN }}>
-      <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:headerBackground, borderBottom:'1px solid rgba(0,0,0,0.16)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -1px 0 rgba(0,0,0,0.08)', cursor:isDragging ? AI_CURSOR_FIST : AI_CURSOR_OPEN, flexShrink:0, userSelect:'none' }}>
+      {showHeader && <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:headerBackground, borderBottom:'1px solid rgba(0,0,0,0.16)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -1px 0 rgba(0,0,0,0.08)', cursor:isDragging ? AI_CURSOR_FIST : AI_CURSOR_OPEN, flexShrink:0, userSelect:'none' }}>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#27ca40', flexShrink:0}}/>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#ffbd2e', flexShrink:0}}/>
         <div style={{width:12, height:12, borderRadius:'50%', background:'#ff5f56', flexShrink:0}}/>
         <span onMouseEnter={scramble} style={{ marginLeft:6, color:'#111', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:BORNA, flex:1, cursor:isDragging ? AI_CURSOR_FIST : AI_CURSOR_OPEN, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{disp}</span>
-      </div>
+      </div>}
       <div style={{ position:'relative', zIndex:1, flex:1 }}>{children}</div>
     </div>
   )
@@ -841,6 +842,357 @@ function ExpandCard({ text, tags, hint, onOpenChange }: { text: string; tags?: s
       <div style={{ maxHeight:open?260:0, opacity:open?1:0, transform:open?'translateY(0)':'translateY(-6px)', overflow:'hidden', transition:'max-height 0.36s cubic-bezier(0.22,1,0.36,1), opacity 0.2s ease, transform 0.28s ease' }}>
         <p style={{ margin:'9px 0 12px' }}>{text}</p>
         {tags && <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>{tags.map((t,i) => <span key={i} style={tS}>{t}</span>)}</div>}
+      </div>
+    </div>
+  )
+}
+
+function MobileDesktopNode({
+  title,
+  children,
+  width,
+  delay,
+}: {
+  title: string
+  children: React.ReactNode
+  width: string
+  delay: string
+}) {
+  return (
+    <div style={{
+      width,
+      minHeight: 52,
+      border: '1px solid rgba(255,255,255,0.58)',
+      background: 'linear-gradient(135deg, #f4f4f4 0%, #dedede 52%, #c9c9c9 100%)',
+      boxShadow: '2px 3px 5px rgba(0,0,0,0.3), 9px 15px 28px rgba(0,0,0,0.3), inset 1px 1px 0 rgba(255,255,255,0.88), inset -2px -2px 0 rgba(0,0,0,0.15)',
+      color: '#111',
+      animation: `mobileAiFloat 4.8s var(--mobile-motion-ease) ${delay} infinite alternate`,
+      willChange: 'transform',
+    }}>
+      <div style={{
+        height: 20,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 6px 0 8px',
+        background: 'linear-gradient(180deg, #fff 0%, #eeeeee 42%, #bdbdbd 100%)',
+        borderBottom: '1px solid rgba(0,0,0,0.3)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.92)',
+        fontFamily: MONO,
+        fontWeight: 800,
+        fontSize: 8,
+        letterSpacing: '0.08em',
+      }}>
+        <span>{title}</span><span aria-hidden="true">▣</span>
+      </div>
+      <div style={{ padding: '7px 8px', fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1.25 }}>{children}</div>
+    </div>
+  )
+}
+
+function MobileAIWorkspace({
+  previewRef,
+  canvasRef,
+  isActive,
+  phase,
+  exitP,
+  generate,
+  outputFormat,
+  outpaintReveal,
+  pendingOutputFormat,
+  setPendingOutputFormat,
+  outputModes,
+  toggleOutputMode,
+  imageModeLoading,
+  modeGlowStage,
+  currentWorkflowPrompt,
+  currentImageIndex,
+  isUpscaleMode,
+  isVideoMode,
+  activeVideoSrc,
+  upscaleCanvasRef,
+  videoRef,
+  videoCanvasRef,
+  upscaleSplit,
+  upscalePixelReveal,
+  upscaleIntroActive,
+  beginUpscaleDrag,
+  setUpscaleSplitFromClientX,
+  endUpscaleDrag,
+  outpaintGuideIsVisible,
+  outpaintGuideInset,
+  outpaintGuideOpacity,
+  videoReady,
+  videoPlaying,
+  setVideoCanPlay,
+  toggleVideoPlayback,
+}: {
+  previewRef: React.RefObject<HTMLDivElement | null>
+  canvasRef: React.RefObject<HTMLCanvasElement | null>
+  isActive: boolean
+  phase: number
+  exitP: number
+  generate: () => void
+  outputFormat: OutputFormat
+  outpaintReveal: number
+  pendingOutputFormat: OutputFormat
+  setPendingOutputFormat: (format: OutputFormat) => void
+  outputModes: OutputMode[]
+  toggleOutputMode: (mode: OutputMode) => void
+  imageModeLoading: boolean
+  modeGlowStage: number
+  currentWorkflowPrompt: string
+  currentImageIndex: number
+  isUpscaleMode: boolean
+  isVideoMode: boolean
+  activeVideoSrc: string | null
+  upscaleCanvasRef: React.RefObject<HTMLCanvasElement | null>
+  videoRef: React.RefObject<HTMLVideoElement | null>
+  videoCanvasRef: React.RefObject<HTMLCanvasElement | null>
+  upscaleSplit: number
+  upscalePixelReveal: number
+  upscaleIntroActive: boolean
+  beginUpscaleDrag: (clientX: number) => void
+  setUpscaleSplitFromClientX: (clientX: number) => void
+  endUpscaleDrag: () => void
+  outpaintGuideIsVisible: boolean
+  outpaintGuideInset: string
+  outpaintGuideOpacity: number
+  videoReady: boolean
+  videoPlaying: boolean
+  setVideoCanPlay: (value: boolean) => void
+  toggleVideoPlayback: () => void
+}) {
+  return (
+    <div style={{
+      position: 'relative', height: '100%', overflow: 'hidden', color: '#fff',
+      background: '#020503',
+      backgroundImage: 'radial-gradient(circle at 16% 14%, rgba(57,255,20,0.18), transparent 30%), linear-gradient(rgba(183,255,156,0.065) 1px, transparent 1px), linear-gradient(90deg, rgba(183,255,156,0.065) 1px, transparent 1px)',
+      backgroundSize: '100% 100%, 28px 28px, 28px 28px',
+    }}>
+      <style>{`@keyframes mobileAiFloat { from { transform: translate3d(0, -2px, 0); } to { transform: translate3d(0, 5px, 0); } }`}</style>
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at center, transparent 34%, rgba(0,0,0,0.18) 66%, rgba(0,0,0,0.78) 100%)',
+      }} />
+      <div className="mobile-section-shell" style={{
+        position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', paddingBottom: 'var(--mobile-section-bottom)', gap: 12,
+        filter: exitP > 0.02 ? `blur(calc(${exitP} * var(--mobile-exit-blur)))` : 'none',
+        opacity: 1 - exitP * 0.9,
+        transform: `scale(${1 - exitP * 0.04})`,
+        transformOrigin: 'center top',
+        willChange: 'filter, opacity, transform',
+      }}>
+        <header>
+          <p style={{ margin: '0 0 10px', color: CRT_GREEN, fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textShadow: CRT_GLOW }}>
+            AI LAB / LIVE SYSTEM
+          </p>
+          <h2 className="mobile-section-heading" style={{ color: '#fff', textShadow: '0 0 16px rgba(255,255,255,0.32)' }}>
+            ARTISTIC<br />INTELLIGENCE
+          </h2>
+        </header>
+
+        <div style={{ position: 'relative', border: '1px solid rgba(255,255,255,0.58)', background: '#d8d8d8', boxShadow: '3px 5px 8px rgba(0,0,0,0.36), 13px 20px 38px rgba(0,0,0,0.26), inset 1px 1px 0 rgba(255,255,255,0.86), inset -2px -2px 0 rgba(0,0,0,0.16)', overflow: 'hidden' }}>
+          <div style={{ height: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', borderBottom: '1px solid rgba(0,0,0,0.32)', background: 'linear-gradient(180deg, #fff 0%, #eeeeee 42%, #bdbdbd 100%)', fontFamily: MONO, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: '#111' }}>
+            <span>OUTPUT / IMAGE</span><span>{isActive ? `${Math.round(phase * 100)}%` : 'READY'} ▣</span>
+          </div>
+          <div ref={previewRef} style={{ position: 'relative', height: 'min(29svh, 57vw)', background: '#071008', overflow: 'hidden' }}>
+            <img src={AI_SRCS[INITIAL_AI_IMAGE_INDEX]} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(0.9) contrast(1.05)' }} />
+            <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', mixBlendMode: 'screen' }} />
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(rgba(57,255,20,0.07) 50%, rgba(0,0,0,0.15) 50%)', backgroundSize: '100% 4px', mixBlendMode: 'screen' }} />
+            {isActive && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(0,10,2,0.22)' }}>
+              <div style={{ minWidth: 94, padding: '9px 12px', border: '1px solid rgba(183,255,156,0.74)', background: 'rgba(0,8,2,0.88)', color: CRT_GREEN, fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'center', boxShadow: CRT_BOX_GLOW }}>
+                {Math.round(phase * 100)}%<br /><span style={{ fontSize: 8, letterSpacing: '0.12em' }}>RENDERING</span>
+              </div>
+            </div>}
+          </div>
+          <button type="button" onClick={generate} disabled={isActive} style={{ width: '100%', minHeight: 37, border: 0, borderTop: '1px solid rgba(0,0,0,0.32)', background: isActive ? '#9d9d9d' : '#111', color: isActive ? '#fff' : CRT_GREEN, fontFamily: MONO, fontSize: 10, fontWeight: 800, letterSpacing: '0.13em', textTransform: 'uppercase', cursor: isActive ? 'wait' : 'pointer' }}>
+            {isActive ? 'GENERATING…' : '◈ GENERATE OUTPUT'}
+          </button>
+        </div>
+
+        <div style={{ position: 'relative', minHeight: 134, marginTop: 'auto' }}>
+          <div aria-hidden="true" style={{ position: 'absolute', top: 39, left: '15%', right: '17%', height: 1, background: 'rgba(183,255,156,0.5)', boxShadow: CRT_GLOW }} />
+          <div aria-hidden="true" style={{ position: 'absolute', top: 39, left: '15%', width: 7, height: 7, borderRadius: '50%', background: CRT_GREEN, boxShadow: CRT_GLOW }} />
+          <div aria-hidden="true" style={{ position: 'absolute', top: 39, right: '17%', width: 7, height: 7, borderRadius: '50%', background: CRT_GREEN, boxShadow: CRT_GLOW }} />
+          <div style={{ position: 'absolute', top: 0, left: 0 }}><MobileDesktopNode title="PROMPT DESIGN" width="44vw" delay="0s">CREATIVE BRIEF<br />VISUAL SYSTEM</MobileDesktopNode></div>
+          <div style={{ position: 'absolute', top: 13, right: 0 }}><MobileDesktopNode title="WORKFLOW" width="37vw" delay="0.8s"><span style={{ color: '#257512' }}>COMFYUI / LoRA / N8N</span></MobileDesktopNode></div>
+          <div style={{ position: 'absolute', bottom: 0, left: '14vw' }}><MobileDesktopNode title="VISION" width="47vw" delay="0.35s">IMAGE → MOTION<br /><span style={{ color: '#666' }}>ART DIRECTION</span></MobileDesktopNode></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MobileDesktopWorkspace({
+  lang,
+  previewRef,
+  canvasRef,
+  isActive,
+  phase,
+  exitP,
+  generate,
+  outputFormat,
+  outpaintReveal,
+  pendingOutputFormat,
+  setPendingOutputFormat,
+  outputModes,
+  toggleOutputMode,
+  imageModeLoading,
+  modeGlowStage,
+  currentWorkflowPrompt,
+  currentImageIndex,
+  isUpscaleMode,
+  isVideoMode,
+  activeVideoSrc,
+  upscaleCanvasRef,
+  videoRef,
+  videoCanvasRef,
+  upscaleSplit,
+  upscalePixelReveal,
+  upscaleIntroActive,
+  beginUpscaleDrag,
+  setUpscaleSplitFromClientX,
+  endUpscaleDrag,
+  outpaintGuideIsVisible,
+  outpaintGuideInset,
+  outpaintGuideOpacity,
+  videoReady,
+  videoPlaying,
+  setVideoCanPlay,
+  toggleVideoPlayback,
+  ports,
+  onPortChange,
+  onFocus,
+  zOrders,
+  expandedNode,
+  onPromptExpandChange,
+  onWorkflowExpandChange,
+  onDirectionExpandChange,
+  focusedNode,
+}: {
+  lang: Lang
+  previewRef: React.RefObject<HTMLDivElement | null>
+  canvasRef: React.RefObject<HTMLCanvasElement | null>
+  isActive: boolean
+  phase: number
+  exitP: number
+  generate: () => void
+  outputFormat: OutputFormat
+  outpaintReveal: number
+  pendingOutputFormat: OutputFormat
+  setPendingOutputFormat: (format: OutputFormat) => void
+  outputModes: OutputMode[]
+  toggleOutputMode: (mode: OutputMode) => void
+  imageModeLoading: boolean
+  modeGlowStage: number
+  currentWorkflowPrompt: string
+  currentImageIndex: number
+  isUpscaleMode: boolean
+  isVideoMode: boolean
+  activeVideoSrc: string | null
+  upscaleCanvasRef: React.RefObject<HTMLCanvasElement | null>
+  videoRef: React.RefObject<HTMLVideoElement | null>
+  videoCanvasRef: React.RefObject<HTMLCanvasElement | null>
+  upscaleSplit: number
+  upscalePixelReveal: number
+  upscaleIntroActive: boolean
+  beginUpscaleDrag: (clientX: number) => void
+  setUpscaleSplitFromClientX: (clientX: number) => void
+  endUpscaleDrag: () => void
+  outpaintGuideIsVisible: boolean
+  outpaintGuideInset: string
+  outpaintGuideOpacity: number
+  videoReady: boolean
+  videoPlaying: boolean
+  setVideoCanPlay: (value: boolean) => void
+  toggleVideoPlayback: () => void
+  ports: PortMap
+  onPortChange: (id: string, out: Port, inp: Port, inpAlt?: Port) => void
+  onFocus: (id: string) => void
+  zOrders: Record<string, number>
+  expandedNode: string | null
+  onPromptExpandChange: (open: boolean) => void
+  onWorkflowExpandChange: (open: boolean) => void
+  onDirectionExpandChange: (open: boolean) => void
+  focusedNode: string | null
+}) {
+  const lit = (segment: number) => isActive && phase >= segment / SEG_N
+  const controlButtonBase: React.CSSProperties = { height: 28, padding: '0 7px', border: '1px solid rgba(0,0,0,0.18)', fontFamily: BORNA, fontSize: 9, lineHeight: 1, fontWeight: 800, letterSpacing: '0.06em', textAlign: 'left', cursor: 'pointer', textTransform: 'uppercase' }
+  const outputAspectValue = outputFormat === '16:9' ? 16 / 9 : outputFormat === '3:4' ? 3 / 4 : 1
+  const outputBaseWidth = 266
+  const outputOutpaintWidth = 42
+  const outputGrow = outputOutpaintWidth * outpaintReveal
+  const outputWidth = outputBaseWidth + outputGrow
+  const outputHeight = (outputWidth - 2) / outputAspectValue
+  const outputBaseHeight = (outputBaseWidth - 2) / outputAspectValue
+  const outputFrameWidth = outputBaseWidth + outputOutpaintWidth
+  const outputFrameHeight = (outputFrameWidth - 2) / outputAspectValue
+  // Keep the output clear of the introductory copy while preserving a shared
+  // bottom edge across the selectable output formats.
+  const outputTop = 580 - 28 - outputBaseHeight
+  const outputOffset = { x: -outputGrow / 2, y: -(outputGrow / outputAspectValue) / 2 }
+  const mobileOutpaintGuideInset = `${(outputGrow / outputAspectValue) / 2}px ${outputGrow / 2}px`
+
+  return (
+    <div style={{ position: 'relative', height: '100%', overflow: 'hidden', background: '#000' }}>
+      <GridBg />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 5, filter: exitP > 0.02 ? `blur(${exitP * 18}px)` : 'none', opacity: 1 - exitP * 0.9, transform: `scale(${1 - exitP * 0.04})`, transformOrigin: 'center top', willChange: 'filter, opacity, transform' }}>
+        <CablesLayer ports={ports} phase={phase} isActive={isActive} exitP={exitP} modeSelected={outputModes.length > 0} modeGlowStage={modeGlowStage} nodeZOrders={zOrders} focusedNode={focusedNode} extraConnections={[{ from: 'generate', to: 'upscale', seg: 0 }]} />
+
+        <div style={{ position: 'absolute', top: 'var(--mobile-section-top)', left: 'var(--mobile-section-x)', zIndex: AI_HEADING_Z, pointerEvents: 'none' }}>
+          <NeonHeading />
+        </div>
+
+        <Win id="generate" title="" width={64} initPos={{ x: 270, y: 196 }} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.generate} lit={lit(0)} showHeader={false}>
+          <div style={{ padding: 5 }}>
+            <button type="button" aria-label="Generate" onClick={generate} disabled={isActive} style={{ width: '100%', aspectRatio: '1', border: '1px solid rgba(0,0,0,0.34)', background: isActive ? '#bcbcbc' : '#d5d5d5', display: 'grid', placeItems: 'center', padding: 0 }}>
+              <img src="/icons/gen-01.png" alt="" aria-hidden="true" style={{ width: 22, height: 22, objectFit: 'contain', opacity: isActive ? 0.32 : 1 }} />
+            </button>
+          </div>
+        </Win>
+
+        <Win id="upscale" title="FORMAT" width={64} initPos={{ x: 52, y: 320 }} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.upscale} lit={lit(2)} showHeader={false}>
+          <div style={{ padding: 5, display: 'grid', gridTemplateColumns: '1fr', gap: 5 }}>
+            {FORMAT_OPTIONS.map((ratio) => <button key={ratio} type="button" aria-label={ratio} aria-pressed={pendingOutputFormat === ratio} onMouseDown={(event) => event.stopPropagation()} onClick={() => setPendingOutputFormat(ratio)} style={{ ...controlButtonBase, width: '100%', aspectRatio: '1', height: 'auto', padding: 0, textAlign: 'center', fontSize: 13, fontWeight: 900, letterSpacing: '0.02em', background: pendingOutputFormat === ratio ? '#000' : 'rgba(0,0,0,0.08)', color: pendingOutputFormat === ratio ? '#fff' : '#111' }}>{ratio}</button>)}
+          </div>
+        </Win>
+
+        <Win id="modes" title="MODES" width={182} initPos={{ x: 128, y: 645 }} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.preview + 1} lit={modeGlowStage >= 1} glowTone="orange" showHeader={false}>
+          <div style={{ padding: 5, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+            {OUTPUT_MODE_OPTIONS.map((mode, index) => <button key={mode} type="button" aria-label={OUTPUT_MODE_LABELS[mode]} aria-pressed={outputModes.includes(mode)} disabled={isActive} onMouseDown={(event) => event.stopPropagation()} onClick={() => toggleOutputMode(mode)} style={{ ...controlButtonBase, width: '100%', aspectRatio: '1', height: 'auto', padding: 0, display: 'grid', placeItems: 'center', background: outputModes.includes(mode) ? '#000' : 'rgba(0,0,0,0.08)', opacity: isActive ? 0.42 : 1 }}>
+              <img src={`/icons/modes-0${index + 1}.png`} alt="" aria-hidden="true" style={{ width: '56%', height: '56%', objectFit: 'contain', filter: outputModes.includes(mode) ? 'invert(1)' : 'none' }} />
+            </button>)}
+          </div>
+        </Win>
+
+        <Win id="terminal" title="WORKFLOW LOG" width={284} initPos={{ x: 40, y: 530 }} onPortChange={onPortChange} onFocus={onFocus} zIndex={1} lit={lit(4)} minH={184}>
+          <div style={{ height: 172, background: '#010a03', overflow: 'hidden', boxShadow: 'inset 0 0 22px rgba(57,255,20,0.18)' }}><CrazyTerminal phase={phase} isActive={isActive} lang={lang} prompt={currentWorkflowPrompt} imageIndex={currentImageIndex} /></div>
+        </Win>
+
+        <Win id="preview" title="OUTPUT" width={outputWidth} initPos={{ x: 94, y: outputTop }} offset={outputOffset} onPortChange={onPortChange} onFocus={onFocus} zIndex={zOrders.preview} lit={lit(6) || modeGlowStage >= 3} glowTone={modeGlowStage > 0 ? 'orange' : 'green'} emitAltInp altInpY={52} inpAtFrac={0.91}>
+          <div style={{ position: 'relative', width: '100%', height: outputHeight, overflow: 'hidden', background: '#111' }}>
+            {outpaintReveal > 0.02 && <div data-ai-outpaint-guide style={{ position: 'absolute', inset: mobileOutpaintGuideInset, border: '1px dashed rgba(255,255,255,0.76)', opacity: Math.min(1, outpaintReveal * 1.35), zIndex: 5, pointerEvents: 'none' }} />}
+            <div ref={previewRef} style={{ position: 'absolute', left: '50%', top: '50%', width: outputFrameWidth, height: outputFrameHeight, transform: 'translate(-50%, -50%)' }}>
+              <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }} />
+            {isUpscaleMode && <>
+              <div data-ai-mode-effect="upscale" style={{ position: 'absolute', left: `${upscaleSplit * 100}%`, right: 0, top: 0, bottom: 0, overflow: 'hidden', zIndex: 3, pointerEvents: 'none' }}>
+                <canvas ref={upscaleCanvasRef} style={{ position: 'absolute', right: 0, top: 0, width: `${100 / upscalePixelReveal}%`, height: '100%', display: 'block', imageRendering: 'pixelated' }} />
+              </div>
+              <div data-ai-upscale-track role="slider" aria-label="Upscale comparison split" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(upscaleSplit * 100)} tabIndex={0} onPointerDown={(event) => { event.stopPropagation(); beginUpscaleDrag(event.clientX) }} onPointerMove={(event) => { if (event.buttons === 1) setUpscaleSplitFromClientX(event.clientX) }} onPointerUp={endUpscaleDrag} onPointerCancel={endUpscaleDrag} onMouseDown={(event) => event.stopPropagation()} style={{ position: 'absolute', inset: 0, zIndex: 4, cursor: upscaleIntroActive ? 'default' : 'ew-resize', pointerEvents: upscaleIntroActive ? 'none' : 'auto', touchAction: 'none', background: 'transparent', outline: 'none' }} />
+              <div style={{ position: 'absolute', left: `calc(${upscaleSplit * 100}% - 13px)`, top: 0, bottom: 0, width: 26, zIndex: 5, pointerEvents: 'none' }}><div style={{ position: 'absolute', left: 12, top: 0, bottom: 0, width: 3, background: '#fff' }} /></div>
+            </>}
+            {isVideoMode && <div data-ai-mode-effect="video" style={{ position: 'absolute', inset: 0, zIndex: 6, pointerEvents: 'none' }}>
+              {activeVideoSrc && <video key={activeVideoSrc} ref={videoRef} src={activeVideoSrc} preload="auto" loop muted playsInline onLoadedData={() => setVideoCanPlay(true)} onCanPlay={() => setVideoCanPlay(true)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0, zIndex: 1 }} />}
+              <canvas ref={videoCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', opacity: videoReady ? 1 : 0, transition: 'opacity 0.18s ease', zIndex: 2 }} />
+              {!videoReady ? <ModeLoadingIndicator /> : <button type="button" aria-label={videoPlaying ? 'Pause preview' : 'Play preview'} onMouseDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); toggleVideoPlayback() }} style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 44, height: 44, border: 0, padding: 0, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', pointerEvents: 'auto', filter: 'drop-shadow(0 1px 6px rgba(0,0,0,0.82))', zIndex: 4 }}>
+                {videoPlaying ? <span style={{ width: 18, height: 23, display: 'flex', gap: 6 }}><span style={{ flex: 1, background: '#fff' }} /><span style={{ flex: 1, background: '#fff' }} /></span> : <span style={{ width: 0, height: 0, borderTop: '12px solid transparent', borderBottom: '12px solid transparent', borderLeft: '20px solid #fff', marginLeft: 5 }} />}
+              </button>}
+            </div>}
+            {imageModeLoading && <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}><ModeLoadingIndicator /></div>}
+            </div>
+          </div>
+        </Win>
       </div>
     </div>
   )
@@ -1484,8 +1836,13 @@ export function AISection() {
 
   useEffect(() => {
     const el = outerRef.current; if (!el) return
+    if (scrollVh <= 0) {
+      setExitP((prev) => (prev === 0 ? prev : 0))
+      return
+    }
     const s = Math.max(0, -el.getBoundingClientRect().top)
-    setExitP(Math.max(0, Math.min(1, (s-scrollVh*0.5)/scrollVh)))
+    const next = Math.max(0, Math.min(1, (s-scrollVh*0.5)/scrollVh))
+    setExitP((prev) => (Math.abs(prev - next) < 0.002 ? prev : next))
   }, [scrollY, scrollVh])
 
   const onPortChange = useCallback((id: string, out: Port, inp: Port, inpAlt?: Port) => {
@@ -1671,7 +2028,7 @@ export function AISection() {
 
   // Always render the outer wrapper with sectionRef attached so we can measure
   if (!mounted) return (
-    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:isMobile ? 50 : 40, height:isMobile ? '230svh' : '240vh', marginTop:isMobile ? '-230svh' : '-420vh' }}>
+    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:isMobile ? 50 : 40, height:isMobile ? '230svh' : '240vh', marginTop:isMobile ? 'calc(-1 * var(--mobile-flow-overlap-ai))' : '-420vh' }}>
       <section ref={sectionRef} id="ki" style={{ position:'sticky', top:0, backgroundColor:'#000', height:'var(--app-visual-height, 100svh)' }}/>
     </div>
   )
@@ -1679,9 +2036,65 @@ export function AISection() {
   const VW = dims?.w ?? width
   const VH = dims?.h ?? visualHeight
 
+  if (isMobile) {
+    return (
+      <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position: 'relative', zIndex: 50, height: '280svh', marginTop: 'calc(-1 * var(--mobile-flow-overlap-ai))' }}>
+        <section ref={sectionRef} id="ki" style={{ position: 'sticky', top: 0, height: 'var(--app-visual-height, 100svh)', overflow: 'hidden', background: '#020503' }}>
+          <MobileDesktopWorkspace
+            lang={lang}
+            previewRef={previewRef}
+            canvasRef={canvasRef}
+            isActive={isActive}
+            phase={phase}
+            exitP={exitP}
+            generate={generate}
+            outputFormat={outputFormat}
+            outpaintReveal={outpaintReveal}
+            pendingOutputFormat={pendingOutputFormat}
+            setPendingOutputFormat={setPendingOutputFormat}
+            outputModes={outputModes}
+            toggleOutputMode={toggleOutputMode}
+            imageModeLoading={imageModeLoading}
+            modeGlowStage={modeGlowStage}
+            currentWorkflowPrompt={currentWorkflowPrompt}
+            currentImageIndex={currentImageIndex}
+            isUpscaleMode={isUpscaleMode}
+            isVideoMode={isVideoMode}
+            activeVideoSrc={activeVideoSrc}
+            upscaleCanvasRef={upscaleCanvasRef}
+            videoRef={videoRef}
+            videoCanvasRef={videoCanvasRef}
+            upscaleSplit={upscaleSplit}
+            upscalePixelReveal={upscalePixelReveal}
+            upscaleIntroActive={upscaleIntroActive}
+            beginUpscaleDrag={beginUpscaleDrag}
+            setUpscaleSplitFromClientX={setUpscaleSplitFromClientX}
+            endUpscaleDrag={endUpscaleDrag}
+            outpaintGuideIsVisible={outpaintGuideIsVisible}
+            outpaintGuideInset={outpaintGuideInset}
+            outpaintGuideOpacity={outpaintGuideOpacity}
+            videoReady={videoReady}
+            videoPlaying={videoPlaying}
+            setVideoCanPlay={setVideoCanPlay}
+            toggleVideoPlayback={toggleVideoPlayback}
+            ports={ports}
+            onPortChange={onPortChange}
+            onFocus={onFocus}
+            zOrders={zOrders}
+            expandedNode={expandedNode}
+            onPromptExpandChange={onPromptExpandChange}
+            onWorkflowExpandChange={onWorkflowExpandChange}
+            onDirectionExpandChange={onDirectionExpandChange}
+            focusedNode={focusedNode}
+          />
+        </section>
+      </div>
+    )
+  }
+
   // ── Mobile ────────────────────────────────────────────────────────────────
   if (isMobile) return (
-    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:50, height:'230svh', marginTop:'-230svh' }}>
+    <div ref={outerRef} id="ai-section" data-textcolor="white" style={{ position:'relative', zIndex:50, height:'230svh', marginTop:'calc(-1 * var(--mobile-flow-overlap-ai))' }}>
       <style>{`
         @keyframes aiBlink{0%,100%{opacity:1}50%{opacity:0.1}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -1707,7 +2120,7 @@ export function AISection() {
         style={{ position:'sticky', top:0, backgroundColor:'#000', height:'var(--app-visual-height, 100svh)', boxSizing:'border-box', overflow:'hidden', cursor:AI_CURSOR_NORMAL }}
       >
         <GridBg/>
-        <div style={{ position:'relative', zIndex:3, height:'100%', boxSizing:'border-box', padding:'20vw 5vw 5vw', display:'flex', flexDirection:'column', justifyContent:'space-between', gap: 12, filter:exitP>0.02?`blur(${exitP*18}px)`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
+        <div className="mobile-section-shell" style={{ position:'relative', zIndex:3, height:'100%', boxSizing:'border-box', paddingBottom:'5vw', display:'flex', flexDirection:'column', justifyContent:'space-between', gap: 12, filter:exitP>0.02?`blur(calc(${exitP} * var(--mobile-exit-blur)))`:'none', opacity:1-exitP*0.9, transform:`scale(${1-exitP*0.04})`, transformOrigin:'center top', willChange:'filter,opacity,transform' }}>
           <NeonHeading/>
           
           {/* ═══ ARTISTIC INTELLIGENCE INTERFACE ═══ */}

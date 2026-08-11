@@ -84,18 +84,18 @@ export function Header({ isVisible }: { isVisible: boolean }) {
   return (
     <header className="fixed-ui" style={{
       position: 'fixed',
-      top: '12px',
-      right: '16px',
+      top: 'var(--mobile-nav-top)',
+      right: 'var(--mobile-section-x)',
       zIndex: 1000002,
       opacity: isVisible ? opacity : 0,
       transition: 'opacity 0.2s ease',
       pointerEvents: opacity > 0.5 ? 'auto' : 'none',
     }}>
-      <button onClick={handleToggle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onTouchStart={handleMouseEnter} onTouchEnd={handleMouseLeave} onTouchCancel={handleMouseLeave} className="nav__link" style={{
+      <button aria-label={language === 'de' ? 'Sprache auf Englisch ändern' : 'Switch language to German'} onClick={handleToggle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onTouchStart={handleMouseEnter} onTouchEnd={handleMouseLeave} onTouchCancel={handleMouseLeave} className="nav__link" style={{
         background: 'none', border: 'none', cursor: 'pointer',
-        fontSize: '11px', fontWeight: '700', fontFamily: 'inherit',
+        fontSize: 'var(--mobile-nav-size)', fontWeight: '700', fontFamily: 'inherit',
         letterSpacing: '-0.02em', lineHeight: '1.2',
-        whiteSpace: 'nowrap', padding: 0,
+        whiteSpace: 'nowrap', padding: 8, margin: -8,
       }}>
         <NavMaskedText className="nav__link" watchKey={displayText}>{displayText}</NavMaskedText>
       </button>

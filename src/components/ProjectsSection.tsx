@@ -581,30 +581,30 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
       {/* Reveal text over the project */}
       <div style={{
         position: 'absolute',
-        left: isMobile ? '6vw' : '8vw',
-        right: isMobile ? '6vw' : '34vw',
-        bottom: isMobile ? '9vh' : '12vh',
+        left: isMobile ? 'var(--mobile-overlay-side)' : '8vw',
+        right: isMobile ? 'var(--mobile-overlay-side)' : '34vw',
+        bottom: isMobile ? 'var(--mobile-overlay-bottom)' : '12vh',
         zIndex: 6, pointerEvents: 'none',
         opacity: revealed ? 1 : 0,
         transform: revealed ? 'translateY(0)' : 'translateY(28px)',
-        transition: 'opacity 0.55s ease, transform 0.6s cubic-bezier(0.16,1,0.3,1)',
+        transition: isMobile ? 'opacity var(--mobile-motion-base) ease, transform var(--mobile-motion-base) var(--mobile-motion-ease)' : 'opacity 0.55s ease, transform 0.6s cubic-bezier(0.16,1,0.3,1)',
       }}>
         <div style={{
-          fontSize: isMobile ? '10vw' : 'clamp(40px,6vw,96px)',
+          fontSize: isMobile ? 'var(--mobile-overlay-title-size)' : 'clamp(40px,6vw,96px)',
           fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
           textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
           textShadow: '0 12px 36px rgba(0,0,0,0.45)',
         }}>{titleDisp}</div>
         <div style={{
           display: 'inline-block', marginTop: isMobile ? '0.5em' : '0.4em',
-          fontSize: isMobile ? '4.6vw' : 'clamp(20px,2.4vw,40px)',
+          fontSize: isMobile ? 'var(--mobile-overlay-subtitle-size)' : 'clamp(20px,2.4vw,40px)',
           fontWeight: 700, fontStyle: 'italic', lineHeight: 0.95, letterSpacing: '-0.6px',
           textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
           textShadow: '0 10px 24px rgba(0,0,0,0.4)',
         }}>{fieldDisp}</div>
         <p style={{
           marginTop: isMobile ? '1.1em' : '1em',
-          fontSize: isMobile ? '3.6vw' : 'clamp(14px,1.05vw,18px)',
+          fontSize: isMobile ? 'var(--mobile-overlay-copy-size)' : 'clamp(14px,1.05vw,18px)',
           fontWeight: 400, lineHeight: 1.45, color: 'rgba(255,255,255,0.96)',
           maxWidth: isMobile ? '88vw' : '40vw',
           textShadow: '0 6px 18px rgba(0,0,0,0.4)',
@@ -616,7 +616,7 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
           {project.tags[lang].map((t, ti) => (
             <span key={`${t}-${ti}`} style={{
               border: '1px solid rgba(255,255,255,0.4)',
-              color: '#ffffff', fontSize: isMobile ? '3vw' : '11px',
+              color: '#ffffff', fontSize: isMobile ? 'var(--mobile-overlay-tag-size)' : '11px',
               fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
               padding: '5px 10px', borderRadius: '999px',
             }}>{t}</span>
@@ -752,7 +752,7 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
         backgroundColor: 'transparent',
         height: `${Math.max(420, steps * 90 + trailingHoldVh)}vh`,
         position: 'relative', zIndex: isMobile ? 20 : 20,
-        marginTop: isMobile ? '18svh' : '15vh',
+        marginTop: isMobile ? 'calc(var(--mobile-section-top) - 2vw)' : '15vh',
       }}>
         <div style={{
           position: 'sticky', top: 0, height: 'var(--app-visual-height, 100svh)', width: '100%', overflow: 'hidden',
@@ -1619,28 +1619,28 @@ function MiniProjectFullscreen({ project, projects, onCloseStart, onClose, onNav
           }} />
           <div style={{
             position: 'absolute',
-            left: isMobile ? '6vw' : '8vw',
-            right: isMobile ? '6vw' : '34vw',
-            bottom: isMobile ? '9vh' : '12vh',
+            left: isMobile ? 'var(--mobile-overlay-side)' : '8vw',
+            right: isMobile ? 'var(--mobile-overlay-side)' : '34vw',
+            bottom: isMobile ? 'var(--mobile-overlay-bottom)' : '12vh',
             zIndex: 5, pointerEvents: 'none',
             opacity: 1,
           }}>
             <div style={{
-              fontSize: isMobile ? '10vw' : 'clamp(40px,6vw,96px)',
+              fontSize: isMobile ? 'var(--mobile-overlay-title-size)' : 'clamp(40px,6vw,96px)',
               fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
               textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
               textShadow: '0 12px 36px rgba(0,0,0,0.45)',
             }}>{baseTitle}</div>
             <div style={{
               display: 'inline-block', marginTop: isMobile ? '0.5em' : '0.4em',
-              fontSize: isMobile ? '4.6vw' : 'clamp(20px,2.4vw,40px)',
+              fontSize: isMobile ? 'var(--mobile-overlay-subtitle-size)' : 'clamp(20px,2.4vw,40px)',
               fontWeight: 700, fontStyle: 'italic', lineHeight: 0.95, letterSpacing: '-0.6px',
               textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
               textShadow: '0 10px 24px rgba(0,0,0,0.4)',
             }}>{baseField}</div>
             <p style={{
               marginTop: isMobile ? '1.1em' : '1em',
-              fontSize: isMobile ? '3.6vw' : 'clamp(14px,1.05vw,18px)',
+              fontSize: isMobile ? 'var(--mobile-overlay-copy-size)' : 'clamp(14px,1.05vw,18px)',
               fontWeight: 400, lineHeight: 1.45, color: 'rgba(255,255,255,0.96)',
               maxWidth: isMobile ? '88vw' : '40vw',
               textShadow: '0 6px 18px rgba(0,0,0,0.4)',
@@ -1652,7 +1652,7 @@ function MiniProjectFullscreen({ project, projects, onCloseStart, onClose, onNav
               {baseTags.map((t, ti) => (
                 <span key={`${t}-${ti}`} style={{
                   border: '1px solid rgba(255,255,255,0.4)',
-                  color: '#ffffff', fontSize: isMobile ? '3vw' : '11px',
+                  color: '#ffffff', fontSize: isMobile ? 'var(--mobile-overlay-tag-size)' : '11px',
                   fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                   padding: '5px 10px', borderRadius: '999px',
                 }}>{t}</span>
@@ -1684,29 +1684,29 @@ function MiniProjectFullscreen({ project, projects, onCloseStart, onClose, onNav
 
           <div onClick={(e) => e.stopPropagation()} style={{
             position: 'absolute',
-            left: isMobile ? '6vw' : '8vw',
-            right: isMobile ? '6vw' : '34vw',
-            bottom: isMobile ? '9vh' : '12vh',
+            left: isMobile ? 'var(--mobile-overlay-side)' : '8vw',
+            right: isMobile ? 'var(--mobile-overlay-side)' : '34vw',
+            bottom: isMobile ? 'var(--mobile-overlay-bottom)' : '12vh',
             zIndex: 5, pointerEvents: 'none',
             opacity: isOpen ? 1 : 0,
             transition: 'opacity 0.55s ease 0.1s',
           }}>
             <div style={{
-              fontSize: isMobile ? '10vw' : 'clamp(40px,6vw,96px)',
+              fontSize: isMobile ? 'var(--mobile-overlay-title-size)' : 'clamp(40px,6vw,96px)',
               fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
               textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
               textShadow: '0 12px 36px rgba(0,0,0,0.45)',
             }}>{titleDisp}</div>
             <div style={{
               display: 'inline-block', marginTop: isMobile ? '0.5em' : '0.4em',
-              fontSize: isMobile ? '4.6vw' : 'clamp(20px,2.4vw,40px)',
+              fontSize: isMobile ? 'var(--mobile-overlay-subtitle-size)' : 'clamp(20px,2.4vw,40px)',
               fontWeight: 700, fontStyle: 'italic', lineHeight: 0.95, letterSpacing: '-0.6px',
               textTransform: 'uppercase', color: '#ffffff', whiteSpace: 'pre-line',
               textShadow: '0 10px 24px rgba(0,0,0,0.4)',
             }}>{fieldDisp}</div>
             <p style={{
               marginTop: isMobile ? '1.1em' : '1em',
-              fontSize: isMobile ? '3.6vw' : 'clamp(14px,1.05vw,18px)',
+              fontSize: isMobile ? 'var(--mobile-overlay-copy-size)' : 'clamp(14px,1.05vw,18px)',
               fontWeight: 400, lineHeight: 1.45, color: 'rgba(255,255,255,0.96)',
               maxWidth: isMobile ? '88vw' : '40vw',
               textShadow: '0 6px 18px rgba(0,0,0,0.4)',
@@ -1718,7 +1718,7 @@ function MiniProjectFullscreen({ project, projects, onCloseStart, onClose, onNav
               {tags.map((t, ti) => (
                 <span key={`${t}-${ti}`} style={{
                   border: '1px solid rgba(255,255,255,0.4)',
-                  color: '#ffffff', fontSize: isMobile ? '3vw' : '11px',
+                  color: '#ffffff', fontSize: isMobile ? 'var(--mobile-overlay-tag-size)' : '11px',
                   fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                   padding: '5px 10px', borderRadius: '999px',
                 }}>{t}</span>

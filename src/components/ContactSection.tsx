@@ -192,6 +192,7 @@ function Eyes({
   const [thirdOpen, setThirdOpen] = useState(false)
   const smooth = useRef<EyePos>({ x: 0, y: 0 })
   const target = useRef<EyePos>({ x: 0, y: 0 })
+  const lastCommitRef = useRef(0)
   const rafRef = useRef(0)
   const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoAnimTime = useRef(0)
@@ -207,14 +208,33 @@ function Eyes({
   }, [success])
 
   useEffect(() => {
+    let mounted = true
     const step = () => {
+      if (!mounted) return
       smooth.current.x += (target.current.x - smooth.current.x) * 0.08
       smooth.current.y += (target.current.y - smooth.current.y) * 0.08
-      setPupil({ x: smooth.current.x, y: smooth.current.y })
+      const nextX = smooth.current.x
+      const nextY = smooth.current.y
+
+      // Guard invalid values and limit commit frequency to avoid render loops.
+      if (Number.isFinite(nextX) && Number.isFinite(nextY)) {
+        const now = performance.now()
+        if (now - lastCommitRef.current >= 16) {
+          lastCommitRef.current = now
+          setPupil((prev) => {
+            if (Math.abs(prev.x - nextX) < 0.02 && Math.abs(prev.y - nextY) < 0.02) return prev
+            return { x: nextX, y: nextY }
+          })
+        }
+      }
+
       rafRef.current = requestAnimationFrame(step)
     }
     rafRef.current = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(rafRef.current)
+    return () => {
+      mounted = false
+      cancelAnimationFrame(rafRef.current)
+    }
   }, [])
 
   // Desktop: Mouse tracking via context
@@ -403,15 +423,15 @@ export function ContactSection() {
           flexDirection: 'column',
           position: 'relative',
           zIndex: 80,
-          marginTop: '-65svh',
+          marginTop: 'calc(-1 * var(--mobile-flow-overlap-section))',
           boxSizing: 'border-box',
         }}
       >
-        <div style={{
+        <div className="mobile-section-shell" style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          padding: '20vw 5vw 10vw',
+          paddingBottom: '10vw',
           gap: 'clamp(32px,8vw,52px)',
         }}>
 
@@ -421,7 +441,7 @@ export function ContactSection() {
             onTouchStart={headingScramble}
             style={{
               color: '#ffffff',
-              fontSize: '10vw',
+              fontSize: 'var(--mobile-heading-size)',
               fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
               textTransform: 'uppercase', margin: 0,
               cursor: 'default', userSelect: 'none',
@@ -468,21 +488,21 @@ export function ContactSection() {
                     autoComplete="name"
                     onChange={e => updateField('name', e.target.value)}
                     onFocus={onFocus} onBlur={onBlur}
-                    style={{ ...fieldStyle, fontSize: 'clamp(16px,4.5vw,20px)' }} />
+                    style={{ ...fieldStyle, fontSize: 'var(--mobile-body-size)' }} />
                 </div>
                 <div style={{ marginBottom: 'clamp(18px,5vw,28px)' }}>
                   <input type="email" placeholder={T.email[lang]} value={form.email} required maxLength={CONTACT_MAX_EMAIL_LENGTH}
                     autoComplete="email"
                     onChange={e => updateField('email', e.target.value)}
                     onFocus={onFocus} onBlur={onBlur}
-                    style={{ ...fieldStyle, fontSize: 'clamp(16px,4.5vw,20px)' }} />
+                    style={{ ...fieldStyle, fontSize: 'var(--mobile-body-size)' }} />
                 </div>
                 <div style={{ marginBottom: 'clamp(24px,6vw,36px)' }}>
                   <textarea placeholder={T.message[lang]} value={form.message} required rows={4} maxLength={CONTACT_MAX_MESSAGE_LENGTH}
                     onChange={e => updateField('message', e.target.value)}
                     onFocus={onFocus as React.FocusEventHandler<HTMLTextAreaElement>}
                     onBlur={onBlur as React.FocusEventHandler<HTMLTextAreaElement>}
-                    style={{ ...fieldStyle, resize: 'none', fontSize: 'clamp(16px,4.5vw,20px)' }} />
+                    style={{ ...fieldStyle, resize: 'none', fontSize: 'var(--mobile-body-size)' }} />
                 </div>
                 {status === 'error' && (
                   <p style={{ color: 'rgba(255,100,100,0.9)', fontSize: 13, margin: '0 0 14px', fontWeight: 600 }}>
@@ -720,6 +740,7 @@ function SendButton({ label, disabled, fullWidth }: { label: string; disabled: b
         background: '#ffffff', color: '#0a0a0a', border: 'none',
         padding: '13px 34px',
         width: fullWidth ? '100%' : undefined,
+        minHeight: fullWidth ? 48 : undefined,
         fontSize: 'clamp(14px,1.6vw,20px)',
         fontWeight: 800, letterSpacing: '-0.3px',
         textTransform: 'uppercase', cursor: disabled ? 'wait' : 'pointer',

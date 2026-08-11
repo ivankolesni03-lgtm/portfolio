@@ -250,11 +250,12 @@ function MobileTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry[
   const entry = entries[activeIdx]
 
   return (
-    <div ref={outerRef} data-textcolor="black" style={{ position: 'relative', zIndex: 70, height: '250vh', marginTop: '-130svh' }}>
+    <div ref={outerRef} data-textcolor="black" style={{ position: 'relative', zIndex: 70, height: '250vh', marginTop: 'calc(-1 * var(--mobile-flow-overlap-timeline))' }}>
       <section
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         style={{
           position: 'sticky',
           top: 0,
@@ -273,16 +274,16 @@ function MobileTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry[
           inset: 0,
           display: 'flex',
           flexDirection: 'column',
-          filter: exitP > 0.02 ? `blur(${exitP * 24}px)` : 'none',
-          opacity: 1 - exitP * 0.95,
-          transform: `scale(${1 - exitP * 0.05})`,
+          filter: exitP > 0.02 ? `blur(calc(${exitP} * var(--mobile-exit-blur)))` : 'none',
+          opacity: 1 - exitP * 0.9,
+          transform: `scale(${1 - exitP * 0.04})`,
           transformOrigin: 'center center',
           willChange: 'filter, opacity, transform',
         }}>
           {/* Heading */}
-          <div style={{ padding: '20vw 5vw 0', flexShrink: 0 }}>
+          <div style={{ padding: 'var(--mobile-section-top) var(--mobile-section-x) 0', flexShrink: 0 }}>
             <h2 style={{
-              fontSize: '10vw',
+              fontSize: 'var(--mobile-heading-size)',
               fontWeight: 900,
               textTransform: 'uppercase',
               letterSpacing: '-2px',
@@ -308,7 +309,7 @@ function MobileTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry[
               width: '100%',
               maxWidth: 400,
               transform: `translateX(${swipeOffset}px)`,
-              transition: swipeOffset === 0 && !isTouching ? 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+              transition: swipeOffset === 0 && !isTouching ? 'transform var(--mobile-motion-base) var(--mobile-motion-ease)' : 'none',
               willChange: 'transform',
             }}>
               <MobileStationCard entry={entry} lang={lang} key={entry.id} />
@@ -328,6 +329,8 @@ function MobileTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry[
               style={{
                 background: 'none',
                 border: 'none',
+                width: 44,
+                height: 44,
                 padding: 8,
                 cursor: activeIdx === 0 ? 'default' : 'pointer',
                 opacity: activeIdx === 0 ? 0.2 : 0.6,
@@ -354,6 +357,8 @@ function MobileTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry[
               style={{
                 background: 'none',
                 border: 'none',
+                width: 44,
+                height: 44,
                 padding: 8,
                 cursor: activeIdx === N - 1 ? 'default' : 'pointer',
                 opacity: activeIdx === N - 1 ? 0.2 : 0.6,
@@ -483,6 +488,193 @@ function MobileStationCard({ entry, lang }: { entry: TimelineEntry; lang: Lang }
   )
 }
 
+// ─── Mobile Timeline (Vertical Desktop Language) ────────────────────────────
+function MobileVerticalStation({
+  entry,
+  lang,
+  proximity,
+  y,
+}: {
+  entry: TimelineEntry
+  lang: Lang
+  proximity: number
+  y: number
+}) {
+  const [title, setTitle] = useState(entry.title[lang])
+  const [period, setPeriod] = useState(entry.period[lang])
+  const [org, setOrg] = useState(entry.org[lang])
+  const titleRef = useRef<(() => void) | null>(null)
+  const periodRef = useRef<(() => void) | null>(null)
+  const orgRef = useRef<(() => void) | null>(null)
+  const wasActiveRef = useRef(false)
+  const languageRef = useRef(lang)
+  const isActive = proximity > 0.84
+
+  useEffect(() => {
+    if (isActive && !wasActiveRef.current) {
+      runScramble(entry.title[lang], setTitle, titleRef)
+      if (entry.period[lang]) runScramble(entry.period[lang], setPeriod, periodRef)
+      if (entry.org[lang]) runScramble(entry.org[lang], setOrg, orgRef)
+    }
+    if (!isActive) {
+      const frame = requestAnimationFrame(() => {
+        setTitle(entry.title[lang])
+        setPeriod(entry.period[lang])
+        setOrg(entry.org[lang])
+      })
+      wasActiveRef.current = false
+      return () => cancelAnimationFrame(frame)
+    }
+    wasActiveRef.current = true
+  }, [entry, isActive, lang])
+
+  useEffect(() => {
+    if (languageRef.current !== lang) {
+      runScramble(entry.title[lang], setTitle, titleRef)
+      if (entry.period[lang]) runScramble(entry.period[lang], setPeriod, periodRef)
+      if (entry.org[lang]) runScramble(entry.org[lang], setOrg, orgRef)
+    }
+    languageRef.current = lang
+  }, [entry, lang])
+
+  useEffect(() => () => {
+    titleRef.current?.()
+    periodRef.current?.()
+    orgRef.current?.()
+  }, [])
+
+  const imageSize = 58 + proximity * 74
+  const textOpacity = 0.12 + proximity * 0.88
+  const textScale = 0.78 + proximity * 0.22
+
+  return (
+    <article style={{
+      position: 'absolute',
+      top: y,
+      left: 'calc(var(--mobile-section-x) + 32px)',
+      right: 'var(--mobile-section-x)',
+      minHeight: 132,
+      transform: `translateY(-50%) scale(${0.88 + proximity * 0.12})`,
+      transformOrigin: 'left center',
+      opacity: textOpacity,
+      pointerEvents: 'none',
+      willChange: 'transform, opacity',
+      zIndex: isActive ? 4 : 2,
+    }}>
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        top: '50%',
+        width: imageSize,
+        height: imageSize,
+        transform: 'translate(-50%, -50%)',
+        overflow: 'hidden',
+        background: '#fff',
+        borderRadius: 12,
+        boxShadow: `0 8px 24px rgba(0,0,0,${0.07 + proximity * 0.14}), 0 1px 4px rgba(0,0,0,0.08)`,
+        outline: isActive ? '2px solid #0a0a0a' : '1px solid rgba(10,10,10,0.16)',
+        transition: 'width var(--mobile-motion-fast) var(--mobile-motion-ease), height var(--mobile-motion-fast) var(--mobile-motion-ease), box-shadow var(--mobile-motion-fast) ease',
+      }}>
+        <img src={entry.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      </div>
+
+      <div style={{
+        marginLeft: 84,
+        padding: '7px 0',
+        transform: `scale(${textScale})`,
+        transformOrigin: 'left center',
+        transition: 'transform var(--mobile-motion-fast) var(--mobile-motion-ease)',
+      }}>
+        {entry.period[lang] && (
+          <p style={{ margin: '0 0 6px', color: '#777', fontFamily: 'monospace', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em' }}>
+            {period}
+          </p>
+        )}
+        <h3 style={{ margin: '0 0 5px', color: '#0a0a0a', fontSize: 'clamp(17px,5.5vw,25px)', fontWeight: 900, lineHeight: 0.98, letterSpacing: '-0.7px', textTransform: 'uppercase', whiteSpace: 'pre-line' }}>
+          {title}
+        </h3>
+        {entry.org[lang] && <p style={{ margin: 0, color: '#6f6f6f', fontSize: 12, lineHeight: 1.25, fontWeight: 500 }}>{org}</p>}
+      </div>
+    </article>
+  )
+}
+
+function MobileVerticalTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry[] }) {
+  const outerRef = useRef<HTMLDivElement>(null)
+  const { scrollY, vh, visualVh, mounted } = useScroll()
+  const [progress, setProgress] = useState(0)
+  const [exitP, setExitP] = useState(0)
+  const headingText = lang === 'de' ? 'MEIN WEG' : 'MY PATH'
+  const [heading, setHeading] = useState(headingText)
+  const headingRef = useRef<(() => void) | null>(null)
+  const languageRef = useRef(lang)
+  const count = entries.length
+
+  useEffect(() => {
+    if (languageRef.current !== lang) runScramble(headingText, setHeading, headingRef)
+    languageRef.current = lang
+    return () => headingRef.current?.()
+  }, [headingText, lang])
+
+  useEffect(() => {
+    if (!mounted) return
+    const track = outerRef.current
+    if (!track) return
+    const maxScroll = Math.max(1, track.offsetHeight - vh)
+    const scrolled = Math.max(0, -track.getBoundingClientRect().top)
+    const trackProgress = Math.min(1, scrolled / maxScroll)
+    const journeyProgress = Math.min(1, trackProgress / 0.8)
+    const nextExit = Math.max(0, (trackProgress - 0.87) / 0.13)
+    const frame = requestAnimationFrame(() => {
+      setProgress(journeyProgress)
+      setExitP(nextExit)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [mounted, scrollY, vh])
+
+  const activePosition = progress * (count - 1)
+  const activeIndex = Math.round(activePosition)
+  const sceneHeight = visualVh || vh
+  const centerY = sceneHeight * 0.63
+  const step = Math.max(164, sceneHeight * 0.31)
+
+  return (
+    <div ref={outerRef} data-textcolor="black" style={{ position: 'relative', zIndex: 70, height: `${Math.max(680, count * 102)}svh`, marginTop: 'calc(-1 * var(--mobile-flow-overlap-timeline))' }}>
+      <section style={{ position: 'sticky', top: 0, width: '100%', height: 'var(--app-visual-height, 100svh)', overflow: 'hidden', background: '#fff' }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          filter: exitP > 0.02 ? `blur(calc(${exitP} * var(--mobile-exit-blur)))` : 'none',
+          opacity: 1 - exitP * 0.9,
+          transform: `scale(${1 - exitP * 0.04})`,
+          transformOrigin: 'center center',
+          willChange: 'filter, opacity, transform',
+        }}>
+          <div style={{ padding: 'var(--mobile-section-top) var(--mobile-section-x) 0', position: 'relative', zIndex: 5 }}>
+            <p style={{ margin: '0 0 10px', fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.13em', color: '#777' }}>SELECTED PATH / 2023—NOW</p>
+            <h2 className="mobile-section-heading" style={{ color: '#0a0a0a' }}>{heading}</h2>
+          </div>
+
+          <div aria-hidden="true" style={{ position: 'absolute', top: '31svh', bottom: '10svh', left: 'calc(var(--mobile-section-x) + 32px)', width: 3, background: '#dddddd', transform: 'translateX(-50%)', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: `${progress * 100}%`, background: '#0a0a0a', transition: 'height 80ms linear' }} />
+          </div>
+
+          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+            {entries.map((entry, index) => {
+              const distance = Math.abs(index - activePosition)
+              const proximity = Math.max(0, 1 - distance)
+              return <MobileVerticalStation key={entry.id} entry={entry} lang={lang} proximity={proximity} y={centerY + (index - activePosition) * step} />
+            })}
+          </div>
+
+          <div style={{ position: 'absolute', right: 'var(--mobile-section-x)', bottom: 'calc(var(--mobile-section-bottom) + 4px)', color: '#777', fontFamily: 'monospace', fontSize: 11, letterSpacing: '0.1em' }}>
+            {String(activeIndex + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 // ─── Desktop Timeline (Original) ────────────────────────────────────────────
 export function ResumeTimeline({ access = 'default' }: { access?: PortfolioAccess }) {
   const { isMobile } = useMobile()
@@ -492,7 +684,7 @@ export function ResumeTimeline({ access = 'default' }: { access?: PortfolioAcces
 
   // Render mobile or desktop version
   if (isMobile) {
-    return <MobileTimeline lang={lang} entries={entries} />
+    return <MobileVerticalTimeline lang={lang} entries={entries} />
   }
 
   return <DesktopTimeline lang={lang} entries={entries} />

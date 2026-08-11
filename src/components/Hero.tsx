@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -201,7 +201,7 @@ if (typeof window !== 'undefined') {
     img.src = src
   })
 
-  ;['/icons/gamestop-logo.png', '/icons/gamestop-logo2.png'].forEach((href) => {
+  ;['/icons/gamestop-logo2.png'].forEach((href) => {
     const existingPreload = document.querySelector(`link[rel="preload"][as="image"][href="${href}"]`)
     if (existingPreload) return
     const link = document.createElement('link')
@@ -539,11 +539,11 @@ type HeroAccess = 'default' | 'gme'
 
 const GME_LETTER = [
   'That is who I am, creating moments where classical communication\nmerges with generative AI into something tangible.\nI am Ivan Kolesnikov, a 7th semester dual Integrated Media and Communications student at the University of Hannover in Germany and a GME shareholder.',
-  'Ever since I was a young boy, I loved GameStop.\nIt was a physical place where the digital video game world came to life. Since the rebranding and bold reorientation, I see a modern and courageous brand.\nI see a unique chance to learn from you. It is a give and take. I stand for these values and see a clear perspective in this journey. I am not a hollow man and\nRyan Cohen as CEO is deeply inspiring to me.',
   'My studies push me to think outside the box in every direction. I use design thinking to craft multimedia experiences, fueled by constant creative explosions in my head. I bring experience from corporate marketing at Continental HQ, creative agency work at GRACO in Berlin, and startup branding, alongside real world projects and the GWA Junior Agency Award.',
   'My interest in artificial intelligence is vast, but my focus lies in Generative AI. Currently, I am building generative AI workflows at the BMW HQ in Munich.\nI blend this cutting edge tech with my lifelong passion for film and photography to create content which is product accurate.',
+  'Ever since I was a young boy, I loved GameStop.\nIt was a physical place where the digital video game world came to life. Since the rebranding and bold reorientation, I see a modern and courageous brand.\nI see a unique chance to learn from you. It is a give and take. I stand for these values and see a clear perspective in this journey. I am not a hollow man and\nRyan Cohen as CEO is deeply inspiring to me.',
   'To fulfill my 3 month mandatory internship from early June to early September 2027, I am fully prepared to relocate from Germany to the US. I am fascinated by travel, nature, and culture, seeking an environment that inspires me with new impressions. I know my chances might seem slim, but giving up is not an option for me. For this transatlantic move, I require a standard compensation\nto cover basic housing and food.',
-  'I just try to do my best...',
+  'I just try to do my best',
 ]
 
 function waveToTitleCase(word: string, waveProgress: number) {
@@ -575,16 +575,25 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
   const { language } = useLanguage()
   const { scrollY, vh } = useScroll()
   const [trailImages, setTrailImages] = useState<TrailImage[]>([])
-  const [isScrolled, setIsScrolled] = useState(false)
+  const isScrolled = scrollY > 100
   const containerRef = useRef<HTMLElement>(null)
   const lastTimeRef = useRef(0)
   const lastPosRef = useRef({ x: 0, y: 0 })
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const prefersReducedMotionRef = useRef(false)
   const imageIdRef = useRef(0)
   const [descFade, setDescFade] = useState(1)
   const [gmeCaseProgress, setGmeCaseProgress] = useState(0)
+  const [gmeLetterScale, setGmeLetterScale] = useState(1)
+  const [isGmeLetterMeasured, setIsGmeLetterMeasured] = useState(false)
+  const [normalDescriptorScale, setNormalDescriptorScale] = useState(1)
+  const [isNormalDescriptorMeasured, setIsNormalDescriptorMeasured] = useState(false)
+  const [showGmeArrow, setShowGmeArrow] = useState(false)
   const gmeCaseProgressRef = useRef(0)
   const gmeCaseTargetRef = useRef(0)
   const gmeCaseAnimRef = useRef<number | null>(null)
+  const gmeLetterRef = useRef<HTMLDivElement>(null)
+  const normalDescriptorRef = useRef<HTMLDivElement>(null)
   const expScramble = useScramble('Experience')
   const desScramble = useScramble('Designer')
   const expScrambleRef = useRef(expScramble.scrambleTo)
@@ -648,7 +657,6 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
   const descriptorTop = descriptorStartTop + (descriptorTargetTop - descriptorStartTop) * descriptorMoveEase
   const visibleWords = Math.min(descriptorWords.length, Math.floor(revealProgress * (descriptorWords.length + 1)))
   const visibleGmeWords = Math.min(gmeWordCount, Math.floor(revealProgress * (gmeWordCount + 1)))
-  const gmeTextComplete = isGmeMode && visibleGmeWords >= gmeWordCount
   const gmeBodyFontPx = isMobile
     ? Math.max(11.4, Math.min(12.8, width * 0.036))
     : Math.max(13.2, Math.min(15.5, width * 0.0105))
@@ -663,9 +671,69 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
   const gmeLetterMarginTop = gmeLetterEndGap + ((isMobile ? 12 : 24) - gmeLetterEndGap) * (1 - revealProgress)
   const gmeProcessDisplay = isGmeMode ? waveToTitleCase('Experience', gmeCaseProgress) : expScramble.display
   const gmeDesignerDisplay = isGmeMode ? waveToTitleCase('Designer', gmeCaseProgress) : desScramble.display
-  const gmeLogoBlend = Math.max(0, Math.min(1, (revealProgress - 0.32) / 0.42))
   const descriptorOpacity = descFade
   const trailBlur = blurProgress * 20
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => { prefersReducedMotionRef.current = media.matches }
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    if (!isGmeMode) {
+      setShowGmeArrow(false)
+      return
+    }
+
+    const timer = window.setTimeout(() => setShowGmeArrow(true), 3000)
+    return () => window.clearTimeout(timer)
+  }, [isGmeMode])
+
+  useLayoutEffect(() => {
+    if (!isGmeMode) {
+      setGmeLetterScale(1)
+      setIsGmeLetterMeasured(false)
+      return
+    }
+
+    const letter = gmeLetterRef.current
+    if (!letter) return
+
+    // The full text height is stable because unrevealed words use opacity,
+    // not display. Measure once before paint so its size never animates while
+    // the words are written on screen.
+    const top = letter.getBoundingClientRect().top
+    const bottomGap = isMobile ? 12 : 16
+    const availableHeight = Math.max(1, window.innerHeight - top - bottomGap)
+    const useOriginalDesktopSize = !isMobile && width >= 1024 && height >= 650
+    const nextScale = useOriginalDesktopSize
+      ? 1
+      : Math.min(1, availableHeight / Math.max(1, letter.scrollHeight))
+    setGmeLetterScale(previous => Math.abs(previous - nextScale) < 0.001 ? previous : nextScale)
+    setIsGmeLetterMeasured(previous => previous || true)
+  }, [height, isGmeMode, isMobile, width])
+
+  useLayoutEffect(() => {
+    if (isGmeMode) {
+      setNormalDescriptorScale(1)
+      setIsNormalDescriptorMeasured(false)
+      return
+    }
+
+    const content = normalDescriptorRef.current
+    if (!content) return
+
+    // Measure against the fixed final text position. The normal role heading
+    // and copy share the same parent, so they always retain the same size.
+    const bottomGap = isMobile ? 12 : 16
+    const availableHeight = Math.max(1, height - descriptorTargetTop - bottomGap)
+    const nextScale = Math.min(1, availableHeight / Math.max(1, content.scrollHeight))
+    setNormalDescriptorScale(previous => Math.abs(previous - nextScale) < 0.001 ? previous : nextScale)
+    setIsNormalDescriptorMeasured(previous => previous || true)
+  }, [descriptorTargetTop, height, isGmeMode, isMobile, width])
 
   useEffect(() => {
     const proj = document.getElementById('projekte')
@@ -679,15 +747,6 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
     const frame = requestAnimationFrame(() => setDescFade(next))
     return () => cancelAnimationFrame(frame)
   }, [scrollY, vh])
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const nextIsScrolled = window.scrollY > 100
-      setIsScrolled(prev => (prev === nextIsScrolled ? prev : nextIsScrolled))
-    }
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
 
   useEffect(() => {
     const nextTarget = isGmeMode && revealProgress >= 0.64 ? 1 : 0
@@ -737,7 +796,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
       width: randomSize.width,
       height: randomSize.height,
     }
-    setTrailImages(prev => [...prev, newImg])
+    setTrailImages(prev => mobile ? [...prev.slice(-4), newImg] : [...prev, newImg])
     setTimeout(() => {
       setTrailImages(prev => prev.filter(img => img.id !== newImg.id))
     }, 2500)
@@ -776,10 +835,28 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
     }
   }, [spawnImage])
 
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+    lastPosRef.current = { x: touch.clientX, y: touch.clientY }
+  }, [])
+
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (prefersReducedMotionRef.current) return
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
     const touch = e.touches[0]
+    const touchStart = touchStartRef.current
+    if (!touchStart) return
+
+    const totalX = touch.clientX - touchStart.x
+    const totalY = touch.clientY - touchStart.y
+    const isHorizontalGesture = Math.abs(totalX) > 28 && Math.abs(totalX) > Math.abs(totalY) * 1.2
+    if (!isHorizontalGesture) {
+      lastPosRef.current = { x: touch.clientX, y: touch.clientY }
+      return
+    }
+
     const x = touch.clientX - rect.left
     const y = touch.clientY - rect.top
     if (x < 0 || y < 0 || x > rect.width || y > rect.height) return
@@ -794,6 +871,10 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
     }
   }, [spawnImage])
 
+  const handleTouchEnd = useCallback(() => {
+    touchStartRef.current = null
+  }, [])
+
   return (
     <>
       <AnimatedLogo isScrolled={isScrolled} onMouseMove={handleLogoMouseMove} />
@@ -802,7 +883,10 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
         ref={containerRef}
         data-textcolor="black"
         onMouseMove={handleMouseMove}
+        onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         className="relative bg-white flex items-center overflow-hidden"
         style={{ height: isMobile ? 'calc(var(--app-visual-height, 100svh) * 2.2)' : '240vh' }}
       >
@@ -827,6 +911,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
           }}
         >
           <div
+            ref={isGmeMode ? undefined : normalDescriptorRef}
             style={{
               fontSize: isGmeMode ? `${gmeTitleFontPx}px` : (isMobile ? 'clamp(20px, 6.4vw, 34px)' : 'clamp(28px, 2.7vw, 46px)'),
               lineHeight: 0.98,
@@ -835,6 +920,9 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
               whiteSpace: 'normal',
               fontWeight: isGmeMode ? gmeTitleWeight : 700,
               textTransform: isGmeMode ? 'none' : 'uppercase',
+              transform: isGmeMode ? undefined : `scale(${normalDescriptorScale})`,
+              transformOrigin: 'top left',
+              visibility: isGmeMode || isNormalDescriptorMeasured ? 'visible' : 'hidden',
             }}
           >
             <div
@@ -853,6 +941,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
             </div>
             {isGmeMode ? (
               <div
+                ref={gmeLetterRef}
                 style={{
                   marginTop: gmeLetterMarginTop,
                   maxWidth: isMobile ? '88vw' : 'min(52vw, 760px)',
@@ -863,6 +952,9 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                   letterSpacing: 0,
                   textTransform: 'none',
                   fontWeight: 600,
+                  transform: `scale(${gmeLetterScale})`,
+                  transformOrigin: 'top left',
+                  visibility: isGmeLetterMeasured ? 'visible' : 'hidden',
                 }}
               >
                 {(() => {
@@ -903,7 +995,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                                   }}
                                 >
                                   <img
-                                    src="/icons/gamestop-logo.png"
+                                    src="/icons/gamestop-logo2.png"
                                     alt=""
                                     aria-hidden="true"
                                     loading="eager"
@@ -918,26 +1010,14 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                                       opacity: 1,
                                     }}
                                   />
-                                  <img
-                                    src="/icons/gamestop-logo2.png"
-                                    alt=""
-                                    aria-hidden="true"
-                                    loading="eager"
-                                    fetchPriority="high"
-                                    decoding="sync"
-                                    style={{
-                                      position: 'absolute',
-                                      inset: 0,
-                                      height: '1em',
-                                      width: 'auto',
-                                      filter: 'invert(1)',
-                                      opacity: gmeLogoBlend,
-                                    }}
-                                  />
                                 </span>
                                 {trailingPunctuation}
                               </>
-                            ) : word}{tokenIndex < paragraphTokens.length - 1 && paragraphTokens[tokenIndex + 1]?.type === 'word' ? ' ' : ''}
+                            ) : word}
+                            {currentWord === visibleGmeWords - 1 && (
+                              <span aria-hidden="true"> ...</span>
+                            )}
+                            {tokenIndex < paragraphTokens.length - 1 && paragraphTokens[tokenIndex + 1]?.type === 'word' ? ' ' : ''}
                           </span>
                         )
                       })}
@@ -1036,11 +1116,11 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
               position: 'fixed',
               left: '50%',
               bottom: isMobile ? 2 : 4,
-              transform: gmeTextComplete ? 'translateX(-50%) scale(1)' : 'translate(-50%, -8px) scale(0.82)',
+              transform: showGmeArrow ? 'translateX(-50%) scale(1)' : 'translate(-50%, -8px) scale(0.82)',
               color: '#000000',
               zIndex: 16,
               pointerEvents: 'none',
-              opacity: gmeTextComplete ? descriptorOpacity : 0,
+              opacity: showGmeArrow ? descriptorOpacity : 0,
               transition: 'opacity 0.24s ease, transform 0.32s ease',
               lineHeight: 0,
             }}

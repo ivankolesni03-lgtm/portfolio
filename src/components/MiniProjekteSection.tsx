@@ -44,11 +44,11 @@ export function MiniProjekteSection() {
 
   return (
     <>
-      <div id="mini-projekte-section" ref={spacerRef} data-textcolor="black" style={{ height: isMobile ? '380vh' : '560vh', backgroundColor:'#ffffff', position:'relative', zIndex: isMobile ? 45 : 30, marginTop: isMobile ? '-105svh' : '-220vh' }}>
+      <div id="mini-projekte-section" ref={spacerRef} data-textcolor="black" style={{ height: isMobile ? '380vh' : '560vh', backgroundColor:'#ffffff', position:'relative', zIndex: isMobile ? 45 : 30, marginTop: isMobile ? 'calc(-1 * var(--mobile-flow-overlap-mini))' : '-220vh' }}>
         <div style={{ position: 'sticky', top: 0, height: 'var(--app-visual-height, 100svh)', width: '100%', backgroundColor: '#ffffff', overflowX: 'clip', overflowY: 'visible' }}>
           <div style={{
             opacity: 1,
-            transition: 'opacity 0.15s linear',
+            transition: 'opacity var(--mobile-motion-fast) linear',
             filter: endBlurPx > 0.05 ? `blur(${endBlurPx}px)` : 'none',
             transform: `scale(${1 - endDim * 0.05})`,
             transformOrigin: 'center top',

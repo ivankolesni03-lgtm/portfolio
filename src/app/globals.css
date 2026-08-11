@@ -84,6 +84,35 @@
   --color-main: #1a1a1a;
   --color-accent: #E31E24;
   --color-bg: #FFFFFF;
+
+  /* Mobile design system tokens */
+  --mobile-section-x: 5vw;
+  --mobile-section-top: 20vw;
+  --mobile-section-bottom: 10vw;
+  --mobile-heading-size: 10vw;
+  --mobile-heading-line: 0.9;
+  --mobile-heading-letter: -2px;
+  --mobile-body-size: clamp(16px, 4.5vw, 20px);
+  --mobile-body-line: 1.28;
+  --mobile-section-gap: clamp(32px, 8vw, 52px);
+  --mobile-overlay-side: 6vw;
+  --mobile-overlay-bottom: 9vh;
+  --mobile-overlay-title-size: 10vw;
+  --mobile-overlay-subtitle-size: 4.6vw;
+  --mobile-overlay-copy-size: 3.6vw;
+  --mobile-overlay-tag-size: 3vw;
+  --mobile-nav-top: 12px;
+  --mobile-nav-size: 11px;
+  --mobile-flow-overlap-mini: 105svh;
+  --mobile-flow-overlap-ai: 230svh;
+  --mobile-flow-overlap-section: 65svh;
+  --mobile-flow-overlap-timeline: 130svh;
+  --mobile-exit-blur: 18px;
+  --mobile-exit-opacity: 0.9;
+  --mobile-exit-scale: 0.04;
+  --mobile-motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --mobile-motion-fast: 180ms;
+  --mobile-motion-base: 350ms;
 }
 
 * {
@@ -365,5 +394,41 @@ body.overlay-open .mobile-nav-blur {
   .custom-cursor,
   .x-cursor-label {
     display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-section-shell {
+    padding: var(--mobile-section-top) var(--mobile-section-x) var(--mobile-section-bottom);
+  }
+
+  .mobile-section-heading {
+    margin: 0;
+    color: inherit;
+    font-size: var(--mobile-heading-size);
+    font-weight: 900;
+    line-height: var(--mobile-heading-line);
+    letter-spacing: var(--mobile-heading-letter);
+    text-transform: uppercase;
+  }
+
+  .mobile-section-body {
+    font-size: var(--mobile-body-size);
+    line-height: var(--mobile-body-line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

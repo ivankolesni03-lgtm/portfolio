@@ -32,8 +32,8 @@ function ProgrammeHeading() {
       onTouchStart={scramble}
       style={{ 
         position: 'absolute', 
-        top: isMobile ? '20vw' : '9vw',     
-        left: isMobile ? '5vw' : '9vw',    
+        top: isMobile ? 'var(--mobile-section-top)' : '9vw',     
+        left: isMobile ? 'var(--mobile-section-x)' : '9vw',    
         zIndex: 20, 
         pointerEvents: 'auto',
         textAlign: 'left',
@@ -41,7 +41,7 @@ function ProgrammeHeading() {
       }}
     >
       <div style={{
-        fontSize: isMobile ? '10vw' : '8vw',           
+        fontSize: isMobile ? 'var(--mobile-heading-size)' : '8vw',           
         fontWeight: 900,           
         lineHeight: 0.95,         
         letterSpacing: '-2px',     
@@ -684,7 +684,7 @@ export function InteractiveDots({
 
   return (
     <>
-      <div ref={outerRef} data-textcolor="white" style={{ position: 'relative', zIndex: 60, height: '300vh', marginTop: isMobile ? '-65svh' : '-10vh' }}>
+      <div ref={outerRef} data-textcolor="white" style={{ position: 'relative', zIndex: 60, height: '300vh', marginTop: isMobile ? 'calc(-1 * var(--mobile-flow-overlap-section))' : '-10vh' }}>
         <section 
           ref={containerRef} 
           onMouseMove={handleMouseMove} 
@@ -692,12 +692,13 @@ export function InteractiveDots({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
           style={{ position: 'sticky', top: 0, width: '100%', height: 'var(--app-visual-height, 100svh)', overflow: 'hidden', userSelect: 'none', cursor: 'default', backgroundColor, touchAction: 'pan-y' }}
         >
           <div style={{
             position: 'absolute',
             inset: 0,
-            filter: exitP > 0.05 ? `blur(${exitP * 18}px)` : 'none',
+            filter: exitP > 0.05 ? `blur(calc(${exitP} * var(--mobile-exit-blur)))` : 'none',
             opacity: 1 - exitP * 0.9,
             transform: `scale(${1 - exitP * 0.04})`,
             transformOrigin: 'center top',
