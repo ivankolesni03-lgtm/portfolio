@@ -265,19 +265,20 @@ export function Preloader({ onComplete }: PreloaderProps) {
               display: 'flex',
               flexDirection: 'row',
               alignItems: 'center',
-              gap: isMobile ? fontSize * 0.12 : fontSize * 0.15,
-              marginTop: fontSize * 0.045,
+              gap: isMobile ? 'clamp(7px, 2.2vw, 12px)' : fontSize * 0.15,
+              marginTop: isMobile ? 'clamp(5px, 1.6vw, 9px)' : fontSize * 0.045,
               opacity: percentOpacity,
               transition: 'opacity 300ms ease-out',
             }}
           >
             <div
               style={{
-                width: isMobile ? fontSize * 2 : fontSize * 3,
-                height: isMobile ? fontSize * 0.25 * 0.5 : fontSize * 0.35 * 0.6,
+                width: isMobile ? 'clamp(96px, 29vw, 148px)' : fontSize * 3,
+                height: isMobile ? 'clamp(8px, 2.4vw, 12px)' : fontSize * 0.35 * 0.6,
                 backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                marginLeft: isMobile ? fontSize * 0.082 : fontSize * 0.072,
+                marginLeft: isMobile ? 'clamp(4px, 1.3vw, 7px)' : fontSize * 0.072,
                 overflow: 'hidden',
+                borderRadius: 0,
               }}
             >
               <div
@@ -286,13 +287,14 @@ export function Preloader({ onComplete }: PreloaderProps) {
                   height: '100%',
                   backgroundColor: '#ffffff',
                   transition: 'width 100ms ease-out',
+                  borderRadius: 0,
                 }}
               />
             </div>
             <span
               className="font-bold text-white"
               style={{
-                fontSize: isMobile ? fontSize * 0.215 : fontSize * 0.31,
+                fontSize: isMobile ? 'clamp(15px, 4.4vw, 22px)' : fontSize * 0.31,
                 lineHeight: 0.9,
                 letterSpacing: '-0.02em',
                 fontVariantNumeric: 'tabular-nums',

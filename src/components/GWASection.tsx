@@ -609,6 +609,7 @@ export function GWASection() {
   const [figureExit, setFigureExit] = useState({ blur: 0, opacity: 1 })
   const [mobileExitP, setMobileExitP] = useState(0)
   const [mobileContentScale, setMobileContentScale] = useState(1)
+  const MOBILE_MIN_CONTENT_SCALE = 0.96
   
   useEffect(() => {
     if (isMobile) return
@@ -643,10 +644,7 @@ export function GWASection() {
   }, [scrollY, vh, isMobile])
 
   useLayoutEffect(() => {
-    if (!isMobile) {
-      setMobileContentScale(1)
-      return
-    }
+    if (!isMobile) return
 
     const shell = mobileShellRef.current
     const content = mobileContentRef.current
@@ -667,7 +665,7 @@ export function GWASection() {
       content.style.transform = prevTransform
       content.style.width = prevWidth
 
-      const nextScale = Math.max(0.62, Math.min(1, availableHeight / naturalHeight))
+      const nextScale = Math.max(MOBILE_MIN_CONTENT_SCALE, Math.min(1, availableHeight / naturalHeight))
       setMobileContentScale((prev) => (Math.abs(prev - nextScale) < 0.003 ? prev : nextScale))
     }
 
@@ -684,7 +682,7 @@ export function GWASection() {
       resizeObserver.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [isMobile, lang, scrollY, vh, vw])
+  }, [isMobile, lang, vh, vw])
 
   // ── Mobile ──────────────────────────────────────────────────────────────────
   if (isMobile) {

@@ -295,10 +295,10 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
   const cardFilter = `${overlayOpen ? 'blur(8px) ' : ''}${exitBlur > 0.01 ? `blur(${exitBlur}px) ` : ''}${exitDim > 0.001 ? `brightness(${1 - exitDim})` : ''}`.trim()
 
   useEffect(() => {
-    if (coverProgress > 0.12 || p < 0.9) {
+    if (revealed && (coverProgress > 0.12 || p < 0.9)) {
       setRevealed(false)
     }
-  }, [coverProgress, p])
+  }, [coverProgress, p, revealed])
 
   useEffect(() => {
     const el = cardRef.current
@@ -1501,8 +1501,11 @@ function MiniProjectFullscreen({ project, projects, onCloseStart, onClose, onNav
 
   useEffect(() => {
     if (slideDir !== 'none') return
-    setBaseProject(project)
-    setDisplayProject(project)
+    const frame = requestAnimationFrame(() => {
+      setBaseProject(project)
+      setDisplayProject(project)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [project, slideDir])
 
   const activeProject = slideDir === 'none' ? project : displayProject

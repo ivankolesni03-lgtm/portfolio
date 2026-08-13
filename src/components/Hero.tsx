@@ -190,6 +190,7 @@ function PixelTrailImage({ img, blur = 0 }: { img: TrailImage; blur?: number }) 
         pointerEvents: 'none',
         zIndex: 5,
         filter: blur > 0.05 ? `blur(${blur}px)` : 'none',
+        mixBlendMode: 'normal',
       }}
     />
   )
@@ -538,7 +539,7 @@ function BgImage() {
 type HeroAccess = 'default' | 'gme'
 
 const GME_LETTER = [
-  'That is who I am, creating moments where classical communication\nmerges with generative AI into something tangible.\nI am Ivan Kolesnikov, a 7th semester dual Integrated Media and Communications student at the University of Hannover in Germany and a GME shareholder.',
+  'That is who I am, creating moments where classical communication merges with generative AI into something tangible.\nI am Ivan Kolesnikov, a 7th semester dual Integrated Media and Communications student at the University of Hannover in Germany and a GME shareholder.',
   'My studies push me to think outside the box in every direction. I use design thinking to craft multimedia experiences, fueled by constant creative explosions in my head. I bring experience from corporate marketing at Continental HQ, creative agency work at GRACO in Berlin, and startup branding, alongside real world projects and the GWA Junior Agency Award.',
   'My interest in artificial intelligence is vast, but my focus lies in Generative AI. Currently, I am building generative AI workflows at the BMW HQ in Munich.\nI blend this cutting edge tech with my lifelong passion for film and photography to create content which is product accurate.',
   'Ever since I was a young boy, I loved GameStop.\nIt was a physical place where the digital video game world came to life. Since the rebranding and bold reorientation, I see a modern and courageous brand.\nI see a unique chance to learn from you. It is a give and take. I stand for these values and see a clear perspective in this journey. I am not a hollow man and\nRyan Cohen as CEO is deeply inspiring to me.',
@@ -573,7 +574,7 @@ function tokenizeGmeParagraph(paragraph: string): GmeTextToken[] {
 export function Hero({ access = 'default' }: { access?: HeroAccess }) {
   const { isMobile, width, height } = useMobile()
   const { language } = useLanguage()
-  const { scrollY, vh } = useScroll()
+  const { scrollY, vh, visualVh } = useScroll()
   const [trailImages, setTrailImages] = useState<TrailImage[]>([])
   const isScrolled = scrollY > 100
   const containerRef = useRef<HTMLElement>(null)
@@ -607,8 +608,9 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
     desScrambleRef.current('Designer')
   }, [])
   const isGmeMode = access === 'gme'
-  const heroProgress = vh > 0 ? Math.min(1, scrollY / (vh * 2.0)) : 0
-  const rawHeroProgress = vh > 0 ? scrollY / (vh * 2.0) : 0
+  const heroViewportHeight = isMobile ? visualVh : vh
+  const heroProgress = heroViewportHeight > 0 ? Math.min(1, scrollY / (heroViewportHeight * 2.0)) : 0
+  const rawHeroProgress = heroViewportHeight > 0 ? scrollY / (heroViewportHeight * 2.0) : 0
   const descriptor = language === 'de'
     ? 'Der zwischen dem Gewesenen und dem Werdenden Erlebnisse schafft, in denen Code fuehlbar wird und klassische Kommunikation mit KI zu etwas Besonderem verschmilzt'
     : 'Who creates moments between what was and what is becoming, in which code becomes tangible and classical communication merges with AI into something special'
@@ -888,7 +890,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
         className="relative bg-white flex items-center overflow-hidden"
-        style={{ height: isMobile ? 'calc(var(--app-visual-height, 100svh) * 2.2)' : '240vh' }}
+        style={{ height: isMobile ? 'calc(var(--app-visual-height, 100svh) * 2.6)' : '240vh' }}
       >
         {trailImages.map((img) => (
           <PixelTrailImage key={img.id} img={img} blur={trailBlur} />
@@ -901,11 +903,11 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
             left: introLayout.experienceLeft,
             top: descriptorTop,
             maxWidth: isMobile ? '86vw' : 'min(40vw, 600px)',
-            color: '#ffffff',
+            color: isMobile ? (isGmeMode ? '#000000' : '#0a0a0a') : '#ffffff',
             textAlign: 'left',
             pointerEvents: 'none',
             zIndex: 15,
-            mixBlendMode: 'difference',
+            mixBlendMode: isMobile ? 'normal' : 'difference',
             opacity: descriptorOpacity,
             filter: `blur(${descriptorBlur}px)`,
           }}
@@ -916,7 +918,11 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
               fontSize: isGmeMode ? `${gmeTitleFontPx}px` : (isMobile ? 'clamp(20px, 6.4vw, 34px)' : 'clamp(28px, 2.7vw, 46px)'),
               lineHeight: 0.98,
               letterSpacing: '-0.6px',
-              textShadow: 'none',
+              textShadow: isMobile
+                ? (isGmeMode
+                  ? '0 3px 18px rgba(255,255,255,0.96), 0 0 7px rgba(255,255,255,1), 0 0 26px rgba(255,255,255,0.68)'
+                  : '0 2px 12px rgba(255,255,255,0.78), 0 0 4px rgba(255,255,255,0.92)')
+                : 'none',
               whiteSpace: 'normal',
               fontWeight: isGmeMode ? gmeTitleWeight : 700,
               textTransform: isGmeMode ? 'none' : 'uppercase',
@@ -930,7 +936,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
               onTouchStart={handleHeaderHover}
               style={{
               fontWeight: isGmeMode ? gmeTitleWeight : 900,
-              color: '#ffffff',
+              color: isMobile ? (isGmeMode ? '#000000' : '#0a0a0a') : '#ffffff',
               letterSpacing: isGmeMode ? `${gmeTitleLetterSpacing}px` : '-1px',
               lineHeight: isGmeMode ? gmeTitleLineHeight : 1.12,
               pointerEvents: 'auto',
@@ -992,6 +998,7 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                                     height: '1em',
                                     width: '4.98em',
                                     verticalAlign: '-0.12em',
+                                      mixBlendMode: 'normal',
                                   }}
                                 >
                                   <img
@@ -1006,7 +1013,10 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                                       inset: 0,
                                       height: '1em',
                                       width: 'auto',
-                                      filter: 'invert(1)',
+                                      mixBlendMode: 'normal',
+                                      filter: isMobile
+                                        ? 'drop-shadow(0 3px 12px rgba(255,255,255,0.96)) drop-shadow(0 0 5px rgba(255,255,255,1))'
+                                        : 'invert(1)',
                                       opacity: 1,
                                     }}
                                   />
@@ -1062,9 +1072,10 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                             style={{
                               fontWeight: 700,
                               fontStyle: 'normal',
-                              color: '#ffffff',
+                              color: isMobile ? '#0a0a0a' : '#ffffff',
                               opacity: gIdx < visibleWords ? 1 : 0,
                               transition: 'opacity 0.25s linear',
+                              textShadow: isMobile ? '0 2px 12px rgba(255,255,255,0.78), 0 0 4px rgba(255,255,255,0.92)' : 'none',
                             }}
                           >
                             {descriptorDisplayWords[gIdx] || descriptorWords[gIdx]}
@@ -1075,9 +1086,10 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                               style={{
                                 fontWeight: 700,
                                 fontStyle: 'normal',
-                                color: '#ffffff',
+                                color: isMobile ? '#0a0a0a' : '#ffffff',
                                 opacity: dotIndices[dotIndices.length - 1] < visibleWords ? 1 : 0,
                                 transition: 'opacity 0.25s linear',
+                                textShadow: isMobile ? '0 2px 12px rgba(255,255,255,0.78), 0 0 4px rgba(255,255,255,0.92)' : 'none',
                               }}
                             >
                               {descriptorDisplayWords[dotIdx] || descriptorWords[dotIdx]}
@@ -1093,9 +1105,10 @@ export function Hero({ access = 'default' }: { access?: HeroAccess }) {
                         style={{
                           fontWeight: 700,
                           fontStyle: 'normal',
-                          color: '#ffffff',
+                          color: isMobile ? '#0a0a0a' : '#ffffff',
                           opacity: gIdx < visibleWords ? 1 : 0,
                           transition: 'opacity 0.25s linear',
+                          textShadow: isMobile ? '0 2px 12px rgba(255,255,255,0.78), 0 0 4px rgba(255,255,255,0.92)' : 'none',
                         }}
                       >
                         {descriptorDisplayWords[gIdx] || descriptorWords[gIdx]}

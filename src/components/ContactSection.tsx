@@ -192,8 +192,6 @@ function Eyes({
   const [thirdOpen, setThirdOpen] = useState(false)
   const smooth = useRef<EyePos>({ x: 0, y: 0 })
   const target = useRef<EyePos>({ x: 0, y: 0 })
-  const lastCommitRef = useRef(0)
-  const rafRef = useRef(0)
   const blinkRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoAnimTime = useRef(0)
   const { mouseX, mouseY } = useMouse()
@@ -208,32 +206,24 @@ function Eyes({
   }, [success])
 
   useEffect(() => {
-    let mounted = true
-    const step = () => {
-      if (!mounted) return
+    const tick = () => {
       smooth.current.x += (target.current.x - smooth.current.x) * 0.08
       smooth.current.y += (target.current.y - smooth.current.y) * 0.08
       const nextX = smooth.current.x
       const nextY = smooth.current.y
 
-      // Guard invalid values and limit commit frequency to avoid render loops.
+      // Guard invalid values and skip tiny deltas to reduce unnecessary renders.
       if (Number.isFinite(nextX) && Number.isFinite(nextY)) {
-        const now = performance.now()
-        if (now - lastCommitRef.current >= 16) {
-          lastCommitRef.current = now
-          setPupil((prev) => {
-            if (Math.abs(prev.x - nextX) < 0.02 && Math.abs(prev.y - nextY) < 0.02) return prev
-            return { x: nextX, y: nextY }
-          })
-        }
+        setPupil((prev) => {
+          if (Math.abs(prev.x - nextX) < 0.08 && Math.abs(prev.y - nextY) < 0.08) return prev
+          return { x: nextX, y: nextY }
+        })
       }
-
-      rafRef.current = requestAnimationFrame(step)
     }
-    rafRef.current = requestAnimationFrame(step)
+
+    const intervalId = window.setInterval(tick, 33)
     return () => {
-      mounted = false
-      cancelAnimationFrame(rafRef.current)
+      window.clearInterval(intervalId)
     }
   }, [])
 
@@ -355,13 +345,17 @@ export function ContactSection() {
   const { disp: headingDisp, scramble: headingScramble } = useScramble(headingText)
   const seenText = T.seen[lang]
   const { disp: seenDisp, scramble: seenScramble } = useScramble(seenText)
-  useEffect(() => { seenScramble() }, [lang])
 
   const [form, setForm] = useState<ContactFormPayload>(() => createInitialFormState())
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
   const [errorCode, setErrorCode] = useState<ContactApiErrorCode | null>(null)
   const eyesRef = useRef<HTMLDivElement>(null)
   const { isMobile } = useMobile()
+  const { vh, visualVh } = useScroll()
+  const mobileViewport = visualVh || vh || 0
+  const compactMobile = isMobile && mobileViewport > 0 && mobileViewport <= 760
+  const tightMobile = isMobile && mobileViewport > 0 && mobileViewport <= 680
+  const mobileFieldPadding = tightMobile ? '10px 0' : compactMobile ? '12px 0' : '14px 0'
 
   const updateField = (field: 'name' | 'email' | 'message' | 'company', value: string) => {
     setForm(current => ({ ...current, [field]: value }))
@@ -418,21 +412,23 @@ export function ContactSection() {
         data-textcolor="white"
         style={{
           backgroundColor: '#0a0a0a',
-          minHeight: 'var(--app-visual-height, 100svh)',
+          height: 'var(--app-visual-height, 100svh)',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
           zIndex: 80,
           marginTop: 'calc(-1 * var(--mobile-flow-overlap-section))',
           boxSizing: 'border-box',
+          overflow: 'hidden',
         }}
       >
         <div className="mobile-section-shell" style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          paddingBottom: '10vw',
-          gap: 'clamp(32px,8vw,52px)',
+          paddingTop: tightMobile ? 'clamp(68px,13svh,86px)' : compactMobile ? 'clamp(72px,14svh,98px)' : 'var(--mobile-section-top)',
+          paddingBottom: tightMobile ? 'clamp(8px,2.4svh,14px)' : compactMobile ? 'clamp(10px,3svh,18px)' : '10vw',
+          gap: tightMobile ? 'clamp(12px,2.6svh,18px)' : compactMobile ? 'clamp(16px,3.2svh,24px)' : 'clamp(32px,8vw,52px)',
         }}>
 
           {/* Heading */}
@@ -441,7 +437,7 @@ export function ContactSection() {
             onTouchStart={headingScramble}
             style={{
               color: '#ffffff',
-              fontSize: 'var(--mobile-heading-size)',
+              fontSize: tightMobile ? 'clamp(34px,9.8vw,48px)' : 'var(--mobile-heading-size)',
               fontWeight: 900, lineHeight: 0.9, letterSpacing: '-2px',
               textTransform: 'uppercase', margin: 0,
               cursor: 'default', userSelect: 'none',
@@ -451,7 +447,7 @@ export function ContactSection() {
           {/* Eyes – compact row on mobile */}
           <div
             ref={eyesRef}
-            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 80 }}
+            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: tightMobile ? 46 : compactMobile ? 64 : 80 }}
           >
             <Eyes containerRef={eyesRef} success={status === 'success'} isMobile={true} />
           </div>
@@ -463,7 +459,7 @@ export function ContactSection() {
                 onMouseEnter={seenScramble}
                 style={{
                   color: '#ffffff',
-                  fontSize: 'clamp(28px,9vw,56px)',
+                  fontSize: tightMobile ? 'clamp(24px,7.8vw,44px)' : 'clamp(28px,9vw,56px)',
                   fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 0.95,
                   textTransform: 'uppercase', margin: 0,
                   animation: 'fadeIn 0.6s ease',
@@ -483,26 +479,26 @@ export function ContactSection() {
                     onChange={e => updateField('company', e.target.value)}
                   />
                 </div>
-                <div style={{ marginBottom: 'clamp(18px,5vw,28px)' }}>
+                <div style={{ marginBottom: tightMobile ? 'clamp(6px,1.8svh,10px)' : compactMobile ? 'clamp(10px,2.6svh,16px)' : 'clamp(18px,5vw,28px)' }}>
                   <input type="text" placeholder={T.name[lang]} value={form.name} required maxLength={CONTACT_MAX_NAME_LENGTH}
                     autoComplete="name"
                     onChange={e => updateField('name', e.target.value)}
                     onFocus={onFocus} onBlur={onBlur}
-                    style={{ ...fieldStyle, fontSize: 'var(--mobile-body-size)' }} />
+                    style={{ ...fieldStyle, fontSize: 'var(--mobile-body-size)', padding: mobileFieldPadding }} />
                 </div>
-                <div style={{ marginBottom: 'clamp(18px,5vw,28px)' }}>
+                <div style={{ marginBottom: tightMobile ? 'clamp(6px,1.8svh,10px)' : compactMobile ? 'clamp(10px,2.6svh,16px)' : 'clamp(18px,5vw,28px)' }}>
                   <input type="email" placeholder={T.email[lang]} value={form.email} required maxLength={CONTACT_MAX_EMAIL_LENGTH}
                     autoComplete="email"
                     onChange={e => updateField('email', e.target.value)}
                     onFocus={onFocus} onBlur={onBlur}
-                    style={{ ...fieldStyle, fontSize: 'var(--mobile-body-size)' }} />
+                    style={{ ...fieldStyle, fontSize: 'var(--mobile-body-size)', padding: mobileFieldPadding }} />
                 </div>
-                <div style={{ marginBottom: 'clamp(24px,6vw,36px)' }}>
-                  <textarea placeholder={T.message[lang]} value={form.message} required rows={4} maxLength={CONTACT_MAX_MESSAGE_LENGTH}
+                <div style={{ marginBottom: tightMobile ? 'clamp(8px,2.2svh,12px)' : compactMobile ? 'clamp(12px,3svh,20px)' : 'clamp(24px,6vw,36px)' }}>
+                  <textarea placeholder={T.message[lang]} value={form.message} required rows={tightMobile ? 2 : compactMobile ? 3 : 4} maxLength={CONTACT_MAX_MESSAGE_LENGTH}
                     onChange={e => updateField('message', e.target.value)}
                     onFocus={onFocus as React.FocusEventHandler<HTMLTextAreaElement>}
                     onBlur={onBlur as React.FocusEventHandler<HTMLTextAreaElement>}
-                    style={{ ...fieldStyle, resize: 'none', fontSize: 'var(--mobile-body-size)' }} />
+                    style={{ ...fieldStyle, resize: 'none', fontSize: 'var(--mobile-body-size)', padding: mobileFieldPadding }} />
                 </div>
                 {status === 'error' && (
                   <p style={{ color: 'rgba(255,100,100,0.9)', fontSize: 13, margin: '0 0 14px', fontWeight: 600 }}>
@@ -514,6 +510,8 @@ export function ContactSection() {
                   label={status === 'sending' ? T.sending[lang] : T.send[lang]}
                   disabled={status === 'sending'}
                   fullWidth
+                  compact={compactMobile}
+                  tight={tightMobile}
                 />
               </form>
             )}
@@ -521,7 +519,7 @@ export function ContactSection() {
         </div>
 
         {/* Footer */}
-        <MobileFooter />
+        <MobileFooter compact={compactMobile} tight={tightMobile} />
       </section>
     )
   }
@@ -662,16 +660,16 @@ function DesktopFooter() {
 }
 
 // ─── Footer – Mobile ──────────────────────────────────────────────────────────
-function MobileFooter() {
+function MobileFooter({ compact = false, tight = false }: { compact?: boolean; tight?: boolean }) {
   return (
     <div style={{
-      padding: '20px 6vw 32px',
-      display: 'flex', flexDirection: 'column', gap: 18,
+      padding: tight ? '10px 6vw 14px' : compact ? '14px 6vw 20px' : '20px 6vw 32px',
+      display: 'flex', flexDirection: 'column', gap: tight ? 10 : compact ? 14 : 18,
       borderTop: '1px solid rgba(255,255,255,0.08)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
         <span style={{
-          color: 'rgba(255,255,255,0.4)', fontSize: 12,
+          color: 'rgba(255,255,255,0.4)', fontSize: tight ? 10 : 12,
           fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>
           © {new Date().getFullYear()} Ivan Kolesnikov
@@ -726,7 +724,7 @@ function IconLink({ href, label, children, newTab }: {
 }
 
 // ─── SendButton ───────────────────────────────────────────────────────────────
-function SendButton({ label, disabled, fullWidth }: { label: string; disabled: boolean; fullWidth?: boolean }) {
+function SendButton({ label, disabled, fullWidth, compact = false, tight = false }: { label: string; disabled: boolean; fullWidth?: boolean; compact?: boolean; tight?: boolean }) {
   const [pressed, setPressed] = useState(false)
   const [hov, setHov] = useState(false)
   return (
@@ -738,9 +736,9 @@ function SendButton({ label, disabled, fullWidth }: { label: string; disabled: b
       onMouseLeave={() => { setHov(false); setPressed(false) }}
       style={{
         background: '#ffffff', color: '#0a0a0a', border: 'none',
-        padding: '13px 34px',
+        padding: tight ? '10px 26px' : compact ? '11px 30px' : '13px 34px',
         width: fullWidth ? '100%' : undefined,
-        minHeight: fullWidth ? 48 : undefined,
+        minHeight: fullWidth ? (tight ? 40 : compact ? 44 : 48) : undefined,
         fontSize: 'clamp(14px,1.6vw,20px)',
         fontWeight: 800, letterSpacing: '-0.3px',
         textTransform: 'uppercase', cursor: disabled ? 'wait' : 'pointer',

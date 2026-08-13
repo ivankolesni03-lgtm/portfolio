@@ -323,11 +323,11 @@ function CrazyTerminal({ phase, isActive, lang, prompt, imageIndex }: { phase: n
   const [lines, setLines] = useState(() => buildCompletedWorkflowLog(prompt, imageIndex, lang))
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!isActive) {
-      setLines(buildCompletedWorkflowLog(prompt, imageIndex, lang))
-      return
-    }
-    const frame = requestAnimationFrame(() => setLines(buildActiveWorkflowLog(prompt, imageIndex, lang, phase)))
+    const frame = requestAnimationFrame(() => {
+      setLines(isActive
+        ? buildActiveWorkflowLog(prompt, imageIndex, lang, phase)
+        : buildCompletedWorkflowLog(prompt, imageIndex, lang))
+    })
     return () => cancelAnimationFrame(frame)
   }, [imageIndex, isActive, lang, phase, prompt])
   const col = (t: string) => t==='m' ? 'rgba(132,255,120,0.9)' : t==='r' ? 'rgba(205,255,174,0.98)' : 'rgba(68,255,92,0.86)'
@@ -579,6 +579,7 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
   const magDirRef = useRef({ x:1, y:0 })
   const pointerRef = useRef<{ x: number; y: number } | null>(null)
   const magRafRef = useRef(0)
+  const animateMagRef = useRef<() => void>(() => {})
   const pointerRafRef = useRef(0)
   const magResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const needsFinalPortEmit = useRef(false)
@@ -673,15 +674,19 @@ function Win({ id, title, width, initPos, onPortChange, onFocus, zIndex, lit=fal
     emitMovingPorts(next)
     const settled = Math.abs(next.x - target.x) < 0.03 && Math.abs(next.y - target.y) < 0.03
     if (!settled) {
-      magRafRef.current = requestAnimationFrame(animateMag)
+      magRafRef.current = requestAnimationFrame(() => animateMagRef.current())
       return
     }
     if (Math.abs(target.x) < 0.01 && Math.abs(target.y) < 0.01) finishMagReset()
   }, [emitMovingPorts, finishMagReset])
 
-  const startMagAnimation = useCallback(() => {
-    if (!magRafRef.current) magRafRef.current = requestAnimationFrame(animateMag)
+  useEffect(() => {
+    animateMagRef.current = animateMag
   }, [animateMag])
+
+  const startMagAnimation = useCallback(() => {
+    if (!magRafRef.current) magRafRef.current = requestAnimationFrame(() => animateMagRef.current())
+  }, [])
 
   const updateMagFromPointer = useCallback((clientX: number, clientY: number) => {
     pointerRef.current = { x: clientX, y: clientY }
@@ -858,17 +863,51 @@ function MobileDesktopNode({
   width: string
   delay: string
 }) {
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    setIsDragging(true)
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragStartRef.current) return
+    e.preventDefault()
+    const dx = e.touches[0].clientX - dragStartRef.current.x
+    const dy = e.touches[0].clientY - dragStartRef.current.y
+    setDragOffset({ x: dx, y: dy })
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    dragStartRef.current = null
+    setIsDragging(false)
+    setDragOffset({ x: 0, y: 0 })
+  }, [])
+
   return (
-    <div style={{
-      width,
-      minHeight: 52,
-      border: '1px solid rgba(255,255,255,0.58)',
-      background: 'linear-gradient(135deg, #f4f4f4 0%, #dedede 52%, #c9c9c9 100%)',
-      boxShadow: '2px 3px 5px rgba(0,0,0,0.3), 9px 15px 28px rgba(0,0,0,0.3), inset 1px 1px 0 rgba(255,255,255,0.88), inset -2px -2px 0 rgba(0,0,0,0.15)',
-      color: '#111',
-      animation: `mobileAiFloat 4.8s var(--mobile-motion-ease) ${delay} infinite alternate`,
-      willChange: 'transform',
-    }}>
+    <div 
+      ref={containerRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      style={{
+        width,
+        minHeight: 52,
+        border: '1px solid rgba(255,255,255,0.58)',
+        background: 'linear-gradient(135deg, #f4f4f4 0%, #dedede 52%, #c9c9c9 100%)',
+        boxShadow: '2px 3px 5px rgba(0,0,0,0.3), 9px 15px 28px rgba(0,0,0,0.3), inset 1px 1px 0 rgba(255,255,255,0.88), inset -2px -2px 0 rgba(0,0,0,0.15)',
+        color: '#111',
+        animation: isDragging ? 'none' : `mobileAiFloat 4.8s var(--mobile-motion-ease) ${delay} infinite alternate`,
+        willChange: 'transform',
+        transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`,
+        touchAction: 'none',
+        transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+        cursor: isDragging ? 'grabbing' : 'grab',
+      }}>
       <div style={{
         height: 20,
         display: 'flex',
@@ -885,7 +924,7 @@ function MobileDesktopNode({
       }}>
         <span>{title}</span><span aria-hidden="true">▣</span>
       </div>
-      <div style={{ padding: '7px 8px', fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1.25 }}>{children}</div>
+      <div style={{ padding: '7px 8px', fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1.25, userSelect: 'none' }}>{children}</div>
     </div>
   )
 }
@@ -1249,7 +1288,6 @@ export function AISection() {
   const [videoLoadSimDone, setVideoLoadSimDone] = useState(false)
   const [videoPlaying, setVideoPlaying] = useState(false)
   const [imageModeLoading, setImageModeLoading] = useState(false)
-  const aiCursorImgRef = useRef<HTMLImageElement>(null)
   const aiCursorModeRef = useRef<AICursorMode>('normal')
   const aiCursorPressedRef = useRef(false)
   const aiCursorHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1312,7 +1350,7 @@ export function AISection() {
   const applyAiCursorMode = useCallback((mode: AICursorMode) => {
     if (aiCursorModeRef.current === mode) return
     aiCursorModeRef.current = mode
-    const cursor = aiCursorImgRef.current ?? sectionRef.current?.querySelector<HTMLImageElement>('.ai-pixel-cursor')
+    const cursor = sectionRef.current?.querySelector<HTMLImageElement>('.ai-pixel-cursor')
     if (!cursor) return
     const hotspot = AI_CURSOR_HOTSPOT[mode]
     const size = AI_CURSOR_SIZE[mode]
@@ -1342,7 +1380,7 @@ export function AISection() {
     if (forceMeasure || !aiCursorRectRef.current) aiCursorRectRef.current = section.getBoundingClientRect()
     const rect = aiCursorRectRef.current
     aiCursorPointRef.current = { x: clientX - rect.left, y: clientY - rect.top }
-    const activeCursor = aiCursorImgRef.current ?? section.querySelector<HTMLImageElement>('.ai-pixel-cursor')
+    const activeCursor = section.querySelector<HTMLImageElement>('.ai-pixel-cursor')
     if (activeCursor && !aiCursorVisibleRef.current) {
       aiCursorVisibleRef.current = true
       activeCursor.style.opacity = '1'
@@ -1352,7 +1390,7 @@ export function AISection() {
       aiCursorRafRef.current = 0
       const currentSection = sectionRef.current
       if (!currentSection) return
-      const cursor = aiCursorImgRef.current ?? currentSection.querySelector<HTMLImageElement>('.ai-pixel-cursor')
+      const cursor = currentSection.querySelector<HTMLImageElement>('.ai-pixel-cursor')
       if (!cursor) return
       currentSection.style.setProperty('--ai-cursor-x', `${aiCursorPointRef.current.x}px`)
       currentSection.style.setProperty('--ai-cursor-y', `${aiCursorPointRef.current.y}px`)
@@ -1405,7 +1443,7 @@ export function AISection() {
     }
     aiCursorRectRef.current = null
     aiCursorTargetRef.current = null
-    const cursor = aiCursorImgRef.current ?? sectionRef.current?.querySelector<HTMLImageElement>('.ai-pixel-cursor')
+    const cursor = sectionRef.current?.querySelector<HTMLImageElement>('.ai-pixel-cursor')
     aiCursorVisibleRef.current = false
     if (cursor) cursor.style.opacity = '0'
     applyAiCursorMode('normal')
@@ -2267,7 +2305,6 @@ export function AISection() {
           </div>
         </div>
         <img
-          ref={aiCursorImgRef}
           className="ai-pixel-cursor"
           src={AI_CURSOR_SRC.normal}
           alt=""
@@ -2559,7 +2596,6 @@ export function AISection() {
 
         </div>
         <img
-          ref={aiCursorImgRef}
           className="ai-pixel-cursor"
           src={AI_CURSOR_SRC.normal}
           alt=""
