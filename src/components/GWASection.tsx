@@ -652,7 +652,7 @@ export function GWASection() {
                 <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', backgroundColor: '#0a0a0a', zIndex: 10 }}>
                   <GWAVideoFrame fit="contain" />
                 </div>
-                <div style={{ position: 'absolute', right: '-14vw', top: '20svh', width: 'clamp(305px, 92vw, 710px)', height: 'clamp(225px, 52svh, 480px)', zIndex: 80, pointerEvents: 'auto', touchAction: 'pan-y' }}>
+                <div style={{ position: 'absolute', right: '-20vw', top: '30svh', width: 'clamp(365px, 108vw, 780px)', height: 'clamp(285px, 63svh, 560px)', zIndex: 80, pointerEvents: 'auto', touchAction: 'pan-y' }}>
                   <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} autoRotate={true} />
                 </div>
               </div>
