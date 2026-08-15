@@ -863,25 +863,29 @@ function MobileDesktopNode({
   width: string
   delay: string
 }) {
-  const dragStartRef = useRef<{ x: number; y: number } | null>(null)
+  const dragStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragStartRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId }
     setIsDragging(true)
   }, [])
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!dragStartRef.current) return
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const dragStart = dragStartRef.current
+    if (!dragStart || dragStart.pointerId !== e.pointerId) return
     e.preventDefault()
-    const dx = e.touches[0].clientX - dragStartRef.current.x
-    const dy = e.touches[0].clientY - dragStartRef.current.y
+    const dx = e.clientX - dragStart.x
+    const dy = e.clientY - dragStart.y
     setDragOffset({ x: dx, y: dy })
   }, [])
 
-  const handleTouchEnd = useCallback(() => {
+  const handlePointerEnd = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStartRef.current?.pointerId !== e.pointerId) return
     dragStartRef.current = null
     setIsDragging(false)
     setDragOffset({ x: 0, y: 0 })
@@ -890,10 +894,10 @@ function MobileDesktopNode({
   return (
     <div 
       ref={containerRef}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
       style={{
         width,
         minHeight: 52,
@@ -903,7 +907,8 @@ function MobileDesktopNode({
         color: '#111',
         animation: isDragging ? 'none' : `mobileAiFloat 4.8s var(--mobile-motion-ease) ${delay} infinite alternate`,
         willChange: 'transform',
-        transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`,
+        transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(${isDragging ? 1.035 : 1})`,
+        transformOrigin: 'center center',
         touchAction: 'none',
         transition: isDragging ? 'none' : 'transform 0.3s ease-out',
         cursor: isDragging ? 'grabbing' : 'grab',

@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
@@ -604,12 +604,9 @@ export function GWASection() {
   const secRef  = useRef<HTMLDivElement>(null)
   const figRef  = useRef<HTMLDivElement>(null)
   const mobileShellRef = useRef<HTMLDivElement>(null)
-  const mobileContentRef = useRef<HTMLDivElement>(null)
   const mobileBottomRef = useRef<HTMLDivElement>(null)
   const [figureExit, setFigureExit] = useState({ blur: 0, opacity: 1 })
   const [mobileExitP, setMobileExitP] = useState(0)
-  const [mobileContentScale, setMobileContentScale] = useState(1)
-  const MOBILE_MIN_CONTENT_SCALE = 0.96
   
   useEffect(() => {
     if (isMobile) return
@@ -643,60 +640,19 @@ export function GWASection() {
     setMobileExitP(p)
   }, [scrollY, vh, isMobile])
 
-  useLayoutEffect(() => {
-    if (!isMobile) return
-
-    const shell = mobileShellRef.current
-    const content = mobileContentRef.current
-    if (!shell || !content) return
-
-    const measure = () => {
-      const availableHeight = Math.max(1, shell.clientHeight)
-
-      // Measure natural visual height (including overflowing descendants)
-      // by temporarily removing the transform used for mobile fitting.
-      const prevTransform = content.style.transform
-      const prevWidth = content.style.width
-      content.style.transform = 'none'
-      content.style.width = '100%'
-      const contentRect = content.getBoundingClientRect()
-      const bottomRect = (mobileBottomRef.current ?? content.lastElementChild)?.getBoundingClientRect()
-      const naturalHeight = Math.max(1, (bottomRect ? bottomRect.bottom : contentRect.bottom) - contentRect.top + 8)
-      content.style.transform = prevTransform
-      content.style.width = prevWidth
-
-      const nextScale = Math.max(MOBILE_MIN_CONTENT_SCALE, Math.min(1, availableHeight / naturalHeight))
-      setMobileContentScale((prev) => (Math.abs(prev - nextScale) < 0.003 ? prev : nextScale))
-    }
-
-    const frame = requestAnimationFrame(measure)
-    const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(measure)
-    })
-    resizeObserver.observe(shell)
-    resizeObserver.observe(content)
-    window.addEventListener('resize', measure)
-
-    return () => {
-      cancelAnimationFrame(frame)
-      resizeObserver.disconnect()
-      window.removeEventListener('resize', measure)
-    }
-  }, [isMobile, lang, vh, vw])
-
   // ── Mobile ──────────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
       <div ref={secRef} data-textcolor="black" style={{ position: 'relative', zIndex: 55, height: '198svh', marginTop: 'calc(-1 * (var(--mobile-flow-overlap-section) + clamp(94px, 18svh, 180px)))' }}>
         <section id="gwa" style={{ position: 'sticky', top: 0, backgroundColor: '#ffffff', height: 'var(--app-visual-height, 100svh)', boxSizing: 'border-box', overflow: 'hidden' }}>
           <div ref={mobileShellRef} className="mobile-section-shell" style={{ position: 'absolute', inset: 0, overflow: 'hidden', filter: mobileExitP > 0.02 ? `blur(calc(${mobileExitP} * var(--mobile-exit-blur)))` : 'none', opacity: 1 - mobileExitP * 0.9, transform: `scale(${1 - mobileExitP * 0.04})`, transformOrigin: 'center center', willChange: 'filter, opacity, transform' }}>
-            <div ref={mobileContentRef} style={{ width: mobileContentScale < 0.999 ? `${100 / mobileContentScale}%` : '100%', transform: `scale(${mobileContentScale})`, transformOrigin: 'top center' }}>
+            <div style={{ width: '100%' }}>
               <div style={{ position: 'relative', zIndex: 20, marginBottom: 'clamp(8px,2.2vw,12px)' }}><StaticHeadingGWA /></div>
               <div style={{ position: 'relative', zIndex: 30, width: '100%', aspectRatio: '16 / 9', marginBottom: 'clamp(8px,2.2vw,12px)' }}>
                 <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', backgroundColor: '#0a0a0a', zIndex: 10 }}>
                   <GWAVideoFrame fit="contain" />
                 </div>
-                <div style={{ position: 'absolute', right: '-14vw', top: '20svh', width: 'clamp(305px, 92vw, 710px)', height: 'clamp(225px, 52svh, 480px)', zIndex: 80, pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', right: '-14vw', top: '20svh', width: 'clamp(305px, 92vw, 710px)', height: 'clamp(225px, 52svh, 480px)', zIndex: 80, pointerEvents: 'auto', touchAction: 'pan-y' }}>
                   <Trophy3D sectionRef={secRef as React.RefObject<HTMLDivElement>} autoRotate={true} />
                 </div>
               </div>
