@@ -91,7 +91,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
   const rowTop = top + fontSize * 1.85
   const rowLeft = left + fontSize * (isMobile ? 0.065 : 0.062)
   const inputWidth = isMobile ? '50vw' : '24.5vw'
-  const passwordInputFontSize = 'clamp(20px, 2.15vw, 26px)'
+  const passwordInputFontSize = isMobile ? 'clamp(16px, 4vw, 18px)' : 'clamp(20px, 2.15vw, 26px)'
   const enterFontSize = 'clamp(12px, 1.1vw, 15px)'
 
   return (
@@ -199,6 +199,9 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
               autoFocus
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder={inputPlaceholder}
               disabled={status === 'submitting'}
               style={{
@@ -207,6 +210,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                 border: 'none',
                 borderBottom: `2px solid ${errorMessage ? '#ff2d2d' : '#0a0a0a'}`,
                 color: '#0a0a0a',
+                caretColor: '#0a0a0a',
                 fontSize: passwordInputFontSize,
                 fontWeight: 700,
                 lineHeight: 1,
@@ -215,7 +219,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                 letterSpacing: '0.06em',
                 transition: 'border-color 0.2s ease',
                 boxSizing: 'border-box',
-                textTransform: 'uppercase',
+                textTransform: 'none',
               }}
             />
 
@@ -293,6 +297,8 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
           #portfolio-password::placeholder {
             font-size: ${enterFontSize};
             line-height: 1;
+            color: #0a0a0a;
+            opacity: 1;
           }
         `}</style>
       </div>
