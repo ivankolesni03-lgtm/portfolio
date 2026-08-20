@@ -237,7 +237,53 @@ export function InteractiveDots({
 
 
   const interactionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  
+  const lastMousePosRef = useRef<{ x: number; y: number } | null>(null)
+  const pendingMousePosRef = useRef<{ x: number; y: number } | null>(null)
+  const mouseMoveRafRef = useRef<number | null>(null)
+
+  // Processes the latest mouse position once per animation frame. Sampling
+  // points along the segment from the last processed position avoids gaps
+  // in the trail when the mouse moves fast between mousemove events.
+  const processMouseMove = useCallback((mouseX: number, mouseY: number) => {
+    const last = lastMousePosRef.current
+    lastMousePosRef.current = { x: mouseX, y: mouseY }
+
+    const points: { x: number; y: number }[] = [{ x: mouseX, y: mouseY }]
+    if (last) {
+      const dx = mouseX - last.x, dy = mouseY - last.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      const step = circleSize * 0.5
+      const steps = Math.min(24, Math.floor(dist / step))
+      for (let i = 1; i < steps; i++) {
+        const t = i / steps
+        points.push({ x: last.x + dx * t, y: last.y + dy * t })
+      }
+    }
+
+    let closest: { id: number; dist: number } | null = null
+    const newNeighbors = new Set<number>()
+
+    for (const circle of circlesRef.current) {
+      let minDist = Infinity
+      for (const p of points) {
+        const dx = p.x - circle.x, dy = p.y - circle.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < minDist) minDist = dist
+      }
+      if (minDist < circleSize * 0.65 && (!closest || minDist < closest.dist)) closest = { id: circle.id, dist: minDist }
+      if (minDist < spacing * 1.6) newNeighbors.add(circle.id)
+    }
+
+    const newHoveredId = closest ? closest.id : null
+    if (newHoveredId !== null) newNeighbors.delete(newHoveredId)
+
+    setHoveredId(prev => (prev === newHoveredId ? prev : newHoveredId))
+    setNeighborIds(prev => {
+      if (prev.size === newNeighbors.size && [...prev].every(id => newNeighbors.has(id))) return prev
+      return newNeighbors
+    })
+  }, [circleSize, spacing])
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     // Pause simulated hover when user interacts
     userInteractedRef.current = true
@@ -252,32 +298,26 @@ export function InteractiveDots({
     
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left
-    const mouseY = e.clientY - rect.top
+    pendingMousePosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
 
-    let closest: { id: number; dist: number } | null = null
-    for (const circle of circlesRef.current) {
-      const dx = mouseX - circle.x, dy = mouseY - circle.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < circleSize * 0.65 && (!closest || dist < closest.dist)) closest = { id: circle.id, dist }
+    // Throttle heavy hit-testing to once per animation frame so rapid
+    // native mousemove events don't cause layout thrash / jank.
+    if (mouseMoveRafRef.current == null) {
+      mouseMoveRafRef.current = requestAnimationFrame(() => {
+        mouseMoveRafRef.current = null
+        const pos = pendingMousePosRef.current
+        if (pos) processMouseMove(pos.x, pos.y)
+      })
     }
-
-    const newHoveredId = closest ? closest.id : null
-    const newNeighbors = new Set<number>()
-    if (closest) {
-      for (const circle of circlesRef.current) {
-        if (circle.id === closest.id) continue
-        const dx = mouseX - circle.x, dy = mouseY - circle.y
-        const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < spacing * 1.6) newNeighbors.add(circle.id)
-      }
-    }
-
-    setHoveredId(newHoveredId)
-    setNeighborIds(newNeighbors)
-  }, [circleSize, spacing])
+  }, [processMouseMove])
 
   const handleMouseLeave = useCallback(() => {
+    if (mouseMoveRafRef.current != null) {
+      cancelAnimationFrame(mouseMoveRafRef.current)
+      mouseMoveRafRef.current = null
+    }
+    lastMousePosRef.current = null
+    pendingMousePosRef.current = null
     setHoveredId(null)
     setNeighborIds(new Set())
   }, [])
@@ -380,6 +420,7 @@ export function InteractiveDots({
     return () => {
       touchRevealTimersRef.current.forEach(timer => clearTimeout(timer))
       touchRevealTimersRef.current.clear()
+      if (mouseMoveRafRef.current != null) cancelAnimationFrame(mouseMoveRafRef.current)
     }
   }, [])
 
