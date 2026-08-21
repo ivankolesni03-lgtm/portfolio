@@ -481,10 +481,6 @@ function DesktopTimeline({ lang, entries }: { lang: Lang; entries: TimelineEntry
               ))}
             </div>
           </div>
-
-          <div style={{ position: 'absolute', bottom: 'clamp(20px,3vh,36px)', right: 'clamp(40px,9vw,120px)', fontFamily: 'monospace', fontSize: 11, color: '#aaa', letterSpacing: '0.1em' }}>
-            {String(activeIdx + 1).padStart(2, '0')} / {String(N).padStart(2, '0')}
-          </div>
         </div>
       </section>
     </div>

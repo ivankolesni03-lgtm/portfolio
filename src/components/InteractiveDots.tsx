@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useMobile } from '@/hooks/use-mobile'
 import { useScroll } from '@/contexts/ScrollContext'
 import { useScramble, runScramble } from '@/hooks/use-scramble'
+import { ViewCursor } from '@/components/ProjectsSection'
 
 export type Lang = 'de' | 'en'
 
@@ -76,29 +77,6 @@ export const defaultProgramData: Program[] = [
   { id:19, name:{de:'GitHub',en:'GitHub'},                   icon:'GH', iconImg:'/icons/github.png',                color:'#181717', skill:82, description:{de:'Versionskontrolle & Repository-Workflows',en:'Version control & repository workflows'}, works:[{title:{de:'Portfolio Next.js',en:'Portfolio Next.js'},year:'2025',type:{de:'Development',en:'Development'}},{title:{de:'Pocoloco Website',en:'Pocoloco Website'},year:'2024',type:{de:'Versioning',en:'Versioning'}},{title:{de:'Code Workflows',en:'Code Workflows'},year:'2024',type:{de:'Workflow',en:'Workflow'}}]},
 ]
 
-// ── Skill Bar ────────────────────────────────────────────────────────────────
-function SkillBar({ skill, color, active }: { skill: number; color: string; active: boolean }) {
-  const [width, setWidth] = useState(0)
-  useEffect(() => {
-    if (!active) {
-      const frame = requestAnimationFrame(() => setWidth(0))
-      return () => cancelAnimationFrame(frame)
-    }
-    const t = setTimeout(() => setWidth(skill), 80)
-    return () => clearTimeout(t)
-  }, [active, skill])
-  return (
-    <div style={{ marginBottom: 'clamp(16px,2vw,24px)' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-        <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:'#0a0a0a' }}>Skill Level</span>
-        <span style={{ fontSize:13, fontWeight:900, color:'#0a0a0a' }}>{width}%</span>
-      </div>
-      <div style={{ height:4, background:'#e8e8e8', borderRadius:2, overflow:'hidden' }}>
-        <div style={{ height:'100%', background: color, borderRadius:2, width:`${width}%`, transition:'width 1.2s cubic-bezier(0.16,1,0.3,1)' }}/>
-      </div>
-    </div>
-  )
-}
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export function InteractiveDots({
@@ -130,8 +108,11 @@ export function InteractiveDots({
   const [simulatedNeighbors, setSimulatedNeighbors] = useState<Set<number>>(new Set())
   const [neighborIds, setNeighborIds] = useState<Set<number>>(new Set())
   const [openIdx, setOpenIdx] = useState<number | null>(null)
+  const [openRect, setOpenRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [phase, setPhase] = useState<'in' | 'open' | 'closing'>('in')
   const [lang] = useState<Lang>('de')
+  const [showHint, setShowHint] = useState(false)
+  const hintShownRef = useRef(false)
   const circlesRef = useRef<{ id: number; x: number; y: number; iconIndex: number }[]>([])
   const [circleItems, setCircleItems] = useState<{ id: number; x: number; y: number; iconIndex: number }[]>([])
   const simulationRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -240,6 +221,19 @@ export function InteractiveDots({
   const lastMousePosRef = useRef<{ x: number; y: number } | null>(null)
   const pendingMousePosRef = useRef<{ x: number; y: number } | null>(null)
   const mouseMoveRafRef = useRef<number | null>(null)
+  // Tracks the real cursor position in viewport coordinates at all times (even
+  // while the Toolkit overlay is open and blocking mousemove on the section),
+  // so we can immediately resolve hover state on close without waiting for
+  // the user to move the mouse again.
+  const globalMousePosRef = useRef<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    const onWindowMouseMove = (e: MouseEvent) => {
+      globalMousePosRef.current = { x: e.clientX, y: e.clientY }
+    }
+    window.addEventListener('mousemove', onWindowMouseMove)
+    return () => window.removeEventListener('mousemove', onWindowMouseMove)
+  }, [])
 
   // Processes the latest mouse position once per animation frame. Sampling
   // points along the segment from the last processed position avoids gaps
@@ -424,23 +418,48 @@ export function InteractiveDots({
     }
   }, [])
 
-  const openOverlay = useCallback((idx: number) => {
+  const dismissHint = useCallback(() => {
+    setShowHint(false)
+    try { localStorage.setItem('toolkit-hint-seen', '1') } catch {}
+  }, [])
+
+  const openOverlay = useCallback((idx: number, rect?: DOMRect) => {
+    if (rect) setOpenRect({ x: rect.left, y: rect.top, w: rect.width, h: rect.height })
+    dismissHint()
     setOpenIdx(idx)
     document.body.style.overflow = 'hidden'
     document.body.classList.add('toolkit-overlay-open')
     requestAnimationFrame(() => requestAnimationFrame(() => setPhase('open')))
-  }, [])
+  }, [dismissHint])
+
+  // Immediately re-derives hover/neighbor state from the real (tracked) cursor
+  // position, without needing a fresh mousemove event over the section. Used
+  // when the overlay closes so the small icons near the cursor reappear right
+  // away instead of the section looking empty/black until the mouse moves.
+  const resyncHoverFromCursor = useCallback(() => {
+    const container = containerRef.current
+    const pos = globalMousePosRef.current
+    if (!container || !pos) return
+    const rect = container.getBoundingClientRect()
+    const x = pos.x - rect.left
+    const y = pos.y - rect.top
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return
+    lastMousePosRef.current = null
+    processMouseMove(x, y)
+  }, [processMouseMove])
 
   const closeOverlay = useCallback(() => {
     if (phase === 'closing') return
     setPhase('closing')
+    resyncHoverFromCursor()
     setTimeout(() => { 
       setOpenIdx(null)
       setPhase('in')
       document.body.style.overflow = ''
       document.body.classList.remove('toolkit-overlay-open')
+      resyncHoverFromCursor()
     }, 520)
-  }, [phase])
+  }, [phase, resyncHoverFromCursor])
 
   useEffect(() => {
     return () => {
@@ -476,6 +495,12 @@ export function InteractiveDots({
     // Section is "entering" when top is between 0 and vh (scrolling into view)
     const entering = rect.top > 0 && rect.top < scrollVh
     setIsEntering(entering)
+
+    // One-time onboarding hint: nudge visitors that icons are clickable
+    if (entering && !hintShownRef.current && typeof window !== 'undefined' && !localStorage.getItem('toolkit-hint-seen')) {
+      hintShownRef.current = true
+      setTimeout(() => setShowHint(true), 700)
+    }
     
     // Only stop simulation if user has actively interacted
     if (userInteractedRef.current) {
@@ -700,9 +725,9 @@ export function InteractiveDots({
       }
 
       return (
-        <button key={circle.id} onClick={() => openOverlay(circle.iconIndex)}
+        <button key={circle.id} onClick={(e) => openOverlay(circle.iconIndex, e.currentTarget.getBoundingClientRect())}
           style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize, cursor:'pointer', zIndex: isHovered || isTouchRevealed ? 12 : 10, border:'none', background:'none', padding:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ width: circleSize, height: circleSize, borderRadius:'18%', overflow:'hidden', opacity, transition, transform:`scale(${scale})`, transformOrigin:'center' }}>
+          <div className={isHovered ? 'toolkit-icon-halo' : undefined} style={{ width: circleSize, height: circleSize, borderRadius:'18%', overflow:'hidden', opacity, transition, transform:`scale(${scale})`, transformOrigin:'center' }}>
             <img src={program.iconImg} alt={program.name[lang]}
               style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
               onError={(e) => {
@@ -725,6 +750,12 @@ export function InteractiveDots({
 
   return (
     <>
+      <style>{`
+        @keyframes toolkitHintIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toolkitHintPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.6); } }
+        @keyframes toolkitHalo { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.45); } 100% { box-shadow: 0 0 0 16px rgba(255,255,255,0); } }
+        .toolkit-icon-halo { animation: toolkitHalo 0.9s ease-out; }
+      `}</style>
       <div ref={outerRef} data-textcolor="white" style={{ position: 'relative', zIndex: 60, height: '300vh', marginTop: isMobile ? 'calc(-1 * var(--mobile-flow-overlap-section))' : '-10vh' }}>
         <section 
           ref={containerRef} 
@@ -747,28 +778,210 @@ export function InteractiveDots({
           }}>
             <ProgrammeHeading />
             {renderedCircles}
+            {showHint && (
+              <div
+                onClick={dismissHint}
+                style={{
+                  position: 'absolute',
+                  top: isMobile ? 'calc(var(--mobile-section-top) + 76px)' : 'calc(9vw + 92px)',
+                  left: isMobile ? 'var(--mobile-section-x)' : '9vw',
+                  zIndex: 21,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 14px',
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  backdropFilter: 'blur(6px)',
+                  WebkitBackdropFilter: 'blur(6px)',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  cursor: 'pointer',
+                  animation: 'toolkitHintIn 0.5s cubic-bezier(0.16,1,0.3,1) both',
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', animation: 'toolkitHintPulse 1.6s ease-in-out infinite', flexShrink: 0 }} />
+                {lang === 'de' ? 'Icons antippen für Details' : 'Tap icons for details'}
+              </div>
+            )}
           </div>
         </section>
       </div>
 
       {selectedProgram && (
-        <Overlay program={selectedProgram} idx={openIdx!} totalPrograms={programs.length} phase={phase} onClose={closeOverlay} onNavigate={navigate} lang={lang} />
+        <Overlay program={selectedProgram} idx={openIdx!} totalPrograms={programs.length} phase={phase} onClose={closeOverlay} onNavigate={navigate} lang={lang} originRect={openRect} isMobile={isMobile} />
       )}
     </>
   )
 }
 
+// ── Magnetic edge arrow (adapted for fullscreen Toolkit overlay nav) ────────
+function MagnetArrow({ side, mob, onClick, label, visible }: {
+  side: 'left' | 'right'; mob: boolean; onClick: () => void; label: string; visible: boolean
+}) {
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const svgRef = useRef<HTMLSpanElement>(null)
+  const animRef = useRef<number>(0)
+  const stateRef = useRef({ hovering: false, cx: 0, cy: 0, tx: 0, ty: 0, ax: 0, ay: 0, scale: 1, targetScale: 1 })
+
+  useEffect(() => {
+    const btn = btnRef.current
+    const svg = svgRef.current
+    if (!btn || !svg) return
+
+    const MAGNET_RADIUS = 12
+    const PULL = 0.85
+    const LERP_HOVER = 0.35
+    const LERP_LEAVE = 0.22
+    const SCALE_HOVER = 1.5
+    const SCALE_LERP = 0.25
+
+    let mouseX = 0, mouseY = 0
+
+    const onMove = (e: MouseEvent) => { mouseX = e.clientX; mouseY = e.clientY }
+    window.addEventListener('mousemove', onMove)
+
+    const onEnter = () => {
+      const s = stateRef.current
+      s.hovering = true
+      s.targetScale = SCALE_HOVER
+      const r = btn.getBoundingClientRect()
+      s.cx = r.left + r.width / 2
+      s.cy = r.top + r.height / 2
+      document.body.classList.add('hide-x-cursor')
+    }
+
+    const onBtnMove = () => {
+      const s = stateRef.current
+      const r = btn.getBoundingClientRect()
+      s.cx = r.left + r.width / 2
+      s.cy = r.top + r.height / 2
+      let dx = (mouseX - s.cx) * PULL
+      let dy = (mouseY - s.cy) * PULL
+      const dist = Math.hypot(dx, dy)
+      if (dist > MAGNET_RADIUS) {
+        dx = (dx / dist) * MAGNET_RADIUS
+        dy = (dy / dist) * MAGNET_RADIUS
+      }
+      s.tx = dx; s.ty = dy
+    }
+
+    const onLeave = () => {
+      const s = stateRef.current
+      s.hovering = false
+      s.targetScale = 1
+      s.tx = 0; s.ty = 0
+      document.body.classList.remove('hide-x-cursor')
+    }
+
+    btn.addEventListener('mouseenter', onEnter)
+    btn.addEventListener('mousemove', onBtnMove)
+    btn.addEventListener('mouseleave', onLeave)
+
+    const animate = () => {
+      const s = stateRef.current
+      const lerp = s.hovering ? LERP_HOVER : LERP_LEAVE
+      s.ax += (s.tx - s.ax) * lerp
+      s.ay += (s.ty - s.ay) * lerp
+      s.scale += (s.targetScale - s.scale) * SCALE_LERP
+      svg.style.transform = `translate(${s.ax.toFixed(2)}px, ${s.ay.toFixed(2)}px) scale(${s.scale.toFixed(3)})`
+      animRef.current = requestAnimationFrame(animate)
+    }
+    animRef.current = requestAnimationFrame(animate)
+
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      btn.removeEventListener('mouseenter', onEnter)
+      btn.removeEventListener('mousemove', onBtnMove)
+      btn.removeEventListener('mouseleave', onLeave)
+      cancelAnimationFrame(animRef.current)
+      document.body.classList.remove('hide-x-cursor')
+    }
+  }, [])
+
+  return (
+    <button
+      ref={btnRef}
+      aria-label={label}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      style={{
+        position: 'fixed',
+        top: '50%',
+        [side]: mob ? 10 : 24,
+        width: mob ? 58 : 86,
+        height: mob ? 96 : 132,
+        transform: 'translateY(-50%)',
+        border: 'none',
+        background: 'transparent',
+        color: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        pointerEvents: visible ? 'auto' : 'none',
+        zIndex: 1000005,
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 240ms ease',
+      }}
+    >
+      <span ref={svgRef} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', willChange: 'transform' }}>
+        <svg width={mob ? 34 : 52} height={mob ? 54 : 82} viewBox="0 0 42 42" fill="none">
+          {side === 'left'
+            ? <polyline points="29,7 13,21 29,35" stroke="currentColor" strokeWidth="7" strokeLinecap="square" strokeLinejoin="miter"/>
+            : <polyline points="13,7 29,21 13,35" stroke="currentColor" strokeWidth="7" strokeLinecap="square" strokeLinejoin="miter"/>
+          }
+        </svg>
+      </span>
+    </button>
+  )
+}
+
+// ── Overlay background gradient variants (cycled per program id for variety) ──
+const GRADIENT_VARIANTS = [
+  {
+    bg: (c: string) => `radial-gradient(circle at 12% 8%, ${c}70 0%, transparent 42%), radial-gradient(circle at 88% 92%, ${c}42 0%, transparent 50%), linear-gradient(150deg, #0a0a0a 0%, #141414 32%, ${c} 145%)`,
+    blob1: { width: '62vw', height: '62vw', left: '-14%', top: '-18%', anim: 'toolkitBgDrift1', dur: '17s' },
+    blob2: { width: '50vw', height: '50vw', right: '-10%', bottom: '-16%', anim: 'toolkitBgDrift2', dur: '23s' },
+  },
+  {
+    bg: (c: string) => `radial-gradient(circle at 90% 10%, ${c}75 0%, transparent 45%), radial-gradient(circle at 8% 85%, ${c}40 0%, transparent 52%), linear-gradient(60deg, #0a0a0a 0%, #141414 30%, ${c} 150%)`,
+    blob1: { width: '55vw', height: '55vw', right: '-16%', top: '-14%', anim: 'toolkitBgDrift3', dur: '20s' },
+    blob2: { width: '46vw', height: '46vw', left: '-10%', bottom: '-18%', anim: 'toolkitBgDrift4', dur: '25s' },
+  },
+  {
+    bg: (c: string) => `radial-gradient(circle at 50% 12%, ${c}65 0%, transparent 48%), radial-gradient(circle at 20% 92%, ${c}48 0%, transparent 55%), linear-gradient(205deg, #0a0a0a 0%, #161616 35%, ${c} 140%)`,
+    blob1: { width: '58vw', height: '58vw', left: '20%', top: '-22%', anim: 'toolkitBgDrift1', dur: '22s' },
+    blob2: { width: '50vw', height: '50vw', right: '4%', bottom: '-22%', anim: 'toolkitBgDrift4', dur: '16s' },
+  },
+  {
+    bg: (c: string) => `radial-gradient(circle at 15% 92%, ${c}70 0%, transparent 46%), radial-gradient(circle at 85% 12%, ${c}45 0%, transparent 50%), linear-gradient(115deg, #0a0a0a 0%, #131313 30%, ${c} 148%)`,
+    blob1: { width: '64vw', height: '64vw', left: '-18%', bottom: '-16%', anim: 'toolkitBgDrift3', dur: '19s' },
+    blob2: { width: '44vw', height: '44vw', right: '-8%', top: '-10%', anim: 'toolkitBgDrift2', dur: '26s' },
+  },
+]
+
 // ── Overlay ───────────────────────────────────────────────────────────────────
-function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang }: {
+function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang, originRect, isMobile }: {
   program: Program; idx: number; totalPrograms: number
   phase: 'in' | 'open' | 'closing'; onClose: () => void
   onNavigate: (dir: 'l' | 'r') => void; lang: Lang
+  originRect: { x: number; y: number; w: number; h: number } | null
+  isMobile: boolean
 }) {
   const [titleDisp, setTitleDisp] = useState(program.name[lang])
   const [descDisp, setDescDisp] = useState(program.description[lang])
+  const [skillWidth, setSkillWidth] = useState(0)
   const titleRef = useRef<(() => void) | null>(null)
   const descRef = useRef<(() => void) | null>(null)
   const isOpen = phase === 'open'
+  const isOpening = phase === 'in'
+  const isClosing = phase === 'closing'
+  const { vw, vh, isShort } = useScroll()
+  const variant = GRADIENT_VARIANTS[program.id % GRADIENT_VARIANTS.length]
 
   useEffect(() => {
     runScramble(program.name[lang], setTitleDisp, titleRef)
@@ -780,14 +993,18 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
     }
   }, [lang, program])
 
-  const EASE = 'cubic-bezier(0.76,0,0.24,1)'
-  const { vw, isMobile } = useScroll()
-  const imgW = isMobile ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.38), 440)
-  const panW = isMobile ? Math.round(vw * 0.92) : Math.min(Math.round(vw * 0.46), 560)
-  const isOpening = phase === 'in'
-  const isClosing = phase === 'closing'
+  useEffect(() => {
+    if (!isOpen) {
+      const frame = requestAnimationFrame(() => setSkillWidth(0))
+      return () => cancelAnimationFrame(frame)
+    }
+    const t = setTimeout(() => setSkillWidth(program.skill), 120)
+    return () => clearTimeout(t)
+  }, [isOpen, program.skill])
 
-  const iconBtn: React.CSSProperties = { background:'none', border:'none', cursor:'pointer', padding:6, lineHeight:0, opacity:0.3, transition:'opacity 0.15s', display:'flex', alignItems:'center', justifyContent:'center' }
+  const originTransform = originRect
+    ? `translate(${originRect.x + originRect.w / 2 - vw / 2}px, ${originRect.y + originRect.h / 2 - vh / 2}px) scale(${originRect.w / vw}, ${originRect.h / vh})`
+    : 'scale(0.1)'
 
   return (
     <>
@@ -796,53 +1013,114 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
           opacity: 0 !important;
           pointer-events: none !important;
         }
+        @keyframes toolkitContentIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toolkitColorIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes toolkitBgDrift1 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 33% { transform: translate(10vw, 13vh) scale(1.32) rotate(14deg); } 66% { transform: translate(-8vw, 9vh) scale(0.8) rotate(-11deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+        @keyframes toolkitBgDrift2 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 33% { transform: translate(-11vw, -9vh) scale(1.25) rotate(-16deg); } 66% { transform: translate(9vw, -13vh) scale(0.78) rotate(12deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+        @keyframes toolkitBgDrift3 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 40% { transform: translate(-13vw, 11vh) scale(1.35) rotate(-15deg); } 70% { transform: translate(9vw, -8vh) scale(0.76) rotate(9deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+        @keyframes toolkitBgDrift4 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 40% { transform: translate(13vw, 12vh) scale(0.75) rotate(16deg); } 70% { transform: translate(-9vw, -10vh) scale(1.3) rotate(-12deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
       `}</style>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1000003, backgroundColor: phase==='open'?'rgba(0,0,0,0.22)':'rgba(0,0,0,0)', backdropFilter: phase==='open'?'blur(12px)':'blur(0px)', WebkitBackdropFilter: phase==='open'?'blur(12px)':'blur(0px)', transition:'background-color 0.35s ease, backdrop-filter 0.35s ease', cursor:'pointer' }} />
-      <div style={{ position:'fixed', inset:0, zIndex:1000004, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-        <div style={{ display:'flex', flexDirection: isMobile?'column':'row', alignItems: isMobile?'center':'stretch', pointerEvents:'auto', cursor:'default' }}>
-          <div style={{ width:imgW, flexShrink:0, alignSelf:'stretch', position:'relative', zIndex:1, transform: isOpening||isClosing?'scale(0.72)':'scale(1)', opacity: isOpening||isClosing?0:1, transition: isClosing?`transform 300ms ${EASE} 200ms, opacity 280ms ease 200ms`:`transform 320ms ${EASE}, opacity 300ms ease`, background:`radial-gradient(ellipse at 140% 140%, ${program.color}60 0%, ${program.color}20 40%, #0a0a0a 70%)`, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <div style={{ width:'62%', aspectRatio:'1/1', borderRadius:'22%', overflow:'hidden', boxShadow:`0 24px 80px ${program.color}50` }}>
-                <img src={program.iconImg} alt={program.name[lang]} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+      <div
+        onClick={onClose}
+        data-textcolor="white"
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1000003,
+          backgroundColor: '#0a0a0a',
+          transform: isOpening ? originTransform : isClosing ? 'scale(0.94)' : 'scale(1)',
+          opacity: isClosing ? 0 : 1,
+          transition: isOpening
+            ? 'transform 640ms cubic-bezier(0.16,1,0.3,1), opacity 300ms ease'
+            : 'transform 420ms cubic-bezier(0.16,1,0.3,1), opacity 0.32s ease',
+          transformOrigin: 'center center',
+          cursor: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        <div key={`bg-${program.id}`} style={{
+          position: 'absolute', inset: 0,
+          background: variant.bg(program.color),
+          animation: 'toolkitColorIn 0.45s ease both',
+        }} />
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          <div style={{
+            position: 'absolute', width: variant.blob1.width, height: variant.blob1.height,
+            left: variant.blob1.left, top: variant.blob1.top, right: variant.blob1.right, bottom: variant.blob1.bottom,
+            background: `radial-gradient(circle, ${program.color}70 0%, transparent 70%)`,
+            filter: 'blur(55px)', mixBlendMode: 'screen',
+            animation: `${variant.blob1.anim} ${variant.blob1.dur} ease-in-out infinite`,
+          }} />
+          <div style={{
+            position: 'absolute', width: variant.blob2.width, height: variant.blob2.height,
+            left: variant.blob2.left, top: variant.blob2.top, right: variant.blob2.right, bottom: variant.blob2.bottom,
+            background: `radial-gradient(circle, ${program.color}60 0%, transparent 70%)`,
+            filter: 'blur(65px)', mixBlendMode: 'screen',
+            animation: `${variant.blob2.anim} ${variant.blob2.dur} ease-in-out infinite`,
+          }} />
+        </div>
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 45%, transparent 78%)',
+          pointerEvents: 'none',
+        }} />
+
+        <div key={`icon-${program.id}`} style={{
+          position: 'absolute',
+          top: isMobile ? (isShort ? 'calc(var(--mobile-overlay-side) + 1vw)' : 'calc(var(--mobile-overlay-side) + 7vw)') : '13vw',
+          right: isMobile ? (isShort ? 'calc(var(--mobile-overlay-side) + 3vw)' : 'calc(var(--mobile-overlay-side) + 9vw)') : '19vw',
+          zIndex: 2,
+          width: isMobile ? (isShort ? 'clamp(90px,20vh,140px)' : 'clamp(190px,50vw,260px)') : 'clamp(300px,24vw,440px)',
+          height: isMobile ? (isShort ? 'clamp(90px,20vh,140px)' : 'clamp(190px,50vw,260px)') : 'clamp(300px,24vw,440px)',
+          borderRadius: '22%',
+          overflow: 'hidden',
+          opacity: isOpen ? 1 : 0,
+          transform: isOpen ? 'scale(1)' : 'scale(0.85)',
+          transition: 'opacity 0.5s ease, transform 0.5s cubic-bezier(0.16,1,0.3,1)',
+          boxShadow: `0 24px 70px ${program.color}55`,
+        }}>
+          <img src={program.iconImg} alt={program.name[lang]} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+        </div>
+
+        <div key={`content-${program.id}`} onClick={e => e.stopPropagation()} style={{
+          position: 'absolute',
+          left: isMobile ? 'var(--mobile-overlay-side)' : '8vw',
+          right: isMobile ? 'var(--mobile-overlay-side)' : '30vw',
+          bottom: isMobile ? 'var(--mobile-overlay-bottom)' : '11vh',
+          zIndex: 2,
+          opacity: isOpen ? 1 : 0,
+          transition: 'opacity 0.4s ease',
+          animation: isOpen ? 'toolkitContentIn 0.55s cubic-bezier(0.16,1,0.3,1) both' : 'none',
+        }}>
+          <h2 style={{ fontSize: isMobile?'var(--mobile-overlay-title-size)':'clamp(40px,6vw,96px)', fontWeight:900, lineHeight:0.9, letterSpacing:'-2px', textTransform:'uppercase', color:'#fff', margin:0, textShadow:'0 12px 36px rgba(0,0,0,0.45)', cursor:'default' }}
+            onMouseEnter={() => runScramble(program.name[lang], setTitleDisp, titleRef)}>
+            {titleDisp}
+          </h2>
+          <div style={{ display:'inline-block', marginTop: isMobile?'0.5em':'0.4em', fontSize: isMobile?'var(--mobile-overlay-subtitle-size)':'clamp(16px,1.8vw,26px)', fontWeight:700, fontStyle:'italic', letterSpacing:'-0.4px', color:'rgba(255,255,255,0.92)', textShadow:'0 10px 24px rgba(0,0,0,0.4)' }}>
+            {descDisp}
+          </div>
+
+          <div style={{ marginTop: isMobile?'1.15em':'1em', maxWidth: isMobile?'100%':320 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+              <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.7)' }}>{lang==='de' ? 'Skill Level' : 'Skill Level'}</span>
+              <span style={{ fontSize:13, fontWeight:900, color:'#fff' }}>{skillWidth}%</span>
+            </div>
+            <div style={{ height:4, background:'rgba(255,255,255,0.25)', borderRadius:2, overflow:'hidden' }}>
+              <div style={{ height:'100%', background:'#fff', borderRadius:2, width:`${skillWidth}%`, transition:'width 1.1s cubic-bezier(0.16,1,0.3,1)' }} />
             </div>
           </div>
-          <div onClick={e => e.stopPropagation()} style={{ width:panW, flexShrink:0, position:'relative', zIndex:0, transform:`translateX(${isOpening||isClosing?'-100%':'0%'})`, opacity: isOpening||isClosing?0:1, transition: isClosing?`transform 260ms ${EASE}, opacity 240ms ease`:`transform 300ms ${EASE} 100ms, opacity 280ms ease 100ms`, backgroundColor:'#ffffff', overflow:'hidden' }}>
-            <button onClick={onClose} style={{ ...iconBtn, position:'absolute', top:18, right:18, zIndex:2 }} onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='0.3'}>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><line x1="1" y1="1" x2="17" y2="17" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square"/><line x1="17" y1="1" x2="1" y2="17" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square"/></svg>
-            </button>
-            <div style={{ height:'100%', display:'flex', flexDirection:'column', padding:'clamp(52px,6vw,68px) clamp(28px,3.5vw,42px) clamp(28px,3.5vw,42px)', boxSizing:'border-box' }}>
-              <h2 onMouseEnter={() => runScramble(program.name[lang], setTitleDisp, titleRef)} style={{ color:'#0a0a0a', fontSize:'clamp(24px,3vw,52px)', fontWeight:900, textTransform:'uppercase', margin:'0 0 clamp(8px,1.2vw,16px)', lineHeight:1, letterSpacing:'-1.5px', cursor:'default' }}>
-                {titleDisp}
-              </h2>
-              <p style={{ color:'#555', fontSize:'clamp(13px,1.4vw,16px)', lineHeight:1.85, margin:'0 0 clamp(12px,1.5vw,20px)', flex:0 }}>{descDisp}</p>
-              <SkillBar skill={program.skill} color={program.color} active={isOpen} />
-              <h4 style={{ color:'#0a0a0a', fontSize:'11px', fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:'10px', marginTop:0 }}>
-                {lang==='de' ? 'Projekte' : 'Projects'}
-              </h4>
-              <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:'clamp(12px,1.5vw,20px)', flex:1 }}>
-                {program.works.map((work, i) => (
-                  <div key={i} style={{ background:'#f5f5f5', padding:'9px 14px', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'transform 0.2s, background 0.2s', cursor:'default' }} onMouseEnter={e=>{e.currentTarget.style.transform='translateX(4px)';e.currentTarget.style.background=program.color+'20'}} onMouseLeave={e=>{e.currentTarget.style.transform='translateX(0)';e.currentTarget.style.background='#f5f5f5'}}>
-                    <span style={{ fontSize:'13px', fontWeight:600, color:'#0a0a0a' }}>{work.title[lang]}</span>
-                    <span style={{ fontSize:9, backgroundColor:'#0a0a0a', color:'#fff', letterSpacing:'0.08em', textTransform:'uppercase', padding:'3px 7px' }}>{work.type[lang]}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
-                <span style={{ color:'#0a0a0a', fontSize:'clamp(14px,1.6vw,22px)', fontWeight:900, letterSpacing:'-0.5px', lineHeight:1 }}>
-                  {String(idx+1).padStart(2,'0')} / {String(totalPrograms).padStart(2,'0')}
-                </span>
-                <div style={{ display:'flex', gap:2 }}>
-                  <button onClick={()=>onNavigate('l')} style={iconBtn} onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='0.3'}>
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><polyline points="13,2 6,10 13,18" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter"/></svg>
-                  </button>
-                  <button onClick={()=>onNavigate('r')} style={iconBtn} onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='0.3'}>
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><polyline points="7,2 14,10 7,18" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter"/></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
+
+          <div style={{ marginTop: isMobile?'1.1em':'1.1em', display:'flex', flexWrap:'wrap', gap:8 }}>
+            {program.works.map((work, i) => (
+              <span key={i} style={{ border:'1px solid rgba(255,255,255,0.4)', color:'#fff', fontSize: isMobile?11:12, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', padding:'6px 12px', borderRadius:999 }}>
+                {work.title[lang]}
+              </span>
+            ))}
           </div>
         </div>
       </div>
+
+      <MagnetArrow side="left" mob={isMobile} onClick={() => onNavigate('l')} label="previous" visible={isOpen} />
+      <MagnetArrow side="right" mob={isMobile} onClick={() => onNavigate('r')} label="next" visible={isOpen} />
+      <ViewCursor show={isOpen} mode="close" />
     </>
   )
 }

@@ -1224,15 +1224,6 @@ function PanelContent({ project, idx, total, lang, doScramble, isMobile }: {
       }}>
         {project.tags[lang].map((tag, i) => <TagPill key={i} label={tag} isMobile={isMobile} />)}
       </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{
-          color: '#0a0a0a',
-          fontSize: isMobile ? '14px' : 'clamp(14px,1.6vw,22px)',
-          fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1,
-        }}>
-          {String(idx + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
-        </span>
-      </div>
     </div>
   )
 }
@@ -1730,6 +1721,8 @@ function MiniProjectFullscreen({ project, projects, onCloseStart, onClose, onNav
           </div>
         </div>
       </div>
+      <MagnetArrow side="left" mob={isMobile} onClick={() => navigate('l')} label={lang === 'de' ? 'Vorheriges Projekt' : 'Previous project'} visible={isOpen} />
+      <MagnetArrow side="right" mob={isMobile} onClick={() => navigate('r')} label={lang === 'de' ? 'Nächstes Projekt' : 'Next project'} visible={isOpen} />
     </>
   )
 }
