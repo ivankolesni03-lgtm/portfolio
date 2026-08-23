@@ -628,7 +628,7 @@ function ProjectCard({ project, overlayOpen, onClick, enterProgress, coverProgre
 }
 
 // ─── Cursor label (View on mini-cards, X on overlays) ─────────────────────────
-export function ViewCursor({ show, mode = 'view' }: { show: boolean; mode?: 'view' | 'close' }) {
+export function ViewCursor({ show, mode = 'view', color = '#ffffff' }: { show: boolean; mode?: 'view' | 'close'; color?: string }) {
   const { mouseX, mouseY } = useMouse()
   const { isMobile } = useScroll()
   const cursorId = useId()
@@ -655,16 +655,15 @@ export function ViewCursor({ show, mode = 'view' }: { show: boolean; mode?: 'vie
       zIndex: isClose ? 1000003 : 200001, pointerEvents: 'none',
       opacity: visible ? 1 : 0,
       visibility: visible ? 'visible' : 'hidden',
-      transition: visible ? 'opacity 0.12s ease' : 'none',
+      transition: 'opacity 0.15s ease',
     }}>
       {isClose ? (
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" style={{
           transform: visible ? 'scale(1)' : 'scale(0.6)',
           transition: 'transform 0.15s ease',
-          filter: 'drop-shadow(0 3px 10px rgba(0,0,0,0.5))',
         }}>
-          <line x1="5" y1="5" x2="21" y2="21" stroke="#ffffff" strokeWidth="4" strokeLinecap="square"/>
-          <line x1="21" y1="5" x2="5" y2="21" stroke="#ffffff" strokeWidth="4" strokeLinecap="square"/>
+          <line x1="5" y1="5" x2="21" y2="21" stroke={color} strokeWidth="4" strokeLinecap="square"/>
+          <line x1="21" y1="5" x2="5" y2="21" stroke={color} strokeWidth="4" strokeLinecap="square"/>
         </svg>
       ) : (
         <div style={{
@@ -674,7 +673,7 @@ export function ViewCursor({ show, mode = 'view' }: { show: boolean; mode?: 'vie
           textTransform: 'uppercase', whiteSpace: 'nowrap',
           transform: show ? 'scale(1)' : 'scale(0.6)',
           transition: 'transform 0.2s ease',
-          boxShadow: '0 6px 18px rgba(0,0,0,0.22)',
+          border: '1px solid #0a0a0a',
         }}>View</div>
       )}
     </div>
@@ -745,6 +744,12 @@ export function ProjectsSection({ onOverlayChange }: { onOverlayChange?: (open: 
     obs.observe(aiEl)
     return () => obs.disconnect()
   }, [])
+
+  useEffect(() => {
+    const handler = () => { if (openIdx !== null) close() }
+    window.addEventListener('app-reset-home', handler)
+    return () => window.removeEventListener('app-reset-home', handler)
+  }, [openIdx])
 
   return (
     <>
@@ -1423,6 +1428,18 @@ export function ProjectsMarquee({ embedded = false, statProgress = 0, onHoverCar
     setCloseCursorVisible(true)
     setOpenIdx(idx >= 0 ? idx : 0)
   }, [onHoverCards, setOpenIdx, setOpenRect])
+
+  useEffect(() => {
+    const handler = () => {
+      if (openIdx !== null) {
+        setOpenIdx(null)
+        setOpenRect(null)
+        setCloseCursorVisible(false)
+      }
+    }
+    window.addEventListener('app-reset-home', handler)
+    return () => window.removeEventListener('app-reset-home', handler)
+  }, [openIdx])
 
   return (
     <section

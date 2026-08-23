@@ -41,7 +41,19 @@ function ProgrammeHeading() {
         maxWidth: '85vw' 
       }}
     >
+      {!isMobile && (
+        <div aria-hidden="true" style={{
+          position: 'absolute',
+          top: '-3vw',
+          bottom: '-3vw',
+          left: '-3vw',
+          right: '-4.6vw',
+          zIndex: -1,
+          background: 'radial-gradient(ellipse closest-side at 50% 50%, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.32) 60%, rgba(0,0,0,0.1) 82%, transparent 100%)',
+        }} />
+      )}
       <div style={{
+        position: 'relative',
         fontSize: isMobile ? 'var(--mobile-heading-size)' : '8vw',           
         fontWeight: 900,           
         lineHeight: 0.95,         
@@ -108,7 +120,6 @@ export function InteractiveDots({
   const [simulatedNeighbors, setSimulatedNeighbors] = useState<Set<number>>(new Set())
   const [neighborIds, setNeighborIds] = useState<Set<number>>(new Set())
   const [openIdx, setOpenIdx] = useState<number | null>(null)
-  const [openRect, setOpenRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [phase, setPhase] = useState<'in' | 'open' | 'closing'>('in')
   const [lang] = useState<Lang>('de')
   const [showHint, setShowHint] = useState(false)
@@ -423,8 +434,7 @@ export function InteractiveDots({
     try { localStorage.setItem('toolkit-hint-seen', '1') } catch {}
   }, [])
 
-  const openOverlay = useCallback((idx: number, rect?: DOMRect) => {
-    if (rect) setOpenRect({ x: rect.left, y: rect.top, w: rect.width, h: rect.height })
+  const openOverlay = useCallback((idx: number) => {
     dismissHint()
     setOpenIdx(idx)
     document.body.style.overflow = 'hidden'
@@ -466,6 +476,20 @@ export function InteractiveDots({
       document.body.classList.remove('toolkit-overlay-open')
     }
   }, [])
+
+  useEffect(() => {
+    const handler = () => {
+      if (openIdx !== null) {
+        setOpenIdx(null)
+        setPhase('in')
+        document.body.style.overflow = ''
+        document.body.classList.remove('toolkit-overlay-open')
+        resyncHoverFromCursor()
+      }
+    }
+    window.addEventListener('app-reset-home', handler)
+    return () => window.removeEventListener('app-reset-home', handler)
+  }, [openIdx, resyncHoverFromCursor])
 
   const navigate = useCallback((dir: 'l' | 'r') => {
     if (phase !== 'open') return
@@ -725,8 +749,8 @@ export function InteractiveDots({
       }
 
       return (
-        <button key={circle.id} onClick={(e) => openOverlay(circle.iconIndex, e.currentTarget.getBoundingClientRect())}
-          style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize, cursor:'pointer', zIndex: isHovered || isTouchRevealed ? 12 : 10, border:'none', background:'none', padding:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <button key={circle.id} onClick={() => openOverlay(circle.iconIndex)}
+          style={{ position:'absolute', left: circle.x - circleSize/2, top: circle.y - circleSize/2, width: circleSize, height: circleSize, cursor:'pointer', zIndex: isHovered || isTouchRevealed ? 12 : 10, border:'none', background:'none', padding:0, display:'flex', alignItems:'center', justifyContent:'center', outline:'none', WebkitTapHighlightColor:'transparent', appearance:'none', WebkitAppearance:'none', borderRadius:'18%' }}>
           <div className={isHovered ? 'toolkit-icon-halo' : undefined} style={{ width: circleSize, height: circleSize, borderRadius:'18%', overflow:'hidden', opacity, transition, transform:`scale(${scale})`, transformOrigin:'center' }}>
             <img src={program.iconImg} alt={program.name[lang]}
               style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
@@ -778,6 +802,14 @@ export function InteractiveDots({
           }}>
             <ProgrammeHeading />
             {renderedCircles}
+            {!isMobile && (
+              <>
+                <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '17vh', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '17vh', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '13vw', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '13vw', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to left, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
+              </>
+            )}
             {showHint && (
               <div
                 onClick={dismissHint}
@@ -812,7 +844,7 @@ export function InteractiveDots({
       </div>
 
       {selectedProgram && (
-        <Overlay program={selectedProgram} idx={openIdx!} totalPrograms={programs.length} phase={phase} onClose={closeOverlay} onNavigate={navigate} lang={lang} originRect={openRect} isMobile={isMobile} />
+        <Overlay program={selectedProgram} idx={openIdx!} totalPrograms={programs.length} phase={phase} onClose={closeOverlay} onNavigate={navigate} lang={lang} isMobile={isMobile} />
       )}
     </>
   )
@@ -965,11 +997,10 @@ const GRADIENT_VARIANTS = [
 ]
 
 // ── Overlay ───────────────────────────────────────────────────────────────────
-function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang, originRect, isMobile }: {
+function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang, isMobile }: {
   program: Program; idx: number; totalPrograms: number
   phase: 'in' | 'open' | 'closing'; onClose: () => void
   onNavigate: (dir: 'l' | 'r') => void; lang: Lang
-  originRect: { x: number; y: number; w: number; h: number } | null
   isMobile: boolean
 }) {
   const [titleDisp, setTitleDisp] = useState(program.name[lang])
@@ -979,8 +1010,7 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
   const descRef = useRef<(() => void) | null>(null)
   const isOpen = phase === 'open'
   const isOpening = phase === 'in'
-  const isClosing = phase === 'closing'
-  const { vw, vh, isShort } = useScroll()
+  const { isShort } = useScroll()
   const variant = GRADIENT_VARIANTS[program.id % GRADIENT_VARIANTS.length]
 
   useEffect(() => {
@@ -1002,10 +1032,6 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
     return () => clearTimeout(t)
   }, [isOpen, program.skill])
 
-  const originTransform = originRect
-    ? `translate(${originRect.x + originRect.w / 2 - vw / 2}px, ${originRect.y + originRect.h / 2 - vh / 2}px) scale(${originRect.w / vw}, ${originRect.h / vh})`
-    : 'scale(0.1)'
-
   return (
     <>
       <style>{`
@@ -1026,11 +1052,11 @@ function Overlay({ program, idx, totalPrograms, phase, onClose, onNavigate, lang
         style={{
           position: 'fixed', inset: 0, zIndex: 1000003,
           backgroundColor: '#0a0a0a',
-          transform: isOpening ? originTransform : isClosing ? 'scale(0.94)' : 'scale(1)',
-          opacity: isClosing ? 0 : 1,
+          transform: isOpen ? 'scale(1)' : 'scale(0.94)',
+          opacity: isOpen ? 1 : 0,
           transition: isOpening
-            ? 'transform 640ms cubic-bezier(0.16,1,0.3,1), opacity 300ms ease'
-            : 'transform 420ms cubic-bezier(0.16,1,0.3,1), opacity 0.32s ease',
+            ? 'transform 480ms cubic-bezier(0.16,1,0.3,1), opacity 420ms ease'
+            : 'transform 380ms cubic-bezier(0.16,1,0.3,1), opacity 0.32s ease',
           transformOrigin: 'center center',
           cursor: 'none',
           overflow: 'hidden',

@@ -364,6 +364,12 @@ body.overlay-open .fixed-ui {
   filter: blur(8px) !important;
   transition: filter 0.25s ease !important;
 }
+/* Ivan Kolesnikov / DE-ENG must stay perfectly sharp while the Interactive
+   Dots (toolkit) overlay is open — that overlay intentionally does not
+   trigger the blur used by the main project overlay above. */
+body.toolkit-overlay-open .fixed-ui {
+  filter: none !important;
+}
 body.overlay-open .fixed-ui .nav__brand,
 body.overlay-open .fixed-ui .nav__link,
 body.overlay-open .fixed-ui .nav__text-content,

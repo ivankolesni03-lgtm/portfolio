@@ -375,9 +375,13 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
   }, [ivanScramble, kolesnikovScramble])
 
   const handleNavClick = useCallback(() => {
-    if (progress >= 0.95) {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+    if (progress < 0.95) return
+    // Reliable full reset: force-close any open overlay across all sections,
+    // restore scroll locking side-effects, then jump to the very top.
+    window.dispatchEvent(new Event('app-reset-home'))
+    document.body.style.overflow = ''
+    document.body.classList.remove('overlay-open', 'hide-x-cursor', 'x-cursor-open', 'toolkit-overlay-open')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [progress])
 
   const handleTouchStart = useCallback(() => {
@@ -428,7 +432,7 @@ export function AnimatedLogo({ isScrolled, onMouseMove }: { isScrolled: boolean;
         style={{
           left,
           top,
-          zIndex: isInNav ? 1000002 : 15,
+          zIndex: isInNav ? 2000000 : 15,
           pointerEvents: 'none',
           mixBlendMode: isInNav ? undefined : 'difference',
         }}
