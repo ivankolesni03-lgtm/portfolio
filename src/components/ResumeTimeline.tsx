@@ -267,6 +267,15 @@ function StationOverlay({ entry, phase, onClose, onNavigate, lang, originRect, i
   const isClosing = phase === 'closing'
   const { vw, vh } = useScroll()
   const variant = LIGHT_GRADIENT_VARIANTS[entry.id % LIGHT_GRADIENT_VARIANTS.length]
+  // Shrink the title on mobile when it contains a very long single word, so it
+  // always wraps to fit within the available width instead of overflowing
+  // toward the edge (or the nav arrow).
+  const longestTitleWord = Math.max(...entry.title[lang].split(/[\s\n]+/).map(w => w.length), 1)
+  const mobileTitleFontSize = longestTitleWord >= 13
+    ? 'clamp(30px, 6.4vw, 52px)'
+    : longestTitleWord >= 10
+      ? 'clamp(32px, 7.2vw, 60px)'
+      : 'var(--mobile-overlay-title-size)'
 
   useEffect(() => {
     runScramble(entry.title[lang], setTitleDisp, titleRef)
@@ -282,20 +291,16 @@ function StationOverlay({ entry, phase, onClose, onNavigate, lang, originRect, i
     ? `translate(${originRect.x + originRect.w / 2 - vw / 2}px, ${originRect.y + originRect.h / 2 - vh / 2}px) scale(${originRect.w / vw}, ${originRect.h / vh})`
     : 'scale(0.1)'
 
-  const closeBtn: React.CSSProperties = { background:'none', border:'none', cursor:'pointer', padding:6, lineHeight:0, opacity:0.3, transition:'opacity 0.15s', display:'flex', alignItems:'center', justifyContent:'center' }
-
   return (
     <>
-      {!isMobile && (
-        <style>{`
-          @keyframes stationContentIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-          @keyframes stationColorIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes stationBgDrift1 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 33% { transform: translate(10vw, 13vh) scale(1.32) rotate(14deg); } 66% { transform: translate(-8vw, 9vh) scale(0.8) rotate(-11deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
-          @keyframes stationBgDrift2 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 33% { transform: translate(-11vw, -9vh) scale(1.25) rotate(-16deg); } 66% { transform: translate(9vw, -13vh) scale(0.78) rotate(12deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
-          @keyframes stationBgDrift3 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 40% { transform: translate(-13vw, 11vh) scale(1.35) rotate(-15deg); } 70% { transform: translate(9vw, -8vh) scale(0.76) rotate(9deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
-          @keyframes stationBgDrift4 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 40% { transform: translate(13vw, 12vh) scale(0.75) rotate(16deg); } 70% { transform: translate(-9vw, -10vh) scale(1.3) rotate(-12deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
-        `}</style>
-      )}
+      <style>{`
+        @keyframes stationContentIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes stationColorIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes stationBgDrift1 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 33% { transform: translate(10vw, 13vh) scale(1.32) rotate(14deg); } 66% { transform: translate(-8vw, 9vh) scale(0.8) rotate(-11deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+        @keyframes stationBgDrift2 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 33% { transform: translate(-11vw, -9vh) scale(1.25) rotate(-16deg); } 66% { transform: translate(9vw, -13vh) scale(0.78) rotate(12deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+        @keyframes stationBgDrift3 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 40% { transform: translate(-13vw, 11vh) scale(1.35) rotate(-15deg); } 70% { transform: translate(9vw, -8vh) scale(0.76) rotate(9deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+        @keyframes stationBgDrift4 { 0% { transform: translate(0,0) scale(1) rotate(0deg); } 40% { transform: translate(13vw, 12vh) scale(0.75) rotate(16deg); } 70% { transform: translate(-9vw, -10vh) scale(1.3) rotate(-12deg); } 100% { transform: translate(0,0) scale(1) rotate(0deg); } }
+      `}</style>
       {/* Bare, always-full-viewport click catcher. Kept free of children so clicks in any
           decorative (pointer-events:none) area of the visual layer above pass straight through
           to this element's onClick via CSS hit-testing, instead of relying on JS bubbling. */}
@@ -325,37 +330,29 @@ function StationOverlay({ entry, phase, onClose, onNavigate, lang, originRect, i
         transformOrigin: 'center center',
         overflow: 'hidden',
       }}>
-        {!isMobile && (
-          <>
-            <div key={`bg-${entry.id}`} style={{
-              position: 'absolute', inset: 0,
-              background: variant.bg,
-              animation: 'stationColorIn 0.45s ease both',
+        <>
+          <div key={`bg-${entry.id}`} style={{
+            position: 'absolute', inset: 0,
+            background: variant.bg,
+            animation: 'stationColorIn 0.45s ease both',
+          }} />
+          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+            <div style={{
+              position: 'absolute', width: variant.blob1.width, height: variant.blob1.height,
+              left: variant.blob1.left, top: variant.blob1.top, right: variant.blob1.right, bottom: variant.blob1.bottom,
+              background: `radial-gradient(circle, ${variant.blob1.color} 0%, transparent 70%)`,
+              filter: 'blur(55px)',
+              animation: `${variant.blob1.anim} ${variant.blob1.dur} ease-in-out infinite`,
             }} />
-            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-              <div style={{
-                position: 'absolute', width: variant.blob1.width, height: variant.blob1.height,
-                left: variant.blob1.left, top: variant.blob1.top, right: variant.blob1.right, bottom: variant.blob1.bottom,
-                background: `radial-gradient(circle, ${variant.blob1.color} 0%, transparent 70%)`,
-                filter: 'blur(55px)',
-                animation: `${variant.blob1.anim} ${variant.blob1.dur} ease-in-out infinite`,
-              }} />
-              <div style={{
-                position: 'absolute', width: variant.blob2.width, height: variant.blob2.height,
-                left: variant.blob2.left, top: variant.blob2.top, right: variant.blob2.right, bottom: variant.blob2.bottom,
-                background: `radial-gradient(circle, ${variant.blob2.color} 0%, transparent 70%)`,
-                filter: 'blur(65px)',
-                animation: `${variant.blob2.anim} ${variant.blob2.dur} ease-in-out infinite`,
-              }} />
-            </div>
-          </>
-        )}
-
-        {isMobile && (
-          <button onClick={(e) => { e.stopPropagation(); onClose() }} style={{ ...closeBtn, position:'absolute', top:18, right:18, zIndex:3, pointerEvents:'auto' }} onMouseEnter={e=>e.currentTarget.style.opacity='1'} onMouseLeave={e=>e.currentTarget.style.opacity='0.3'}>
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><line x1="1" y1="1" x2="17" y2="17" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square"/><line x1="17" y1="1" x2="1" y2="17" stroke="#0a0a0a" strokeWidth="3" strokeLinecap="square"/></svg>
-          </button>
-        )}
+            <div style={{
+              position: 'absolute', width: variant.blob2.width, height: variant.blob2.height,
+              left: variant.blob2.left, top: variant.blob2.top, right: variant.blob2.right, bottom: variant.blob2.bottom,
+              background: `radial-gradient(circle, ${variant.blob2.color} 0%, transparent 70%)`,
+              filter: 'blur(65px)',
+              animation: `${variant.blob2.anim} ${variant.blob2.dur} ease-in-out infinite`,
+            }} />
+          </div>
+        </>
 
         {!isMobile && (
           <div key={`icon-${entry.id}`} style={{
@@ -376,7 +373,7 @@ function StationOverlay({ entry, phase, onClose, onNavigate, lang, originRect, i
           </div>
         )}
 
-        <div onClick={isMobile ? (e => e.stopPropagation()) : undefined} style={{
+        <div onClick={isMobile ? onClose : undefined} style={{
           position: 'absolute',
           left: isMobile ? 'var(--mobile-overlay-side)' : '8vw',
           right: isMobile ? 'var(--mobile-overlay-side)' : '30vw',
@@ -389,27 +386,29 @@ function StationOverlay({ entry, phase, onClose, onNavigate, lang, originRect, i
           // Desktop: no pointer capture here, so any click over the text block
           // (including empty padding within its bounding box) always falls
           // through to the full-viewport close catcher below — closing must
-          // never require a second click. Mobile keeps pointer capture for
-          // scrolling + tap-to-select without closing.
+          // never require a second click. Mobile: pointer capture stays (needed
+          // for scroll), but a tap (no drag) now closes directly — mobile
+          // browsers suppress the click event when the tap was actually a
+          // scroll drag, so scrolling still works normally.
           pointerEvents: isMobile ? 'auto' : 'none',
           overflowY: isMobile ? 'auto' : undefined,
           WebkitOverflowScrolling: isMobile ? 'touch' : undefined,
         }}>
           {isMobile && (
-            <div style={{ width:72, height:72, borderRadius:12, overflow:'hidden', marginBottom:'0.9em', boxShadow:'0 14px 40px rgba(0,0,0,0.16)' }}>
+            <div style={{ width:72, height:72, borderRadius:12, overflow:'hidden', marginBottom:'0.9em', boxShadow:'0 6px 18px rgba(0,0,0,0.12)' }}>
               <img src={entry.img} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
             </div>
           )}
-          <h2 style={{ fontSize: isMobile?'var(--mobile-overlay-title-size)':'clamp(36px,5.2vw,84px)', fontWeight:900, lineHeight:0.95, letterSpacing:'-1.5px', textTransform:'uppercase', color:'#0a0a0a', margin:0, whiteSpace:'pre-line' }}>
+          <h2 style={{ fontSize: isMobile?mobileTitleFontSize:'clamp(36px,5.2vw,84px)', fontWeight:900, lineHeight:0.95, letterSpacing:'-1.5px', textTransform:'uppercase', color:'#0a0a0a', margin:0, whiteSpace:'pre-line', overflowWrap:'break-word', wordBreak:'break-word' }}>
             {titleDisp}
           </h2>
           {entry.org[lang] && (
-            <div style={{ display:'block', marginTop: isMobile?'0.4em':'0.35em', marginBottom:0, fontSize: isMobile?'var(--mobile-overlay-subtitle-size)':'clamp(16px,1.8vw,28px)', fontWeight:700, fontStyle:'italic', letterSpacing:'-0.3px', lineHeight:1, color:'#333', whiteSpace:'pre-line' }}>
+            <div style={{ display:'block', marginTop: isMobile?'0.4em':'0.35em', marginBottom:0, fontSize: isMobile?'var(--mobile-overlay-subtitle-size)':'clamp(16px,1.8vw,28px)', fontWeight:700, fontStyle:'italic', letterSpacing:'-0.3px', lineHeight:1, color:'#333', whiteSpace:'pre-line', overflowWrap:'break-word', wordBreak:'break-word' }}>
               {entry.org[lang]}
             </div>
           )}
           {entry.periodDetail[lang] && (
-            <div style={{ display:'block', marginTop: 0, fontSize: isMobile?'var(--mobile-overlay-subtitle-size)':'clamp(16px,1.8vw,28px)', fontWeight:700, fontStyle:'italic', letterSpacing:'-0.3px', lineHeight:1, color:'#333', whiteSpace:'pre-line' }}>
+            <div style={{ display:'block', marginTop: 0, fontSize: isMobile?'var(--mobile-overlay-subtitle-size)':'clamp(16px,1.8vw,28px)', fontWeight:700, fontStyle:'italic', letterSpacing:'-0.3px', lineHeight:1, color:'#333', whiteSpace:'pre-line', overflowWrap:'break-word', wordBreak:'break-word' }}>
               {entry.periodDetail[lang]}
             </div>
           )}

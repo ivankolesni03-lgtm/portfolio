@@ -95,10 +95,10 @@
   --mobile-body-size: clamp(16px, 4.5vw, 20px);
   --mobile-body-line: 1.28;
   --mobile-section-gap: clamp(32px, 8vw, 52px);
-  --mobile-overlay-side: 6vw;
-  --mobile-overlay-bottom: 9vh;
-  --mobile-overlay-title-size: 10vw;
-  --mobile-overlay-subtitle-size: 4.6vw;
+  --mobile-overlay-side: 8.5vw;
+  --mobile-overlay-bottom: 11vh;
+  --mobile-overlay-title-size: 8vw;
+  --mobile-overlay-subtitle-size: 4.2vw;
   --mobile-overlay-copy-size: 3.6vw;
   --mobile-overlay-tag-size: 3vw;
   --mobile-nav-top: 12px;
