@@ -227,6 +227,16 @@ export function InteractiveDots({
     return () => { window.removeEventListener('resize', onResize); clearTimeout(t) }
   }, [generateCircles])
 
+  // Auf Mobile ändert sich die tatsächliche Viewport-Höhe (Adressleiste
+  // ein-/ausblenden), ohne dass zuverlässig ein window-'resize'-Event
+  // feuert. vh/vw aus useScroll verfolgen die echte visuelle Höhe – das
+  // Grid muss bei deren Änderung neu berechnet werden, sonst bleibt es auf
+  // Basis der alten (kleineren) Höhe stehen und füllt nicht bis zum unteren
+  // Rand.
+  useEffect(() => {
+    generateCircles()
+  }, [vh, vw, generateCircles])
+
 
   const interactionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastMousePosRef = useRef<{ x: number; y: number } | null>(null)
@@ -802,7 +812,14 @@ export function InteractiveDots({
           }}>
             <ProgrammeHeading />
             {renderedCircles}
-            {!isMobile && (
+            {isMobile ? (
+              <>
+                <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '12vh', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '12vh', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '8vw', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '8vw', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to left, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
+              </>
+            ) : (
               <>
                 <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '17vh', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />
                 <div aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '17vh', zIndex: 15, pointerEvents: 'none', background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 78%, transparent 100%)' }} />

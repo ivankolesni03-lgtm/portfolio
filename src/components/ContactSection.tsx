@@ -396,7 +396,7 @@ function HaseEyesModel({ size }: { size: number }) {
       scene.add(group)
 
       new GLTFLoader().setDRACOLoader(dracoLoader).load(
-        '/models/hase01.glb',
+        '/models/hase01-v2.glb',
         (gltf: any) => {
           if (cancelled) return
           const model = gltf.scene
