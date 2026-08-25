@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: projectRoot,
   },
+  async headers() {
+    return [
+      {
+        source: "/models/:path*.glb",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

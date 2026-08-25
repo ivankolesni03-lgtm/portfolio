@@ -337,6 +337,210 @@ function Eyes({
   )
 }
 
+// ─── HaseEyesModel (PROVISORISCH – Testersatz für die Augen) ─────────────────
+// Ersetzt testweise die Eyes-Grafik durch das hase01.glb in Chrom/Silber.
+// Dreht sich sanft zum Cursor (wie figur01.glb in GWASection). Nicht verschiebbar.
+function HaseEyesModel({ size }: { size: number }) {
+  const mountRef = useRef<HTMLDivElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const { mouseX, mouseY } = useMouse()
+  const mouseRef = useRef({ x: 0, y: 0 })
+
+  useEffect(() => { mouseRef.current = { x: mouseX, y: mouseY } }, [mouseX, mouseY])
+
+  useEffect(() => {
+    const mount = mountRef.current
+    if (!mount) return
+    let cancelled = false
+    let cleanupFn: (() => void) | null = null
+
+    const init = async () => {
+      const THREE = await import('three')
+      const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js') as any
+      const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js') as any
+      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js') as any
+      if (cancelled) return
+
+      const dracoLoader = new DRACOLoader()
+      dracoLoader.setDecoderPath('/draco/')
+
+      const w = mount.clientWidth || size
+      const h = mount.clientHeight || size
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100)
+      camera.position.set(0, 0, 5)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      renderer.setSize(w, h)
+      renderer.setClearColor(0x000000, 0)
+      mount.appendChild(renderer.domElement)
+
+      // Studio-Environment für Reflexionen – sonst wirkt volles Metall schwarz.
+      const pmremGenerator = new THREE.PMREMGenerator(renderer)
+      const envTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture
+      scene.environment = envTexture
+
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2))
+      scene.add(new THREE.AmbientLight(0xffffff, 0.9))
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.6)
+      dirLight.position.set(3, 4, 5)
+      scene.add(dirLight)
+      const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.7)
+      dirLight2.position.set(-4, -2, -3)
+      scene.add(dirLight2)
+
+      const group = new THREE.Group()
+      group.position.set(-0.1, -0.15, 0)
+      scene.add(group)
+
+      new GLTFLoader().setDRACOLoader(dracoLoader).load(
+        '/models/hase01.glb',
+        (gltf: any) => {
+          if (cancelled) return
+          const model = gltf.scene
+          model.traverse((c: any) => {
+            if (c.isMesh) {
+              c.material = new THREE.MeshStandardMaterial({
+                color: 0xd8dade, metalness: 1, roughness: 0.22, envMapIntensity: 1.4,
+              })
+            }
+          })
+          const box = new THREE.Box3().setFromObject(model)
+          const modelSize = box.getSize(new THREE.Vector3())
+          const center = box.getCenter(new THREE.Vector3())
+          const maxDim = Math.max(modelSize.x, modelSize.y, modelSize.z) || 1
+          const scale = 2.6 / maxDim
+          model.scale.setScalar(scale)
+          model.position.sub(center.multiplyScalar(scale))
+          group.add(model)
+        },
+        undefined,
+        (err: any) => console.error('hase01.glb load error', err)
+      )
+
+      const targetRot = { x: 0, y: 0.4 }
+      const currentRot = { x: 0, y: 0.4 }
+      // dragOffset ist die manuell hinzugefügte Rotation (durch Ziehen). Sie
+      // wird immer zur Cursor-Basisrotation addiert, damit es beim
+      // Loslassen keinen Sprung gibt – die Basis und der Offset ändern sich
+      // beide nur kontinuierlich, nie sprunghaft.
+      const dragOffset = { x: 0, y: 0 }
+
+      const computeBaseRotation = () => {
+        const wrap = wrapperRef.current
+        if (!wrap) return { x: 0, y: 0 }
+        const r = wrap.getBoundingClientRect()
+        return {
+          x: ((mouseRef.current.y - (r.top + r.height / 2)) / (r.height / 2)) * 0.22,
+          y: ((mouseRef.current.x - (r.left + r.width / 2)) / (r.width / 2)) * 0.26,
+        }
+      }
+
+      // Gedrückthalten + Ziehen dreht das Modell frei um sich selbst – die
+      // Position (group.position) wird dabei nie verändert, nur die Rotation.
+      let dragging = false
+      let lastPointer = { x: 0, y: 0 }
+      let frozenBase = { x: 0, y: 0 }
+
+      const onPointerDown = (e: PointerEvent) => {
+        dragging = true
+        lastPointer = { x: e.clientX, y: e.clientY }
+        frozenBase = computeBaseRotation()
+        mount.style.cursor = 'grabbing'
+        // Bewusst KEIN setPointerCapture UND KEIN e.preventDefault() hier:
+        // preventDefault() auf pointerdown unterdrückt laut Spec alle
+        // nachfolgenden kompatiblen Maus-Events (u.a. mousemove) für diesen
+        // Pointer, was die globale Mausverfolgung (MouseContext/CustomCursor)
+        // einfrieren lässt, solange gedrückt gehalten wird. Textauswahl
+        // verhindern wir stattdessen gezielt per CSS.
+        document.body.style.userSelect = 'none'
+        window.addEventListener('pointermove', onPointerMove)
+        window.addEventListener('pointerup', onPointerUp)
+        window.addEventListener('pointercancel', onPointerUp)
+      }
+      const onPointerMove = (e: PointerEvent) => {
+        if (!dragging) return
+        const dx = e.clientX - lastPointer.x
+        const dy = e.clientY - lastPointer.y
+        lastPointer = { x: e.clientX, y: e.clientY }
+        dragOffset.y += dx * 0.012
+        dragOffset.x += dy * 0.012
+      }
+      const onPointerUp = (e: PointerEvent) => {
+        if (!dragging) return
+        dragging = false
+        // Basis am Loslass-Zeitpunkt neu berechnen und den Offset so
+        // anpassen, dass targetRot exakt gleich bleibt – dadurch geht die
+        // Cursor-Rotation danach nahtlos weiter, ohne zu springen.
+        const base = computeBaseRotation()
+        dragOffset.x = targetRot.x - base.x
+        dragOffset.y = targetRot.y - base.y
+        mount.style.cursor = 'grab'
+        document.body.style.userSelect = ''
+        window.removeEventListener('pointermove', onPointerMove)
+        window.removeEventListener('pointerup', onPointerUp)
+        window.removeEventListener('pointercancel', onPointerUp)
+      }
+
+      mount.style.cursor = 'grab'
+      mount.style.touchAction = 'none'
+      mount.addEventListener('pointerdown', onPointerDown)
+
+      let raf = 0
+      const animate = () => {
+        raf = requestAnimationFrame(animate)
+        const base = dragging ? frozenBase : computeBaseRotation()
+        targetRot.x = base.x + dragOffset.x
+        targetRot.y = base.y + dragOffset.y
+        currentRot.x += (targetRot.x - currentRot.x) * 0.06
+        currentRot.y += (targetRot.y - currentRot.y) * 0.06
+        group.rotation.x = currentRot.x
+        group.rotation.y = currentRot.y
+        renderer.render(scene, camera)
+      }
+      animate()
+
+      const onResize = () => {
+        const nw = mount.clientWidth || size
+        const nh = mount.clientHeight || size
+        camera.aspect = nw / nh
+        camera.updateProjectionMatrix()
+        renderer.setSize(nw, nh)
+      }
+      window.addEventListener('resize', onResize)
+
+      cleanupFn = () => {
+        cancelAnimationFrame(raf)
+        window.removeEventListener('resize', onResize)
+        mount.removeEventListener('pointerdown', onPointerDown)
+        window.removeEventListener('pointermove', onPointerMove)
+        window.removeEventListener('pointerup', onPointerUp)
+        window.removeEventListener('pointercancel', onPointerUp)
+        document.body.style.userSelect = ''
+        pmremGenerator.dispose()
+        renderer.dispose()
+        if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
+      }
+    }
+    init()
+    return () => { cancelled = true; cleanupFn?.() }
+  }, [size])
+
+  return (
+    <div
+      ref={wrapperRef}
+      style={{
+        width: size,
+        height: size,
+      }}
+    >
+      <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+    </div>
+  )
+}
+
 // ─── ContactSection ──────────────────────────────────────────────────────────
 export function ContactSection() {
   const { language } = useLanguage()
@@ -444,12 +648,12 @@ export function ContactSection() {
             }}
           >{headingDisp}</h2>
 
-          {/* Eyes – compact row on mobile */}
+          {/* Eyes – provisorisch durch hase01.glb ersetzt (Test) */}
           <div
             ref={eyesRef}
             style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: tightMobile ? 46 : compactMobile ? 64 : 80 }}
           >
-            <Eyes containerRef={eyesRef} success={status === 'success'} isMobile={true} />
+            <HaseEyesModel size={tightMobile ? 170 : compactMobile ? 215 : 250} />
           </div>
 
           {/* Form or success */}
@@ -545,6 +749,7 @@ export function ContactSection() {
         display: 'flex',
         flexDirection: 'row',
         paddingTop: 'clamp(60px,10vw,120px)',
+        position: 'relative',
       }}>
         {/* Left: Form */}
         <div style={{
@@ -621,16 +826,20 @@ export function ContactSection() {
           </div>
         </div>
 
-        {/* Right: Eyes */}
+        {/* Right: provisorisch durch hase01.glb ersetzt (Test) */}
+        {/* position:absolute damit die Größe/Reflow der Überschrift (Scramble-Effekt)
+            die Position des 3D-Modells niemals beeinflussen kann. */}
         <div
           ref={eyesRef}
           style={{
-            flex: 1,
+            position: 'absolute',
+            top: '50%',
+            right: '9vw',
+            transform: 'translateY(-50%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            paddingRight: '9vw',
           }}
         >
-          <Eyes containerRef={eyesRef} success={status === 'success'} isMobile={false} />
+          <HaseEyesModel size={480} />
         </div>
       </div>
 

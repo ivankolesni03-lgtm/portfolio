@@ -143,8 +143,12 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
     const init = async () => {
       const THREE = await import('three')
       const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js') as any
+      const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js') as any
       const { OrbitControls } = await import('three/addons/controls/OrbitControls.js') as any
+      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js') as any
       if (cancelled) return
+      const dracoLoader = new DRACOLoader()
+      dracoLoader.setDecoderPath('/draco/')
       const w = el.clientWidth; const h = el.clientHeight || 500
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
       renderer.setSize(w, h); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -154,6 +158,12 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(42, w / h, 0.01, 100)
       camera.position.set(0, 0.2, 2.2)
+
+      // Chrome/silver look needs reflections — same studio environment map as hase01.glb.
+      const pmremGenerator = new THREE.PMREMGenerator(renderer)
+      const envTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture
+      scene.environment = envTexture
+
       scene.add(new THREE.AmbientLight(0xfff8f0, 1.4))
       const key = new THREE.DirectionalLight(0xffffff, 3.0); key.position.set(3, 5, 4); key.castShadow = true; scene.add(key)
       const fill = new THREE.DirectionalLight(0xfff0d0, 1.2); fill.position.set(-4, 2, -2); scene.add(fill)
@@ -164,23 +174,10 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
       controls.enablePan = false; controls.enableZoom = false
       controls.minDistance = 2.8; controls.maxDistance = 2.8
       controls.autoRotate = false; controls.target.set(0, 0, 0)
-      const targetRot = { x: 0, y: 0 }
       let autoRotationY = 0
-      
-      // Mouse tracking function reads from ref (updated by context)
-      const updateMouseRotation = () => {
-        if (autoRotate) return
-        const sec = sectionRef.current; if (!sec) return
-        const sr = sec.getBoundingClientRect()
-        const mx = mouseRef.current.x
-        const my = mouseRef.current.y
-        if (mx < sr.left || mx > sr.right || my < sr.top || my > sr.bottom) return
-        targetRot.x = ((my - (sr.top + sr.height / 2)) / (sr.height / 2)) * 0.3
-        targetRot.y = ((mx - (sr.left + sr.width / 2)) / (sr.width / 2)) * 0.3
-      }
-      
+
       let loadedModel: any = null
-      new GLTFLoader().load('/models/figur01.glb', (gltf: any) => {
+      new GLTFLoader().setDRACOLoader(dracoLoader).load('/models/figur01.glb', (gltf: any) => {
         if (cancelled) return
         const model = gltf.scene
         const box = new THREE.Box3().setFromObject(model)
@@ -189,7 +186,14 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
         model.position.copy(center.multiplyScalar(-scale))
         if (autoRotate) model.position.y -= 0.08
         model.scale.setScalar(scale)
-        model.traverse((c: any) => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true } })
+        model.traverse((c: any) => {
+          if (c.isMesh) {
+            c.castShadow = true; c.receiveShadow = true
+            c.material = new THREE.MeshStandardMaterial({
+              color: 0xd8dade, metalness: 1, roughness: 0.22, envMapIntensity: 1.4,
+            })
+          }
+        })
         scene.add(model); loadedModel = model; controls.update()
       }, undefined, (err: any) => console.error('GLB load error:', err))
       const onResize = () => {
@@ -197,7 +201,8 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
         camera.aspect = nw / nh; camera.updateProjectionMatrix(); renderer.setSize(nw, nh)
       }
       window.addEventListener('resize', onResize)
-      let rafId = 0; const currentRot = { x: 0, y: 0 }
+      let rafId = 0
+      let idleSpin = 0
 
       // Touch drag rotation (mobile autoRotate mode)
       const touchDrag = {
@@ -268,10 +273,10 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
             loadedModel.rotation.y = autoRotationY
           }
         } else {
-          updateMouseRotation()
-          currentRot.x += (targetRot.x - currentRot.x) * 0.06
-          currentRot.y += (targetRot.y - currentRot.y) * 0.06
-          if (loadedModel) { loadedModel.rotation.x = currentRot.x; loadedModel.rotation.y = currentRot.y }
+          // Nur eine langsame, kontinuierliche Drehung um die eigene Achse –
+          // keine Neigung zum Cursor mehr.
+          idleSpin += 0.004
+          if (loadedModel) { loadedModel.rotation.x = 0; loadedModel.rotation.y = idleSpin }
         }
         
         controls.update(); renderer.render(scene, camera)
@@ -292,7 +297,7 @@ function Trophy3D({ sectionRef, autoRotate = false }: { sectionRef: React.RefObj
         el.removeEventListener('touchmove', onTouchMove)
         el.removeEventListener('touchend', onTouchEnd)
         el.removeEventListener('touchcancel', onTouchEnd)
-        controls.dispose(); renderer.dispose()
+        controls.dispose(); renderer.dispose(); pmremGenerator.dispose()
         if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement)
       }
     }
